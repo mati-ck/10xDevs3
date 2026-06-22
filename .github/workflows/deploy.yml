@@ -73,14 +73,23 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
             "${{ secrets.COOLIFY_URL }}/api/v1/applications/${{ secrets.COOLIFY_APP_UUID }}" || echo 000)
           [ "$http" = "200" ] || { echo "::error::Reading the application returned HTTP $http (needs 'read' scope)"; exit 1; }
-          # fqdn may be a comma-separated list with scheme included; take the first.
-          fqdn=$(grep -o '"fqdn":"[^"]*"' /tmp/app.json | head -1 | cut -d'"' -f4 | cut -d',' -f1)
-          [ -n "$fqdn" ] || { echo "::error::App has no fqdn set in Coolify"; exit 1; }
-          echo "probing $fqdn/health"
-          for i in $(seq 1 30); do
-            code=$(curl -o /dev/null -s -w '%{http_code}' "$fqdn/health" || true)
-            echo "  attempt $i -> HTTP $code"
-            [ "$code" = "200" ] && { echo "App is serving"; exit 0; }
-            sleep 5
-          done
-          echo "::error::App never returned 200 on $fqdn/health"; exit 1
+          # Coolify returns fqdn with JSON-escaped slashes (http:\/\/host) and possibly a
+          # comma list. Unescape, take the first, strip the scheme to the bare host.
+          host=$(grep -o '"fqdn":"[^"]*"' /tmp/app.json | head -1 | cut -d'"' -f4 \
+            | sed 's#\\/#/#g' | cut -d',' -f1 | sed -E 's#^[a-zA-Z]+://##' | cut -d'/' -f1)
+          [ -n "$host" ] || { echo "::error::App has no fqdn set in Coolify"; exit 1; }
+          probe() {
+            for i in $(seq 1 15); do
+              code=$(curl -L -o /dev/null -s -w '%{http_code}' "$1" || true)
+              echo "  $1 attempt $i -> HTTP $code"
+              [ "$code" = "200" ] && return 0
+              sleep 4
+            done
+            return 1
+          }
+          # TLS terminates at Traefik, so prefer https; fall back to http only if https
+          # can't connect at all.
+          probe "https://$host/health" && { echo "App is serving (https)"; exit 0; }
+          echo "https did not return 200, trying http..."
+          probe "http://$host/health"  && { echo "App is serving (http)";  exit 0; }
+          echo "::error::App never returned 200 on https/http //$host/health"; exit 1

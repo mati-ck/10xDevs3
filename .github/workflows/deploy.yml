@@ -3,6 +3,9 @@ name: Deploy to Coolify
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'context/**'
+      - '**/*.md'
   workflow_dispatch:
 
 # Coolify owns the build + release. This workflow triggers it and then makes the
@@ -78,18 +81,20 @@ jobs:
           host=$(grep -o '"fqdn":"[^"]*"' /tmp/app.json | head -1 | cut -d'"' -f4 \
             | sed 's#\\/#/#g' | cut -d',' -f1 | sed -E 's#^[a-zA-Z]+://##' | cut -d'/' -f1)
           [ -n "$host" ] || { echo "::error::App has no fqdn set in Coolify"; exit 1; }
-          probe() {
-            for i in $(seq 1 15); do
-              code=$(curl -L -o /dev/null -s -w '%{http_code}' "$1" || true)
-              echo "  $1 attempt $i -> HTTP $code"
-              [ "$code" = "200" ] && return 0
-              sleep 4
-            done
-            return 1
-          }
-          # TLS terminates at Traefik, so prefer https; fall back to http only if https
-          # can't connect at all.
-          probe "https://$host/health" && { echo "App is serving (https)"; exit 0; }
-          echo "https did not return 200, trying http..."
-          probe "http://$host/health"  && { echo "App is serving (http)";  exit 0; }
-          echo "::error::App never returned 200 on https/http //$host/health"; exit 1
+          # IMPORTANT: a status 200 alone is NOT proof the app is serving — an edge
+          # placeholder/parked page returns 200 for any path. MapHealthChecks("/health")
+          # returns the literal body "Healthy"; assert on that so a placeholder can't pass.
+          scheme=$(grep -o '"fqdn":"[^"]*"' /tmp/app.json | head -1 | cut -d'"' -f4 \
+            | sed 's#\\/#/#g' | grep -oiE '^https?' | head -1)
+          [ -n "$scheme" ] || scheme=https
+          url="$scheme://$host/health"
+          echo "verifying $url returns the app's health body"
+          for i in $(seq 1 20); do
+            body=$(curl -L -sS -m 12 "$url" 2>/dev/null || true)
+            case "$body" in
+              Healthy*) echo "App is serving: $url -> $body"; exit 0 ;;
+            esac
+            echo "  attempt $i -> not the app (got: $(printf '%s' "$body" | tr -d '\n' | head -c 60))"
+            sleep 5
+          done
+          echo "::error::$url never returned the app body 'Healthy'. The public URL is not routed to this app (edge currently serves a placeholder/404). Point the edge proxy for $host at Coolify, or fix the app's domain/TLS in Coolify."; exit 1

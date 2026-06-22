@@ -1,6 +1,6 @@
 # Deployment Plan — 10xNotes → Coolify (self-hosted)
 
-Baseline decision: `@context/foundation/infrastructure.md` (self-hosted Coolify). This runbook is the executable, re-runnable version of the first-deployment work. Platform = **Coolify v4** on the user's **TrueNAS** host, with a co-located self-hosted GitHub Actions runner (`truenas-runner`, labels `self-hosted, coolify`). Topology: **the runner gates on a build; Coolify owns the build + release** (no external CI deploys — see `@.claude/prompts/m1l5-2-constrain-approach.md`).
+Baseline decision: `@context/foundation/infrastructure.md` (self-hosted Coolify). This runbook is the executable, re-runnable version of the first-deployment work. Platform = **Coolify v4** on the user's **TrueNAS** host, with a co-located self-hosted GitHub Actions runner (`truenas-runner`, labels `self-hosted, coolify`). Topology: **the runner triggers + verifies; Coolify owns the build + release** (no external CI deploys — see `@.claude/prompts/m1l5-2-constrain-approach.md`). Note: the runner has **no Docker daemon access**, so a runner-side build gate isn't possible — a broken build surfaces as Coolify deployment `status=failed`, which the poll catches.
 
 ## Prerequisites
 
@@ -28,7 +28,7 @@ Baseline decision: `@context/foundation/infrastructure.md` (self-hosted Coolify)
 - [x] `docker run --rm -p 8080:8080 10xnotes:local` → `GET /health` = 200 "Healthy"; `GET /` = 200 with `blazor.web.js`; listens on `:8080`.
 
 ## Phase 3 — Truthful deploy verification (`deploy.yml`)
-- [x] Build gate on the runner (`docker build -t 10xnotes:ci .`) before triggering.
+- [x] ~~Build gate on the runner~~ — removed: the runner has no Docker daemon access (`docker build` → "Cannot connect to the Docker daemon"). Coolify owns the build; a failed build is caught by the poll below.
 - [x] Trigger `POST /api/v1/deploy?uuid=$APP` → capture `.deployments[0].deployment_uuid`.
 - [x] Poll `GET /api/v1/deployments/{uuid}` until `.status` is terminal: success on `finished`; fail on `failed` / `cancelled-by-user`; 15-minute timeout.
 - [x] Confirm the app serves: read `.fqdn` from `GET /api/v1/applications/$APP`, curl `<fqdn>/health` until 200 (≤30 tries). JSON parsed with `grep`/`cut` (no `jq` dependency).

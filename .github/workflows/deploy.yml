@@ -5,23 +5,18 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-# Topology: the self-hosted runner gates on a build, then triggers Coolify, which
-# owns the actual build+release. The job stays red until Coolify reports the
-# deployment "finished" AND the app answers 200 on /health — so a green check
-# means the app is genuinely deployed and serving, not just that the API accepted
-# the request. JSON is parsed with grep/cut to avoid a jq dependency on the runner.
+# Coolify owns the build + release. This workflow triggers it and then makes the
+# GitHub status truthful: it captures the deployment_uuid, polls until the
+# deployment reaches a terminal state, and confirms the app answers 200 on /health.
+# A green check means the app is genuinely deployed and serving, not just that the
+# API accepted the request. The self-hosted runner has no Docker daemon access, so
+# there is no local build step — a broken build surfaces as deployment status=failed.
+# JSON is parsed with grep/cut to avoid a jq dependency on the runner.
 
 jobs:
   deploy:
     runs-on: [self-hosted, coolify]
     steps:
-      - name: Check out
-        uses: actions/checkout@v4
-
-      # Fast-fail build gate (shares the TrueNAS Docker daemon with Coolify).
-      - name: Build image (gate)
-        run: docker build -t 10xnotes:ci .
-
       - name: Trigger Coolify deployment
         id: trigger
         run: |

@@ -1,16 +1,11 @@
 ---
 name: 10x-stack-assess
 description: >
-  Assess an existing project's stack for agent-friendliness using the 4 quality
-  gates (typed, convention-based, popular in training data, well-documented) as
-  an evaluation lens. Detects stack components from cwd, scores each against the
-  gates, identifies compensation strategies for failures, and writes
-  context/foundation/stack-assessment.md with per-component scores, gap analysis,
-  and ready-to-paste CLAUDE.md/AGENTS.md entries. Use when the user has an
-  existing project and wants to evaluate how well their stack supports AI agent
-  workflows. Trigger phrases: "assess my stack", "evaluate my project",
-  "is my stack agent-friendly", "oceń mój stack", "sprawdź projekt",
-  "stack assessment", "brownfield assessment".
+  Assess an existing project's stack for agent-friendliness against the 4
+  quality gates (typed, convention-based, popular, well-documented); writes
+  context/foundation/stack-assessment.md with per-component scores, gaps, and
+  ready-to-paste CLAUDE.md/AGENTS.md entries. Trigger phrases: "assess my
+  stack", "is my stack agent-friendly", "oceń mój stack", "stack assessment".
   Use AFTER /10x-prd (brownfield), BEFORE /10x-health-check.
 argument-hint: "[path-to-prd]"
 allowed-tools:

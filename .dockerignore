@@ -1,0 +1,19 @@
+# Build artifacts
+bin/
+obj/
+
+# VCS & CI
+.git/
+.gitignore
+.github/
+
+# Editor / OS
+.vs/
+.vscode/
+**/.DS_Store
+
+# Repo docs & agent context (not needed in the image build context)
+context/
+*.md
+Dockerfile
+.dockerignore

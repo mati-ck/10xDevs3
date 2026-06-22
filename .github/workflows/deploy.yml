@@ -5,12 +5,72 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Topology: the self-hosted runner gates on a build, then triggers Coolify, which
+# owns the actual build+release. The job stays red until Coolify reports the
+# deployment "finished" AND the app answers 200 on /health — so a green check
+# means the app is genuinely deployed and serving, not just that the API accepted
+# the request. JSON is parsed with grep/cut to avoid a jq dependency on the runner.
+
 jobs:
   deploy:
     runs-on: [self-hosted, coolify]
     steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      # Fast-fail build gate (shares the TrueNAS Docker daemon with Coolify).
+      - name: Build image (gate)
+        run: docker build -t 10xnotes:ci .
+
       - name: Trigger Coolify deployment
+        id: trigger
         run: |
-          curl --fail --silent --show-error -X POST \
+          resp=$(curl --fail --silent --show-error -X POST \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
-            "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=${{ secrets.COOLIFY_APP_UUID }}&force=false"
+            "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=${{ secrets.COOLIFY_APP_UUID }}") \
+            || { echo "::error::Coolify deploy trigger failed"; exit 1; }
+          echo "response: $resp"
+          # Response is always array-wrapped: .deployments[0].deployment_uuid
+          uuid=$(printf '%s' "$resp" | grep -o '"deployment_uuid":"[^"]*"' | head -1 | cut -d'"' -f4)
+          [ -n "$uuid" ] || { echo "::error::No deployment_uuid in Coolify response"; exit 1; }
+          echo "Deployment queued: $uuid"
+          echo "uuid=$uuid" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for the deployment to finish
+        run: |
+          uuid="${{ steps.trigger.outputs.uuid }}"
+          deadline=$(( $(date +%s) + 900 ))   # 15-minute cap
+          while :; do
+            body=$(curl --fail --silent --show-error \
+              -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+              "${{ secrets.COOLIFY_URL }}/api/v1/deployments/$uuid") \
+              || { echo "poll request failed, retrying"; sleep 10; continue; }
+            status=$(printf '%s' "$body" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
+            echo "deployment status: ${status:-unknown}"
+            case "$status" in
+              finished)                  echo "Coolify reports finished"; break ;;
+              failed|cancelled-by-user)  echo "::error::Deployment $status"; exit 1 ;;
+            esac
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "::error::Timed out after 15m waiting for deployment $uuid"; exit 1
+            fi
+            sleep 10
+          done
+
+      - name: Verify the app actually serves /health
+        run: |
+          app=$(curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            "${{ secrets.COOLIFY_URL }}/api/v1/applications/${{ secrets.COOLIFY_APP_UUID }}") \
+            || { echo "::error::Could not read application from Coolify"; exit 1; }
+          # fqdn may be a comma-separated list with scheme included; take the first.
+          fqdn=$(printf '%s' "$app" | grep -o '"fqdn":"[^"]*"' | head -1 | cut -d'"' -f4 | cut -d',' -f1)
+          [ -n "$fqdn" ] || { echo "::error::App has no fqdn set in Coolify"; exit 1; }
+          echo "probing $fqdn/health"
+          for i in $(seq 1 30); do
+            code=$(curl -o /dev/null -s -w '%{http_code}' "$fqdn/health" || true)
+            echo "  attempt $i -> HTTP $code"
+            [ "$code" = "200" ] && { echo "App is serving"; exit 0; }
+            sleep 5
+          done
+          echo "::error::App never returned 200 on $fqdn/health"; exit 1

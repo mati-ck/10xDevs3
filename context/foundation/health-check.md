@@ -2,7 +2,7 @@
 project: 10xNotes
 checked_at: 2026-05-28T20:50:33Z
 health_status: needs-attention
-context_type: brownfield
+context_type: greenfield
 language_family: dotnet
 stack_assessment_available: false
 checks_run:

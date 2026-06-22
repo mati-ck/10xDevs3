@@ -36,15 +36,25 @@ jobs:
           uuid="${{ steps.trigger.outputs.uuid }}"
           deadline=$(( $(date +%s) + 900 ))   # 15-minute cap
           while :; do
-            body=$(curl --fail --silent --show-error \
+            http=$(curl -s -o /tmp/dep.json -w '%{http_code}' \
               -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
-              "${{ secrets.COOLIFY_URL }}/api/v1/deployments/$uuid") \
-              || { echo "poll request failed, retrying"; sleep 10; continue; }
-            status=$(printf '%s' "$body" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
-            echo "deployment status: ${status:-unknown}"
-            case "$status" in
-              finished)                  echo "Coolify reports finished"; break ;;
-              failed|cancelled-by-user)  echo "::error::Deployment $status"; exit 1 ;;
+              "${{ secrets.COOLIFY_URL }}/api/v1/deployments/$uuid" || echo 000)
+            case "$http" in
+              200)
+                status=$(grep -o '"status":"[^"]*"' /tmp/dep.json | head -1 | cut -d'"' -f4)
+                echo "deployment status: ${status:-unknown}"
+                case "$status" in
+                  finished)                  echo "Coolify reports finished"; break ;;
+                  failed|cancelled-by-user)  echo "::error::Deployment $status"; exit 1 ;;
+                esac ;;
+              401|403)
+                echo "::error::Poll got HTTP $http reading /api/v1/deployments — the COOLIFY_TOKEN needs the 'read' scope (it currently only has 'deploy'). Recreate the Coolify API token with read + deploy (or root) and update the COOLIFY_TOKEN secret."; exit 1 ;;
+              404)
+                echo "::error::Poll got HTTP 404 for /api/v1/deployments/$uuid — route missing on this Coolify version or deployment not queryable. Body: $(head -c 300 /tmp/dep.json)"; exit 1 ;;
+              000)
+                echo "runner could not reach ${{ secrets.COOLIFY_URL }} (network/DNS), retrying" ;;
+              *)
+                echo "poll HTTP $http, body: $(head -c 300 /tmp/dep.json) — retrying" ;;
             esac
             if [ "$(date +%s)" -ge "$deadline" ]; then
               echo "::error::Timed out after 15m waiting for deployment $uuid"; exit 1
@@ -54,12 +64,12 @@ jobs:
 
       - name: Verify the app actually serves /health
         run: |
-          app=$(curl --fail --silent --show-error \
+          http=$(curl -s -o /tmp/app.json -w '%{http_code}' \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
-            "${{ secrets.COOLIFY_URL }}/api/v1/applications/${{ secrets.COOLIFY_APP_UUID }}") \
-            || { echo "::error::Could not read application from Coolify"; exit 1; }
+            "${{ secrets.COOLIFY_URL }}/api/v1/applications/${{ secrets.COOLIFY_APP_UUID }}" || echo 000)
+          [ "$http" = "200" ] || { echo "::error::Reading the application returned HTTP $http (needs 'read' scope)"; exit 1; }
           # fqdn may be a comma-separated list with scheme included; take the first.
-          fqdn=$(printf '%s' "$app" | grep -o '"fqdn":"[^"]*"' | head -1 | cut -d'"' -f4 | cut -d',' -f1)
+          fqdn=$(grep -o '"fqdn":"[^"]*"' /tmp/app.json | head -1 | cut -d'"' -f4 | cut -d',' -f1)
           [ -n "$fqdn" ] || { echo "::error::App has no fqdn set in Coolify"; exit 1; }
           echo "probing $fqdn/health"
           for i in $(seq 1 30); do

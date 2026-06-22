@@ -7,9 +7,9 @@ Baseline decision: `@context/foundation/infrastructure.md` (self-hosted Coolify)
 - [x] Self-hosted runner online with labels `self-hosted, coolify`.
 - [x] Coolify application already created (referenced by `COOLIFY_APP_UUID`).
 - [x] GitHub repo secrets set: `COOLIFY_URL`, `COOLIFY_TOKEN`, `COOLIFY_APP_UUID`.
-- [ ] **`COOLIFY_TOKEN` must have `read` + `deploy` scopes** (or `root`). A `deploy`-only token triggers deploys but gets **HTTP 403** on `GET /api/v1/deployments` and `/applications` — confirmed blocker on run 27976949712. Recreate the token in Coolify with both scopes and update the secret.
-- [ ] Coolify app build pack = **Dockerfile**, exposed port **8080**, a domain (FQDN) assigned, HTTPS enabled (Traefik + Let's Encrypt).
-- [ ] Coolify app HTTP health-check path set to **`/health`** (optional; the workflow already verifies `/health` over the public FQDN).
+- [x] **`COOLIFY_TOKEN` must have `read` + `deploy` scopes** (or `root`). A `deploy`-only token triggers deploys but gets **HTTP 403** on `GET /api/v1/deployments` and `/applications` — confirmed blocker on run 27976949712. Recreate the token in Coolify with both scopes and update the secret.
+- [x] Coolify app build pack = **Dockerfile**, exposed port **8080**, domain `10xdevs3.coolify.pajewski.dev`, served over **https** at the edge.
+- [ ] **Do NOT enable Coolify's container health check with this image.** The `aspnet:10.0` runtime image has **no `curl`/`wget`** (verified), so Coolify's in-container HTTP probe command fails → Docker marks the container `unhealthy` → the proxy drops it from routing → the public URL falls back to a parked page. This silently broke public access until the health check was removed. If you want one later, first add a probe tool to the image (`RUN apt-get update && apt-get install -y curl`) or use a probe that needs no external binary. The pipeline already verifies `/health` over the public URL, so a Coolify-level check is not required.
 - CLI/token config (only needed for manual Coolify API calls, not for the pipeline):
   - Token scopes: `deploy` (trigger) + `read` (poll). Bearer header form `Authorization: Bearer <id>|<secret>`.
   - `export COOLIFY_URL=https://<coolify-host>` and `export COOLIFY_TOKEN=<token>` in a local shell to inspect: `curl -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_URL/api/v1/applications/<uuid>"`.
@@ -32,17 +32,22 @@ Baseline decision: `@context/foundation/infrastructure.md` (self-hosted Coolify)
 - [x] ~~Build gate on the runner~~ — removed: the runner has no Docker daemon access (`docker build` → "Cannot connect to the Docker daemon"). Coolify owns the build; a failed build is caught by the poll below.
 - [x] Trigger `POST /api/v1/deploy?uuid=$APP` → capture `.deployments[0].deployment_uuid`.
 - [x] Poll `GET /api/v1/deployments/{uuid}` until `.status` is terminal: success on `finished`; fail on `failed` / `cancelled-by-user`; 15-minute timeout.
-- [x] Confirm the app serves: read `.fqdn` from `GET /api/v1/applications/$APP`, curl `<fqdn>/health` until 200 (≤30 tries). JSON parsed with `grep`/`cut` (no `jq` dependency).
+- [x] Confirm the app serves: read `.fqdn` from `GET /api/v1/applications/$APP`, then assert `<scheme>://<host>/health` returns the **body `Healthy`** (not just HTTP 200 — an edge placeholder returns 200 for any path, which gave a false green until this was fixed). Probe **https first**, then http. JSON parsed with `grep`/`cut` (no `jq` dependency).
 
-## Phase 4 — Ship & verify live
-- [ ] Open PR `chore/sync-m1l5-and-coolify-deploy` → `main`.
-- [ ] Merge to `main` → `deploy.yml` runs on `truenas-runner` (build gate → Coolify deploy → poll → `/health`).
-- [ ] Actions run is **green** = Coolify `finished` AND app returns 200 on `/health`.
-- [ ] Browser check: home loads; `/counter` increments (interactive SignalR circuit over TLS).
-- [ ] Idle-circuit check: tab idle > 5 min with no reconnect drop (Traefik idle-timeout; raise proxy read/idle timeout if it drops).
+## Phase 4 — Ship & verify live  ✅ DONE
+- [x] Merge to `main` → `deploy.yml` runs on `truenas-runner` (trigger → poll → `/health`).
+- [x] Actions run **green** = Coolify `finished` AND `https://10xdevs3.coolify.pajewski.dev/health` returns body `Healthy` (run 27979789640).
+- [x] App is live: **https://10xdevs3.coolify.pajewski.dev**
+- [ ] Manual: home loads; `/counter` increments (interactive SignalR circuit over TLS); idle tab > 5 min with no reconnect drop.
 
 ## Rollback
 - Coolify UI rollback covers **locally-built images only**, not CI/CD-pushed — redeploy a known-good commit by re-running the workflow on that ref, or revert the merge on `main` (auto-redeploys). EF migrations are **not** auto-reversed (n/a until a DB is added).
+
+## Lessons from the first deploy
+- **Coolify health check + minimal .NET image = silent outage.** Enabling Coolify's container health check made the running app `unhealthy` because the `aspnet` image has no `curl`/`wget` for the probe; the proxy then stopped routing to it and the public URL served a parked page while the app was fine internally. Removing the check restored routing. (See the prerequisite above for how to add one safely later.)
+- **"HTTP 200" is not "the app is serving."** An edge placeholder returns 200 for any path. Verification must assert app-specific content (here, the `/health` body `Healthy`).
+- **The public app is on https; Coolify's `fqdn` field still reads `http://`.** Probe https first.
+- **Token scopes are split:** `deploy` triggers but cannot read; polling status/app needs `read`.
 
 ## Follow-ups (not blocking the stateless skeleton)
 - [ ] Container runs as **root** — add `USER $APP_UID` to the Dockerfile when hardening.

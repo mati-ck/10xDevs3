@@ -9,7 +9,7 @@ Baseline decision: `@context/foundation/infrastructure.md` (self-hosted Coolify)
 - [x] GitHub repo secrets set: `COOLIFY_URL`, `COOLIFY_TOKEN`, `COOLIFY_APP_UUID`.
 - [x] **`COOLIFY_TOKEN` must have `read` + `deploy` scopes** (or `root`). A `deploy`-only token triggers deploys but gets **HTTP 403** on `GET /api/v1/deployments` and `/applications` — confirmed blocker on run 27976949712. Recreate the token in Coolify with both scopes and update the secret.
 - [x] Coolify app build pack = **Dockerfile**, exposed port **8080**, domain `10xdevs3.coolify.pajewski.dev`, served over **https** at the edge.
-- [ ] **Do NOT enable Coolify's container health check with this image.** The `aspnet:10.0` runtime image has **no `curl`/`wget`** (verified), so Coolify's in-container HTTP probe command fails → Docker marks the container `unhealthy` → the proxy drops it from routing → the public URL falls back to a parked page. This silently broke public access until the health check was removed. If you want one later, first add a probe tool to the image (`RUN apt-get update && apt-get install -y curl`) or use a probe that needs no external binary. The pipeline already verifies `/health` over the public URL, so a Coolify-level check is not required.
+- [x] **Health check is now in the Dockerfile and works.** Earlier, enabling Coolify's check broke routing because the `aspnet:10.0` image has no `curl`/`wget`, so the probe failed → `unhealthy` → de-routed → parked page. Fixed by installing `curl` in the runtime image and adding a Docker `HEALTHCHECK CMD curl -fsS http://localhost:8080/health` (verified `healthy` locally and on deploy). A Coolify-level check is optional now that the image self-reports health.
 - CLI/token config (only needed for manual Coolify API calls, not for the pipeline):
   - Token scopes: `deploy` (trigger) + `read` (poll). Bearer header form `Authorization: Bearer <id>|<secret>`.
   - `export COOLIFY_URL=https://<coolify-host>` and `export COOLIFY_TOKEN=<token>` in a local shell to inspect: `curl -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_URL/api/v1/applications/<uuid>"`.
@@ -50,7 +50,7 @@ Baseline decision: `@context/foundation/infrastructure.md` (self-hosted Coolify)
 - **Token scopes are split:** `deploy` triggers but cannot read; polling status/app needs `read`.
 
 ## Follow-ups (not blocking the stateless skeleton)
-- [ ] Container runs as **root** — add `USER $APP_UID` to the Dockerfile when hardening.
+- [x] Container runs as non-root (`USER $APP_UID`, uid 1654) with a working Docker `HEALTHCHECK`.
 - [ ] **DataProtection keys** aren't persisted (warning on startup) — mount a volume / external key store before auth + antiforgery state matter.
 - [ ] Reconcile `infrastructure.md` (it still describes a Hetzner VPS; reality is TrueNAS).
 - [ ] Coolify v4 is beta — disable instance auto-update; configure off-box backups (host-level, operator responsibility).

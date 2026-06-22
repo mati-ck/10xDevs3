@@ -7,6 +7,7 @@ Baseline decision: `@context/foundation/infrastructure.md` (self-hosted Coolify)
 - [x] Self-hosted runner online with labels `self-hosted, coolify`.
 - [x] Coolify application already created (referenced by `COOLIFY_APP_UUID`).
 - [x] GitHub repo secrets set: `COOLIFY_URL`, `COOLIFY_TOKEN`, `COOLIFY_APP_UUID`.
+- [ ] **`COOLIFY_TOKEN` must have `read` + `deploy` scopes** (or `root`). A `deploy`-only token triggers deploys but gets **HTTP 403** on `GET /api/v1/deployments` and `/applications` — confirmed blocker on run 27976949712. Recreate the token in Coolify with both scopes and update the secret.
 - [ ] Coolify app build pack = **Dockerfile**, exposed port **8080**, a domain (FQDN) assigned, HTTPS enabled (Traefik + Let's Encrypt).
 - [ ] Coolify app HTTP health-check path set to **`/health`** (optional; the workflow already verifies `/health` over the public FQDN).
 - CLI/token config (only needed for manual Coolify API calls, not for the pipeline):

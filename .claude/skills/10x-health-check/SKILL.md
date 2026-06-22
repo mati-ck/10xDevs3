@@ -1,18 +1,12 @@
 ---
 name: 10x-health-check
 description: >
-  Run a health check on an existing project: dependency audit, security scan,
-  test runner detection, CI/CD evaluation, and missing configuration analysis.
-  Maps the three execution gates (pre/in/post) from /10x-bootstrapper to an
-  assessment framework for existing codebases. Reads optional
-  context/foundation/stack-assessment.md from /10x-stack-assess to focus checks
-  on identified gaps. Writes context/foundation/health-check.md with findings,
-  prioritized fixes, and an agent-readiness verdict. Use when the user has an
-  existing project and wants to verify its health before working with an agent.
-  Trigger phrases: "health check", "check my project", "audit my project",
-  "is my project healthy", "sprawdź projekt", "audyt projektu",
-  "health-check", "project health".
-  Use AFTER /10x-stack-assess (brownfield chain), BEFORE agent onboarding (m1-l4).
+  Health-check an existing project: dependency audit, security scan, test
+  runner detection, CI/CD and missing-config analysis. Writes
+  context/foundation/health-check.md with prioritized fixes and an
+  agent-readiness verdict. Trigger phrases: "health check", "audit my project",
+  "is my project healthy", "sprawdź projekt", "audyt projektu". Use AFTER
+  /10x-stack-assess (brownfield chain), BEFORE agent onboarding.
 argument-hint: "[path-to-stack-assessment]"
 allowed-tools:
   - Read

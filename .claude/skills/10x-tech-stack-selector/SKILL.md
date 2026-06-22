@@ -2,14 +2,11 @@
 name: 10x-tech-stack-selector
 description: >
   Pick a starter and a stack for a greenfield project after the PRD is written.
-  Reads context/foundation/prd.md, opens with a Q0 path-fork (recommended
-  default for the (product_type, language_family) cell vs design-your-own),
-  runs the residual interview on the custom path, reasons over a language-aware
-  starter registry with four agent-friendly quality gates, and writes a
-  context/foundation/tech-stack.md hand-off /10x-bootstrapper consumes. Use when
-  the user asks "what stack should I use", says "pick a stack", "choose
-  framework", "co wybrać do projektu", or has a PRD on disk and is ready to
-  scaffold. Use AFTER /10x-prd, BEFORE /10x-bootstrapper.
+  Reads context/foundation/prd.md, reasons over a language-aware starter
+  registry with four agent-friendly quality gates, and writes the
+  context/foundation/tech-stack.md hand-off. Use when the user asks "what
+  stack should I use", "pick a stack", "choose framework",
+  "co wybrać do projektu". Use AFTER /10x-prd, BEFORE /10x-bootstrapper.
 argument-hint: "[path-to-prd]"
 allowed-tools:
   - Read

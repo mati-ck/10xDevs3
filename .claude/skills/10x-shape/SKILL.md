@@ -2,14 +2,9 @@
 name: 10x-shape
 description: >
   Facilitate a structured discovery conversation that turns an idea —
-  greenfield or brownfield — into shape-notes.md, the input to /10x-prd.
-  Auto-detects context type from project markers in cwd (brownfield) or
-  absence thereof (greenfield) and adapts all six discovery phases
-  accordingly. Use when the user is starting a new project from scratch OR
-  shaping a meaningful change to an existing system (new module, significant
-  feature, architectural improvement). Trigger phrases: "new project",
-  "from scratch", "starting an app", "od pomysłu", "shape an idea",
-  "brainstorm a product", "greenfield", "I have an idea", "existing project",
+  greenfield or brownfield, auto-detected from cwd — into shape-notes.md,
+  the input to /10x-prd. Trigger phrases: "new project", "from scratch",
+  "od pomysłu", "shape an idea", "I have an idea", "greenfield",
   "brownfield", "istniejący projekt", "zmiana w projekcie".
   Use BEFORE /10x-prd, not in place of it.
 argument-hint: "[freeform idea]"

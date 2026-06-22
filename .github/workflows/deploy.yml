@@ -35,13 +35,18 @@ jobs:
         run: |
           uuid="${{ steps.trigger.outputs.uuid }}"
           deadline=$(( $(date +%s) + 900 ))   # 15-minute cap
+          dumped=0
           while :; do
             http=$(curl -s -o /tmp/dep.json -w '%{http_code}' \
               -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
               "${{ secrets.COOLIFY_URL }}/api/v1/deployments/$uuid" || echo 000)
             case "$http" in
               200)
-                status=$(grep -o '"status":"[^"]*"' /tmp/dep.json | head -1 | cut -d'"' -f4)
+                if [ "$dumped" = 0 ]; then echo "raw deployment payload (first 800B): $(head -c 800 /tmp/dep.json)"; dumped=1; fi
+                # Payload can also embed the app's "running:healthy" status; select only
+                # the deployment-status enum value, ignoring colon-formatted app states.
+                status=$(grep -o '"status":"[^"]*"' /tmp/dep.json | cut -d'"' -f4 \
+                  | grep -Ex 'queued|in_progress|finished|failed|cancelled-by-user' | head -1)
                 echo "deployment status: ${status:-unknown}"
                 case "$status" in
                   finished)                  echo "Coolify reports finished"; break ;;

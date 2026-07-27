@@ -1,5 +1,6 @@
 using System.Reflection;
 using _10xnotes.Data.Entities;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace _10xnotes.Data;
@@ -12,24 +13,28 @@ namespace _10xnotes.Data;
 /// cannot leak another user's rows.
 /// </para>
 /// </summary>
-public sealed class AppDbContext : DbContext
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
+    : DbContext(options), IDataProtectionKeyContext
 {
     private static readonly MethodInfo ApplyOwnerFilterMethod =
         typeof(AppDbContext).GetMethod(nameof(ApplyOwnerFilter), BindingFlags.Instance | BindingFlags.NonPublic)!;
 
-    public AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUserAccessor currentUser)
-        : base(options)
-    {
-        CurrentUserId = currentUser.UserId ?? Guid.Empty;
-    }
-
     /// <summary>
     /// The user every owner-scoped query is filtered by. <see cref="Guid.Empty"/> when nobody
     /// is authenticated, which makes those queries return nothing — fail-closed by construction.
+    /// <para>
+    /// Settable rather than constructor-captured: contexts are created per operation by
+    /// <see cref="UserScopedDbContextFactory"/>, which assigns the *current* user. EF Core
+    /// re-reads this property for every query rather than baking it into the cached model,
+    /// so a login or logout mid-circuit is reflected immediately.
+    /// </para>
     /// </summary>
-    public Guid CurrentUserId { get; }
+    public Guid CurrentUserId { get; set; }
 
     public DbSet<Profile> Profiles => Set<Profile>();
+
+    /// <summary>Key ring for ASP.NET DataProtection — see <see cref="IDataProtectionKeyContext"/>.</summary>
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -7,8 +7,7 @@ WORKDIR /src
 COPY *.csproj ./
 RUN dotnet restore
 COPY . ./
-RUN dotnet publish -c Release -o /app/publish --no-restore
-
+RUN dotnet publish 10xnotes.csproj -c Release -o /app/publish --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 # curl is required for the HEALTHCHECK below — the aspnet image ships without it,
 # which is exactly why Coolify's container health check failed and broke routing.

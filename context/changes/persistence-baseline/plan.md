@@ -424,30 +424,30 @@ Two migration ledgers coexist in this database: `__EFMigrationsHistory` (owned b
 
 #### Automated
 
-- [x] 2.1 Build is clean: `dotnet build` → 0 warnings, 0 errors
-- [x] 2.2 `dotnet ef migrations list` shows `InitialPersistenceBaseline`
-- [x] 2.3 `dotnet ef database update` completes without error
-- [x] 2.4 App starts with migrations applied; `/health/ready` → `Healthy`
+- [x] 2.1 Build is clean: `dotnet build` → 0 warnings, 0 errors — a087c3d
+- [x] 2.2 `dotnet ef migrations list` shows `InitialPersistenceBaseline` — a087c3d
+- [x] 2.3 `dotnet ef database update` completes without error — a087c3d
+- [x] 2.4 App starts with migrations applied; `/health/ready` → `Healthy` — a087c3d
 
 #### Manual
 
-- [x] 2.5 MCP `list_tables` shows `public.profiles` with `rls_enabled: true`
-- [x] 2.6 FK to `auth.users` exists and `__EFMigrationsHistory` holds one row
-- [x] 2.7 Data API read of `profiles` with the anon key returns no rows
-- [x] 2.8 Broken connection string does not crash-loop the app
+- [x] 2.5 MCP `list_tables` shows `public.profiles` with `rls_enabled: true` — a087c3d
+- [x] 2.6 FK to `auth.users` exists and `__EFMigrationsHistory` holds one row — a087c3d
+- [x] 2.7 Data API read of `profiles` with the anon key returns no rows — a087c3d
+- [x] 2.8 Broken connection string does not crash-loop the app — a087c3d
 
 ### Phase 3: Test project and isolation tests
 
 #### Automated
 
-- [ ] 3.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors
-- [ ] 3.2 Tests pass: `dotnet test` → all green
-- [ ] 3.3 App project still builds standalone: `dotnet build 10xnotes.csproj`
+- [x] 3.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors
+- [x] 3.2 Tests pass: `dotnet test` → all green
+- [x] 3.3 App project still builds standalone: `dotnet build 10xnotes.csproj`
 
 #### Manual
 
-- [ ] 3.4 Removing the query filter makes the scoping tests fail
-- [ ] 3.5 `AGENTS.md` contains no statement contradicted by the repo
+- [x] 3.4 Removing the query filter makes the scoping tests fail
+- [x] 3.5 `AGENTS.md` contains no statement contradicted by the repo
 
 ### Phase 4: Deploy verification
 

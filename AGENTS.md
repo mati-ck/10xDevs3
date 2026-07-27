@@ -10,15 +10,25 @@
 
 ## Project Structure & Module Organization
 
-Single project at the repo root (`10xnotes.csproj`); there is no `.sln`. Razor components live in `Components/` — `Pages/` for routable pages, `Layout/` for shell components, with `App.razor` / `Routes.razor` as entry points. Static assets (Bootstrap 5.3) sit in `wwwroot/`. Foundation docs are under `context/foundation/`.
+The web app lives at the repo root (`10xnotes.csproj`), with tests in `tests/10xNotes.Tests/`; `10xnotes.sln` ties them together. Because the web project sits at the root, its globs exclude `tests/**` via `DefaultItemExcludes` — keep that in mind when adding top-level folders. Razor components live in `Components/` — `Pages/` for routable pages, `Layout/` for shell components, with `App.razor` / `Routes.razor` as entry points. Data access is under `Data/` (`AppDbContext`, entities in `Data/Entities/`), EF migrations under `Migrations/`. Static assets (Bootstrap 5.3) sit in `wwwroot/`. Foundation docs are under `context/foundation/`.
 
 ## Build, Test & Development Commands
 
 - `dotnet run` — start the app (profiles: http://localhost:5125, https://localhost:7111).
-- `dotnet build` — compile; this is the primary way to verify a change.
-- `dotnet restore` — restore NuGet packages.
+- `dotnet build` — compile; the fastest check that a change is sound.
+- `dotnet test` — run the xUnit suite; this is the primary way to verify a change.
+- `dotnet restore` / `dotnet tool restore` — restore packages and the pinned `dotnet-ef` tool.
+- `dotnet ef migrations add <Name>` / `dotnet ef database update` — schema changes (requires `dotnet tool restore` first).
 
-No test project exists yet, so `dotnet build` plus a manual run is the only verification path until one is added.
+The app needs `ConnectionStrings__Postgres` (Supabase **session pooler**, port 5432 — not the IPv6-only direct endpoint, not the prepared-statement-hostile `:6543` pooler). Set it via `dotnet user-secrets` locally; see `README.md`.
+
+## Data & persistence rules
+
+- Entities that belong to a user implement `IOwnedByUser`; `AppDbContext` then scopes every query by owner automatically and stamps `OwnerId` on insert. Do not hand-write per-query owner filters, and treat `IgnoreQueryFilters()` as a deliberate, reviewed exception.
+- Migrations self-apply at startup via `DatabaseMigrationHostedService`. A failure is logged `Critical` and degrades `/health/ready` — it must never crash the process.
+- `/health` is **liveness only** and must stay database-free: the container HEALTHCHECK and `deploy.yml` both assert on its literal `Healthy` body, and a failing probe makes Coolify de-route the app. Database-backed checks belong on `/health/ready` with the `ready` tag.
+- Every new table in `public` must `ENABLE ROW LEVEL SECURITY` in its migration. Supabase exposes `public` through the Data API, and the anon key is public; the app's `postgres` role bypasses RLS, so deny-all costs nothing.
+- A Coolify rollback does **not** reverse migrations — keep them backward-compatible.
 
 ## Coding Style & Naming Conventions
 

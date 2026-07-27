@@ -1,0 +1,29 @@
+@page "/logout"
+@using _10xnotes.Auth
+@inject NavigationManager Navigation
+
+@* Static SSR on purpose: SignOutAsync needs a response that has not started, so this cannot be
+   an interactive component. Sign-out is a POST so it cannot be triggered by a stray link or a
+   prefetch. *@
+
+<PageTitle>Wylogowanie</PageTitle>
+
+<h1>Wyloguj się</h1>
+
+<p>Czy na pewno chcesz się wylogować?</p>
+
+<form method="post" @formname="logout" @onsubmit="SignOutAsync">
+    <AntiforgeryToken />
+    <button type="submit" class="btn btn-primary">Wyloguj się</button>
+</form>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private async Task SignOutAsync()
+    {
+        await AuthCookie.SignOutAsync(HttpContext);
+        Navigation.NavigateTo("/login");
+    }
+}

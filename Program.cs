@@ -1,9 +1,11 @@
+using _10xnotes.Auth;
 using _10xnotes.Components;
 using _10xnotes.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,12 +46,27 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.Name = "10xnotes.auth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
-        // Production is https at the Coolify edge; use the https launch profile locally.
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        // Production is https at the Coolify edge, so the cookie must never travel in clear.
+        // Locally, follow the request scheme: with Always, the http launch profile silently
+        // drops the cookie and login "succeeds" while leaving the user signed out.
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
     });
 
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
+
+builder.Services.Configure<SupabaseAuthOptions>(
+    builder.Configuration.GetSection(SupabaseAuthOptions.SectionName));
+
+builder.Services.AddHttpClient<SupabaseAuthClient>((sp, client) =>
+{
+    var options = sp.GetRequiredService<IOptions<SupabaseAuthOptions>>().Value;
+    client.BaseAddress = new Uri($"{options.Url.TrimEnd('/')}/auth/v1/");
+    client.DefaultRequestHeaders.Add("apikey", options.AnonKey);
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 // Migrations self-apply at boot, but a failure must degrade readiness rather than crash the
 // process — a crash-loop would fail the container HEALTHCHECK and get the app de-routed.

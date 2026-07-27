@@ -384,33 +384,33 @@ Existing data: `auth.users` has 0 rows and `profiles` has 0 rows, so there is no
 
 #### Automated
 
-- [x] 1.1 Build is clean: `dotnet build` → 0 warnings, 0 errors
-- [x] 1.2 Existing tests still pass after the interface change: `dotnet test`
-- [x] 1.3 Migration applies: `dotnet ef database update`
-- [x] 1.4 App starts; `/health` → `Healthy` and `/health/ready` → `Healthy`
+- [x] 1.1 Build is clean: `dotnet build` → 0 warnings, 0 errors — 85e9799
+- [x] 1.2 Existing tests still pass after the interface change: `dotnet test` — 85e9799
+- [x] 1.3 Migration applies: `dotnet ef database update` — 85e9799
+- [x] 1.4 App starts; `/health` → `Healthy` and `/health/ready` → `Healthy` — 85e9799
 
 #### Manual
 
-- [x] 1.5 DataProtection key table shows `rls_enabled: true`
-- [x] 1.6 Startup no longer logs the DataProtection "keys are not persisted" warning
-- [x] 1.7 Existing pages render and `/counter` still increments
+- [x] 1.5 DataProtection key table shows `rls_enabled: true` — 85e9799
+- [x] 1.6 Startup no longer logs the DataProtection "keys are not persisted" warning — 85e9799
+- [x] 1.7 Existing pages render and `/counter` still increments — 85e9799
 
 ### Phase 2: Supabase Auth integration
 
 #### Automated
 
-- [ ] 2.1 Build is clean: `dotnet build` → 0 warnings, 0 errors
-- [ ] 2.2 Tests pass: `dotnet test`
-- [ ] 2.3 Migration applies: `dotnet ef database update`
-- [ ] 2.4 `/register` and `/login` return 200 while logged out
+- [x] 2.1 Build is clean: `dotnet build` → 0 warnings, 0 errors
+- [x] 2.2 Tests pass: `dotnet test`
+- [x] 2.3 Migration applies: `dotnet ef database update`
+- [x] 2.4 `/register` and `/login` return 200 while logged out
 
 #### Manual
 
-- [ ] 2.5 Registration creates rows in `auth.users` and `public.profiles`
-- [ ] 2.6 Login sets an auth cookie and lands on `/`
-- [ ] 2.7 Logout clears the cookie and returns to `/login`
-- [ ] 2.8 Duplicate registration and wrong password give Polish, non-revealing messages
-- [ ] 2.9 Passwords shorter than 8 characters are rejected before any GoTrue call
+- [x] 2.5 Registration creates rows in `auth.users` and `public.profiles`
+- [x] 2.6 Login sets an auth cookie and lands on `/`
+- [x] 2.7 Logout clears the cookie and returns to `/login`
+- [x] 2.8 Duplicate registration and wrong password give Polish, non-revealing messages
+- [x] 2.9 Passwords shorter than 8 characters are rejected before any GoTrue call
 
 ### Phase 3: Route protection and auth-aware UI
 

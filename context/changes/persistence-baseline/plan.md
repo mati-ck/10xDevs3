@@ -453,13 +453,13 @@ Two migration ledgers coexist in this database: `__EFMigrationsHistory` (owned b
 
 #### Automated
 
-- [ ] 4.1 Deploy workflow run is green
-- [ ] 4.2 Public `/health` → `Healthy`
-- [ ] 4.3 Public `/health/ready` → `Healthy`
+- [x] 4.1 Deploy workflow run is green
+- [x] 4.2 Public `/health` → `Healthy`
+- [x] 4.3 Public `/health/ready` → `Healthy`
 
 #### Manual
 
-- [ ] 4.4 Migration history shows the deployed container applied the migration
-- [ ] 4.5 Container logs show no `Critical` migration entry
-- [ ] 4.6 Existing pages and `/counter` still work over the SignalR circuit
-- [ ] 4.7 `ConnectionStrings__Postgres` set in Coolify, absent from the repo
+- [x] 4.4 Migration history shows the deployed container applied the migration
+- [x] 4.5 Container logs show no `Critical` migration entry
+- [x] 4.6 Existing pages and `/counter` still work over the SignalR circuit
+- [x] 4.7 `ConnectionStrings__Postgres` set in Coolify, absent from the repo

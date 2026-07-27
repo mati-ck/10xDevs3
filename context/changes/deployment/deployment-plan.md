@@ -41,7 +41,20 @@ Baseline decision: `@context/foundation/infrastructure.md` (self-hosted Coolify)
 - [ ] Manual: home loads; `/counter` increments (interactive SignalR circuit over TLS); idle tab > 5 min with no reconnect drop.
 
 ## Rollback
-- Coolify UI rollback covers **locally-built images only**, not CI/CD-pushed — redeploy a known-good commit by re-running the workflow on that ref, or revert the merge on `main` (auto-redeploys). EF migrations are **not** auto-reversed (n/a until a DB is added).
+- Coolify UI rollback covers **locally-built images only**, not CI/CD-pushed — redeploy a known-good commit by re-running the workflow on that ref, or revert the merge on `main` (auto-redeploys).
+- **EF migrations are not auto-reversed by a rollback.** As of `persistence-baseline` (F-01) the app has a database, migrations exist, and they **self-apply at container startup** (`DatabaseMigrationHostedService`). Rolling the image back therefore leaves the newer schema in place — so every migration must be **backward-compatible** with the previous image. To actually undo a schema change, run `dotnet ef database update <PreviousMigration>` deliberately.
+- A failed startup migration does **not** crash the container: it is logged `Critical` and reported on `/health/ready`, while `/health` stays green so Coolify keeps routing. Check the container logs and `/health/ready` after any deploy that carries a migration.
+
+## Endpoints
+| Endpoint | Reports | Probed by |
+| --- | --- | --- |
+| `/health` | process liveness only — never touches the database | Docker `HEALTHCHECK`, `deploy.yml` |
+| `/health/ready` | readiness: database reachable + migrations applied | humans, post-deploy verification |
+
+Keep the database out of `/health`: a failing probe makes Coolify de-route the container (see the lessons below).
+
+## Required environment
+- `ConnectionStrings__Postgres` — Supabase **session pooler** (`aws-<region>.pooler.supabase.com`, port 5432, user `postgres.<project-ref>`). The direct endpoint is IPv6-only without the paid add-on, and the transaction pooler (`:6543`) breaks Npgsql's prepared statements. Set on the Coolify resource; never committed.
 
 ## Lessons from the first deploy
 - **Coolify health check + minimal .NET image = silent outage.** Enabling Coolify's container health check made the running app `unhealthy` because the `aspnet` image has no `curl`/`wget` for the probe; the proxy then stopped routing to it and the public URL served a parked page while the app was fine internally. Removing the check restored routing. (See the prerequisite above for how to add one safely later.)

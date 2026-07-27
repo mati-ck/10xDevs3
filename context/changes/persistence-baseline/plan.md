@@ -409,32 +409,32 @@ Two migration ledgers coexist in this database: `__EFMigrationsHistory` (owned b
 
 #### Automated
 
-- [x] 1.1 Tool restore succeeds: `dotnet tool restore`
-- [x] 1.2 Build is clean: `dotnet build` → 0 warnings, 0 errors
-- [x] 1.3 App starts locally: `dotnet run` reaches "Now listening on"
-- [x] 1.4 Liveness unchanged: `/health` → body `Healthy`
-- [x] 1.5 Readiness reaches Supabase: `/health/ready` → body `Healthy`
+- [x] 1.1 Tool restore succeeds: `dotnet tool restore` — 663cb8a
+- [x] 1.2 Build is clean: `dotnet build` → 0 warnings, 0 errors — 663cb8a
+- [x] 1.3 App starts locally: `dotnet run` reaches "Now listening on" — 663cb8a
+- [x] 1.4 Liveness unchanged: `/health` → body `Healthy` — 663cb8a
+- [x] 1.5 Readiness reaches Supabase: `/health/ready` → body `Healthy` — 663cb8a
 
 #### Manual
 
-- [x] 1.6 Wrong password leaves `/health` green while `/health/ready` reports unhealthy
-- [x] 1.7 No credential appears in any tracked file
+- [x] 1.6 Wrong password leaves `/health` green while `/health/ready` reports unhealthy — 663cb8a
+- [x] 1.7 No credential appears in any tracked file — 663cb8a
 
 ### Phase 2: First migration and the owner-scoping contract
 
 #### Automated
 
-- [ ] 2.1 Build is clean: `dotnet build` → 0 warnings, 0 errors
-- [ ] 2.2 `dotnet ef migrations list` shows `InitialPersistenceBaseline`
-- [ ] 2.3 `dotnet ef database update` completes without error
-- [ ] 2.4 App starts with migrations applied; `/health/ready` → `Healthy`
+- [x] 2.1 Build is clean: `dotnet build` → 0 warnings, 0 errors
+- [x] 2.2 `dotnet ef migrations list` shows `InitialPersistenceBaseline`
+- [x] 2.3 `dotnet ef database update` completes without error
+- [x] 2.4 App starts with migrations applied; `/health/ready` → `Healthy`
 
 #### Manual
 
-- [ ] 2.5 MCP `list_tables` shows `public.profiles` with `rls_enabled: true`
-- [ ] 2.6 FK to `auth.users` exists and `__EFMigrationsHistory` holds one row
-- [ ] 2.7 Data API read of `profiles` with the anon key returns no rows
-- [ ] 2.8 Broken connection string does not crash-loop the app
+- [x] 2.5 MCP `list_tables` shows `public.profiles` with `rls_enabled: true`
+- [x] 2.6 FK to `auth.users` exists and `__EFMigrationsHistory` holds one row
+- [x] 2.7 Data API read of `profiles` with the anon key returns no rows
+- [x] 2.8 Broken connection string does not crash-loop the app
 
 ### Phase 3: Test project and isolation tests
 

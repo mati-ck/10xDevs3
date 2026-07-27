@@ -440,14 +440,14 @@ Two migration ledgers coexist in this database: `__EFMigrationsHistory` (owned b
 
 #### Automated
 
-- [x] 3.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors
-- [x] 3.2 Tests pass: `dotnet test` → all green
-- [x] 3.3 App project still builds standalone: `dotnet build 10xnotes.csproj`
+- [x] 3.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors — 6c64f63
+- [x] 3.2 Tests pass: `dotnet test` → all green — 6c64f63
+- [x] 3.3 App project still builds standalone: `dotnet build 10xnotes.csproj` — 6c64f63
 
 #### Manual
 
-- [x] 3.4 Removing the query filter makes the scoping tests fail
-- [x] 3.5 `AGENTS.md` contains no statement contradicted by the repo
+- [x] 3.4 Removing the query filter makes the scoping tests fail — 6c64f63
+- [x] 3.5 `AGENTS.md` contains no statement contradicted by the repo — 6c64f63
 
 ### Phase 4: Deploy verification
 

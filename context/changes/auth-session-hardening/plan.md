@@ -345,14 +345,14 @@ Existing data is untouched — no column is added, moved or dropped.
 
 #### Automated
 
-- [x] 3.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors
-- [x] 3.2 Tests pass, including the new session cases: `dotnet test` → 49 passed
-- [x] 3.3 Anonymous `GET /` → 302 to `/login`; anonymous `GET /health` → 200 body exactly `Healthy`
-- [x] 3.4 Revalidation decides correctly: past-cap → invalid, live → valid, anonymous → valid
+- [x] 3.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors — 7669a05
+- [x] 3.2 Tests pass, including the new session cases: `dotnet test` → 49 passed — 7669a05
+- [x] 3.3 Anonymous `GET /` → 302 to `/login`; anonymous `GET /health` → 200 body exactly `Healthy` — 7669a05
+- [x] 3.4 Revalidation decides correctly: past-cap → invalid, live → valid, anonymous → valid — 7669a05
 
 #### Manual
 
-- [x] 3.5 A healthy session is undisturbed: email shows in nav, `/counter` increments
+- [x] 3.5 A healthy session is undisturbed: email shows in nav, `/counter` increments — 7669a05
 
 ### Phase 4: Build, deploy and verification
 

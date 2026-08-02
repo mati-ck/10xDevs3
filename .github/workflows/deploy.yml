@@ -53,14 +53,16 @@ jobs:
       # keeps it in git. No-op once the symlink exists.
       - name: Ensure libsqlite3 is loadable
         run: |
-          if ldconfig -p | grep -q 'libsqlite3\.so '; then
-            echo "libsqlite3.so already resolvable"
+          # Check for the file, not for an ldconfig entry: the linker cache only carries
+          # versioned sonames (libsqlite3.so.0), never the unversioned dev symlink.
+          if ls /usr/lib/*/libsqlite3.so /usr/lib/libsqlite3.so >/dev/null 2>&1; then
+            echo "libsqlite3.so already present"
             exit 0
           fi
           SUDO=""; [ "$(id -u)" -eq 0 ] || SUDO=sudo
           $SUDO apt-get update -qq
           $SUDO apt-get install -y --no-install-recommends libsqlite3-dev
-          ldconfig -p | grep 'libsqlite3\.so '
+          ls -l /usr/lib/*/libsqlite3.so
 
       - name: Run the test suite
         run: dotnet test 10xnotes.sln --configuration Release

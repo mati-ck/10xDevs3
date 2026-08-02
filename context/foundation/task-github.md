@@ -189,6 +189,20 @@ F-01 #6 ──unlocks──▶ F-02 #7 ──▶ S-01 #8 ★
 
 > Note: a first `sed`-based body substitution (BSD/macOS) briefly pushed empty bodies; caught and corrected with a `perl` pass — all 10 bodies now carry full content with resolved `#N` cross-references.
 
+## Later additions (outside the 2026-07-02 migration)
+
+Issues opened after the migration run. Same conventions: English body, `MVP` milestone, labels from the table above.
+
+| Change ID | Issue | Origin |
+| --- | --- | --- |
+| `auth-session-hardening` | [#22](https://github.com/mati-ck/10xDevs3/issues/22) | Carry-forward from the F-01 and F-02 implementation reviews (2026-08-02) |
+
+## Issue hygiene convention
+
+- **Closing a change closes its issue** — verified on #6 (F-01) and #7 (F-02).
+- **A closed issue carries no `status:*` label.** `status:*` describes work in flight; once the issue is closed the state lives in `state: CLOSED`, and a leftover `status:ready` reads as "still actionable" in `gh issue list --label status:ready`. #7 kept `status:ready` after closing and was corrected on 2026-08-02; #6 was already clean.
+- Check with `gh issue list --state closed --json number,labels` after archiving a change.
+
 ## Not created (out of scope of current token)
 
 - **GitHub Projects board** — token lacks `project` scope. To add a board with status/dependency fields: `gh auth refresh -s project`, then create a Project and add issues #6–#15.

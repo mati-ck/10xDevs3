@@ -6,6 +6,14 @@ on:
     paths-ignore:
       - 'context/**'
       - '**/*.md'
+  # Pull requests run the test job only — see the `if` on the deploy job below. A gate that
+  # first fires on a push to main reports the problem after it has already landed, which is
+  # too late to be a gate at all.
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - 'context/**'
+      - '**/*.md'
   workflow_dispatch:
 
 # Coolify owns the build + release. This workflow gates on the test suite, then
@@ -42,6 +50,10 @@ jobs:
 
   deploy:
     needs: test
+    # Never deploy from a pull request: the branch is unmerged, and Coolify builds whatever
+    # `main` is at trigger time regardless of the ref, so a PR deploy would be both premature
+    # and misleading about what shipped.
+    if: github.event_name != 'pull_request'
     runs-on: [self-hosted, coolify]
     steps:
       - name: Trigger Coolify deployment

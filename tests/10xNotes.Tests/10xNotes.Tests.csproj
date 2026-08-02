@@ -20,10 +20,10 @@
          its own, so there is no glibc floor to trip over and patching belongs to the OS vendor.
          2.1.11 is its newest version — there is no 2.1.12 — and that is fine here:
          GHSA-2m69-gcr7-jv3q is filed against the *bundled* native build, so it does not apply to
-         a bundle that ships no native SQLite. Verified, not assumed:
-         `dotnet list 10xnotes.sln package --vulnerable --include-transitive` reports no vulnerable
-         packages. SQLite is a test-only dependency — the app talks to Postgres through Npgsql —
-         so nothing about the deployed image changes either way. -->
+         a bundle that ships no native SQLite. Verified, not assumed: `dotnet list` with the
+         vulnerable + include-transitive switches reports no vulnerable packages in either project.
+         SQLite is a test-only dependency — the app talks to Postgres through Npgsql — so nothing
+         about the deployed image changes either way. -->
     <PackageReference Include="SQLitePCLRaw.bundle_sqlite3" Version="2.1.11" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />

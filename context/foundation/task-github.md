@@ -195,7 +195,7 @@ Issues opened after the migration run. Same conventions: English body, `MVP` mil
 
 | Change ID | Issue | Origin |
 | --- | --- | --- |
-| `auth-session-hardening` | [#22](https://github.com/mati-ck/10xDevs3/issues/22) | Carry-forward from the F-01 and F-02 implementation reviews (2026-08-02) |
+| `auth-session-hardening` | [#22](https://github.com/mati-ck/10xDevs3/issues/22) | Carry-forward from the F-01 and F-02 implementation reviews (2026-08-02). Closed and archived 2026-08-02 → `context/archive/2026-08-02-auth-session-hardening/` |
 
 ## Issue hygiene convention
 

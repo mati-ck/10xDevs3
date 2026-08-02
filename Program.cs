@@ -58,6 +58,25 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
             ? CookieSecurePolicy.SameAsRequest
             : CookieSecurePolicy.Always;
+
+        // Retire a past-cap session on the first request that carries it, rather than leaving an
+        // authenticated-looking shell over an app that returns no rows. The data layer already
+        // refuses such a principal, so without this the user sees the nav, their email and every
+        // page — and nothing in it. That is indistinguishable from data loss.
+        //
+        // OnValidatePrincipal fires when an existing cookie is validated, never when SignInAsync
+        // writes a new one, so a fresh sign-in cannot trip over its own cap.
+        options.Events.OnValidatePrincipal = async context =>
+        {
+            if (context.Principal is null
+                || !AuthCookie.IsPastSessionCap(context.Principal, DateTimeOffset.UtcNow))
+            {
+                return;
+            }
+
+            context.RejectPrincipal();
+            await AuthCookie.SignOutAsync(context.HttpContext);
+        };
     });
 
 // Deny by default: every endpoint without its own authorization metadata requires an
@@ -74,13 +93,19 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddCascadingAuthenticationState();
 
 // Replaces the default ServerAuthenticationStateProvider, which seeds the principal once when a
-// circuit opens and never re-checks it. Registered for IHostEnvironmentAuthenticationStateProvider
-// too, and resolved through AuthenticationStateProvider so both land on the *same instance*: the
-// static-SSR path pushes the principal in through that interface, and a second instance would
-// leave every circuit anonymous while looking correctly wired.
-builder.Services.AddScoped<AuthenticationStateProvider, SessionCapAuthenticationStateProvider>();
+// circuit opens and never re-checks it.
+//
+// Registered as the concrete type once, with both names resolving *that* — so they cannot drift
+// onto separate instances. The static-SSR path pushes the principal in through
+// IHostEnvironmentAuthenticationStateProvider while components read AuthenticationStateProvider;
+// two instances would leave every circuit anonymous while looking correctly wired. Resolving the
+// concrete type rather than casting the interface keeps that guarantee even if something later
+// registers a different AuthenticationStateProvider.
+builder.Services.AddScoped<SessionCapAuthenticationStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
+    sp.GetRequiredService<SessionCapAuthenticationStateProvider>());
 builder.Services.AddScoped<IHostEnvironmentAuthenticationStateProvider>(sp =>
-    (SessionCapAuthenticationStateProvider)sp.GetRequiredService<AuthenticationStateProvider>());
+    sp.GetRequiredService<SessionCapAuthenticationStateProvider>());
 
 builder.Services.Configure<SupabaseAuthOptions>(
     builder.Configuration.GetSection(SupabaseAuthOptions.SectionName));

@@ -288,6 +288,16 @@ Confirm the paths Phase 1 disturbed — container build, EF tooling, and the end
 - Write guards: caller-supplied `OwnerId` on insert; modify and delete of another user's tracked row; attach-by-PK with a forged `OwnerId`; a legitimate self-update that must still succeed
 - Session cap: before the cap, after it, the cap instant itself, missing claim, unparseable claim, a past-cap principal through `ICurrentUserAccessor`, and the revalidation hook's three outcomes (past-cap, live, anonymous)
 
+**The SQLite engine is host-supplied.** Not in the original plan: Phase 1's CI gate exposed that
+`SQLitePCLRaw.bundle_e_sqlite3` ships a native build linked against GLIBC_2.33 while the runner is
+Ubuntu 20.04 with 2.31, so 14 of 34 tests could not load it. The test project moved to
+`Microsoft.EntityFrameworkCore.Sqlite.Core` + `SQLitePCLRaw.bundle_sqlite3`, which links whatever
+SQLite the operating system already provides. Consequence to be aware of: CI exercises Ubuntu
+20.04's SQLite 3.31 while a developer machine uses its own, so the suite no longer pins one engine
+version. Query filters and concurrency tokens are stable across those versions, and the
+vulnerability scan is clean — but the property changed, so it is recorded here rather than only in
+a commit body.
+
 ### Integration Tests:
 
 None automated, consistent with F-02's decision. The cookie round trip, the revalidation loop and the container build are verified manually in Phases 3–4.
@@ -358,17 +368,17 @@ Existing data is untouched — no column is added, moved or dropped.
 
 #### Automated
 
-- [x] 4.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors
-- [x] 4.2 Tests pass: `dotnet test` → all green
-- [x] 4.3 No vulnerable packages
-- [x] 4.4 Container builds: `docker build -t 10xnotes:local .`
-- [x] 4.5 Deploy workflow run is green
-- [x] 4.6 Public `/health` → `Healthy`; public `/health/ready` → `Healthy`
+- [x] 4.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors — da43b9a
+- [x] 4.2 Tests pass: `dotnet test` → all green — da43b9a
+- [x] 4.3 No vulnerable packages — da43b9a
+- [x] 4.4 Container builds: `docker build -t 10xnotes:local .` — 9aca39a
+- [x] 4.5 Deploy workflow run is green — 9aad04a
+- [x] 4.6 Public `/health` → `Healthy`; public `/health/ready` → `Healthy` — 9aad04a
 
 #### Manual
 
-- [x] 4.7 Register, log in and log out against the deployed app — confirmed by the user
-- [x] 4.8 Owner isolation holds — covered by 11 tests in CI; not observable in the deployed UI, which reads no data yet
-- [x] 4.9 Session survives a redeploy
-- [x] 4.10 Supabase security advisor reports no `rls_disabled` findings
-- [x] 4.11 Accepted risk recorded in `change.md`
+- [x] 4.7 Register, log in and log out against the deployed app — confirmed by the user — 9aca39a
+- [x] 4.8 Owner isolation holds — covered by 11 tests in CI; not observable in the deployed UI, which reads no data yet — 9aad04a
+- [x] 4.9 Session survives a redeploy — 9aad04a
+- [x] 4.10 Supabase security advisor reports no `rls_disabled` findings — da43b9a
+- [x] 4.11 Accepted risk recorded in `change.md` — da43b9a

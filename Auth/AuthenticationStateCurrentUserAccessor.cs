@@ -1,8 +1,8 @@
 using System.Security.Claims;
-using _10xnotes.Auth;
+using _10xnotes.Data;
 using Microsoft.AspNetCore.Components.Authorization;
 
-namespace _10xnotes.Data;
+namespace _10xnotes.Auth;
 
 /// <summary>
 /// Resolves the current user from Blazor's authentication state.

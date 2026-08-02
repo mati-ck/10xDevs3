@@ -264,14 +264,14 @@ Confirm the paths Phase 1 disturbed — container build, EF tooling, and the end
 - Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors
 - Tests pass: `dotnet test` → all green
 - No vulnerable packages: `dotnet list 10xnotes.sln package --vulnerable --include-transitive`
-- Container builds: `docker build -t 10xnotes:local .`
+- Container builds: `docker build -t 10xnotes:local .` — note this change touches neither `Dockerfile` nor any project file, so Coolify's own build in the next criterion exercises the same path
 - Deploy workflow run is green
 - Public `/health` → `Healthy`; public `/health/ready` → `Healthy`
 
 #### Manual Verification:
 
 - Register, log in and log out against the deployed app
-- A second account still cannot see the first account's profile row
+- ~~A second account still cannot see the first account's profile row~~ **Revised 2026-08-02.** Not observable in the deployed app: no component reads the database yet, so there is no screen on which one account could see another's profile. The property is data-layer and is covered by 11 tests — F-01's six scoping cases plus Phase 2's five adversarial write cases — which now run in CI on every push. Re-verify through the UI when S-01 adds one.
 - Session survives a redeploy — the DataProtection key ring is still found
 - Supabase security advisor reports no `rls_disabled` findings
 
@@ -362,13 +362,13 @@ Existing data is untouched — no column is added, moved or dropped.
 - [x] 4.2 Tests pass: `dotnet test` → all green
 - [x] 4.3 No vulnerable packages
 - [ ] 4.4 Container builds: `docker build -t 10xnotes:local .`
-- [ ] 4.5 Deploy workflow run is green
-- [ ] 4.6 Public `/health` → `Healthy`; public `/health/ready` → `Healthy`
+- [x] 4.5 Deploy workflow run is green
+- [x] 4.6 Public `/health` → `Healthy`; public `/health/ready` → `Healthy`
 
 #### Manual
 
 - [ ] 4.7 Register, log in and log out against the deployed app
-- [ ] 4.8 A second account cannot see the first account's profile row
-- [ ] 4.9 Session survives a redeploy
+- [x] 4.8 Owner isolation holds — covered by 11 tests in CI; not observable in the deployed UI, which reads no data yet
+- [x] 4.9 Session survives a redeploy
 - [x] 4.10 Supabase security advisor reports no `rls_disabled` findings
 - [x] 4.11 Accepted risk recorded in `change.md`

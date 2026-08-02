@@ -1,10 +1,10 @@
 ---
 change_id: auth-session-hardening
 title: Domknięcie sesji i kontraktu właściciela przed S-01
-status: impl_reviewed
+status: archived
 created: 2026-08-02
 updated: 2026-08-02
-archived_at: null
+archived_at: 2026-08-02T19:33:22Z
 ---
 
 ## Notes

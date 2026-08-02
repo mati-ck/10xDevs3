@@ -332,10 +332,10 @@ Existing data is untouched — no column is added, moved or dropped.
 
 #### Automated
 
-- [x] 2.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors
-- [x] 2.2 Tests pass, including the five new cases: `dotnet test` → 39 passed
-- [x] 2.3 No schema work is owed: `has-pending-model-changes` reports none
-- [x] 2.4 The guard is not vacuous: removing `IsConcurrencyToken()` fails exactly the attach-by-PK test
+- [x] 2.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors — 3aa4da7
+- [x] 2.2 Tests pass, including the five new cases: `dotnet test` → 39 passed — 3aa4da7
+- [x] 2.3 No schema work is owed: `has-pending-model-changes` reports none — 3aa4da7
+- [x] 2.4 The guard is not vacuous: removing `IsConcurrencyToken()` fails exactly the attach-by-PK test — 3aa4da7
 
 ### Phase 3: Bound the circuit with an absolute session cap
 

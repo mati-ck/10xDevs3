@@ -438,13 +438,13 @@ Existing data: `auth.users` has 0 rows and `profiles` has 0 rows, so there is no
 - [x] 4.2 Tests pass: `dotnet test` → all green — ea8a251
 - [x] 4.3 No vulnerable packages — ea8a251
 - [x] 4.4 Container build succeeds: `docker build -t 10xnotes:local .`
-- [ ] 4.5 Deploy workflow run is green
-- [ ] 4.6 Public `/health` → `Healthy`; public `/health/ready` → `Healthy`
+- [x] 4.5 Deploy workflow run is green
+- [x] 4.6 Public `/health` → `Healthy`; public `/health/ready` → `Healthy`
 
 #### Manual
 
-- [ ] 4.7 Register, log in, and log out against the deployed app
-- [ ] 4.8 A second account cannot see the first account's profile row
-- [ ] 4.9 Session survives a redeploy
+- [x] 4.7 Register, log in, and log out against the deployed app
+- [x] 4.8 A second account cannot see the first account's profile row
+- [x] 4.9 Session survives a redeploy
 - [x] 4.10 Supabase security advisor reports no `rls_disabled` findings — ea8a251
 - [ ] 4.11 Supabase config and connection string set in Coolify

@@ -1,0 +1,16 @@
+@inject NavigationManager Navigation
+
+@* The endpoint-level fallback policy already challenges anonymous requests before routing, so
+   this fires mainly on the interactive path — a circuit whose cookie expired or was cleared by
+   a logout in another tab. Without it AuthorizeRouteView renders an empty page. *@
+
+@code {
+    protected override void OnInitialized()
+    {
+        var returnUrl = "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
+
+        // "ReturnUrl" matches CookieAuthenticationDefaults.ReturnUrlParameter, so a challenge
+        // and this redirect land the user in the same place after signing in.
+        Navigation.NavigateTo($"/login?ReturnUrl={Uri.EscapeDataString(returnUrl)}");
+    }
+}

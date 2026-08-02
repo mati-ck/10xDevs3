@@ -2,6 +2,7 @@ using _10xnotes.Auth;
 using _10xnotes.Components;
 using _10xnotes.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
@@ -54,7 +55,17 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             : CookieSecurePolicy.Always;
     });
 
-builder.Services.AddAuthorization();
+// Deny by default: every endpoint without its own authorization metadata requires an
+// authenticated user, so a page added by a future slice is protected even if nobody remembers
+// to mark it. Everything that must stay public is opted out explicitly with AllowAnonymous —
+// the health endpoints and static assets below, [AllowAnonymous] on the auth pages.
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 builder.Services.AddCascadingAuthenticationState();
 
 builder.Services.Configure<SupabaseAuthOptions>(
@@ -96,19 +107,27 @@ app.UseAuthorization();
 
 app.UseAntiforgery();
 
-app.MapStaticAssets();
+// Anonymous, or the fallback policy makes the login page render unstyled: its CSS would be
+// answered with a redirect to the very page asking for it.
+app.MapStaticAssets().AllowAnonymous();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 // Liveness: "the process is up". Predicate = _ => false runs NO checks, so the response
 // body stays the literal "Healthy" that Dockerfile's HEALTHCHECK and deploy.yml both assert
 // on. A database outage must never fail this probe — Coolify de-routes unhealthy containers.
-app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
+//
+// AllowAnonymous is load-bearing on both probes: under the fallback policy they would answer
+// 302 → /login, the HEALTHCHECK would stop seeing "Healthy", and Coolify would de-route the
+// container — a failure that looks nothing like an auth bug.
+app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false })
+    .AllowAnonymous();
 
 // Readiness: "the process can actually serve" — includes the database.
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains("ready")
-});
+}).AllowAnonymous();
 
 app.Run();

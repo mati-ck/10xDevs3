@@ -1,5 +1,10 @@
 ﻿@page "/Error"
+@attribute [AllowAnonymous]
 @using System.Diagnostics
+
+@* Anonymous by necessity, not by oversight: UseExceptionHandler re-executes the pipeline and
+   then restores the original status code, so a challenge raised here would surface as a 500
+   with an ignored Location header instead of an error page. Nothing user-specific is shown. *@
 
 <PageTitle>Error</PageTitle>
 

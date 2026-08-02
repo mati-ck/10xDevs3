@@ -399,36 +399,36 @@ Existing data: `auth.users` has 0 rows and `profiles` has 0 rows, so there is no
 
 #### Automated
 
-- [x] 2.1 Build is clean: `dotnet build` → 0 warnings, 0 errors
-- [x] 2.2 Tests pass: `dotnet test`
-- [x] 2.3 Migration applies: `dotnet ef database update`
-- [x] 2.4 `/register` and `/login` return 200 while logged out
+- [x] 2.1 Build is clean: `dotnet build` → 0 warnings, 0 errors — 6bc6c68
+- [x] 2.2 Tests pass: `dotnet test` — 6bc6c68
+- [x] 2.3 Migration applies: `dotnet ef database update` — 6bc6c68
+- [x] 2.4 `/register` and `/login` return 200 while logged out — 6bc6c68
 
 #### Manual
 
-- [x] 2.5 Registration creates rows in `auth.users` and `public.profiles`
-- [x] 2.6 Login sets an auth cookie and lands on `/`
-- [x] 2.7 Logout clears the cookie and returns to `/login`
-- [x] 2.8 Duplicate registration and wrong password give Polish, non-revealing messages
-- [x] 2.9 Passwords shorter than 8 characters are rejected before any GoTrue call
+- [x] 2.5 Registration creates rows in `auth.users` and `public.profiles` — 6bc6c68
+- [x] 2.6 Login sets an auth cookie and lands on `/` — 6bc6c68
+- [x] 2.7 Logout clears the cookie and returns to `/login` — 6bc6c68
+- [x] 2.8 Duplicate registration and wrong password give Polish, non-revealing messages — 6bc6c68
+- [x] 2.9 Passwords shorter than 8 characters are rejected before any GoTrue call — 6bc6c68
 
 ### Phase 3: Route protection and auth-aware UI
 
 #### Automated
 
-- [ ] 3.1 Build is clean: `dotnet build` → 0 warnings, 0 errors
-- [ ] 3.2 Tests pass: `dotnet test`
-- [ ] 3.3 Anonymous `GET /` → 302 to `/login`
-- [ ] 3.4 Anonymous `GET /health` → 200 body exactly `Healthy`
-- [ ] 3.5 Anonymous `GET /health/ready` → 200 `Healthy`
-- [ ] 3.6 Anonymous `GET /login` → 200
+- [x] 3.1 Build is clean: `dotnet build` → 0 warnings, 0 errors
+- [x] 3.2 Tests pass: `dotnet test`
+- [x] 3.3 Anonymous `GET /` → 302 to `/login`
+- [x] 3.4 Anonymous `GET /health` → 200 body exactly `Healthy`
+- [x] 3.5 Anonymous `GET /health/ready` → 200 `Healthy`
+- [x] 3.6 Anonymous `GET /login` → 200
 
 #### Manual
 
-- [ ] 3.7 Login page renders with styling while logged out
-- [ ] 3.8 Nav reflects auth state before and after login
-- [ ] 3.9 A logged-in user's data-layer query returns their rows
-- [ ] 3.10 `/counter` still increments after login
+- [x] 3.7 Login page renders with styling while logged out
+- [x] 3.8 Nav reflects auth state before and after login
+- [x] 3.9 A logged-in user's data-layer query returns their rows
+- [x] 3.10 `/counter` still increments after login
 
 ### Phase 4: Tests and deploy verification
 

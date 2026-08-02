@@ -24,9 +24,10 @@ namespace _10xnotes.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql("""
-                ALTER TABLE public."__EFMigrationsHistory" DISABLE ROW LEVEL SECURITY;
-                """);
+            // Deliberately a no-op. The symmetric Down() would DISABLE ROW LEVEL SECURITY,
+            // re-opening the migration ledger to the public anon key — the exact hole Up()
+            // exists to close. Reverting this migration must not be a security regression,
+            // so the hardening stays in place. Drop it by hand if it is ever really wanted.
         }
     }
 }

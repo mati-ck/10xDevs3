@@ -36,7 +36,7 @@ The app needs `ConnectionStrings__Postgres` (Supabase **session pooler**, port 5
 
 ## Commit & Pull Request Guidelines
 
-Commit subjects are short, imperative, sentence-case ("Add agent-readiness health check report") — no Conventional Commits prefixes. Branch off `main` as `<type>/<kebab-desc>` (e.g. `bootstrap/scaffold-and-health-check`, `chore/cleanup-m1l3-artifacts`). Open PRs against `main` (remote: `mati-ck/10xDevs3`).
+Commit subjects follow Conventional Commits scoped by change id: `<type>(<change-id>): <subject>` — e.g. `feat(persistence-baseline): data layer wiring (p1)`, `test(email-password-auth): cover the GoTrue and identity seams (p4)`. Types in use: `feat`, `fix`, `test`, `chore`, `docs`. Append the phase marker (`(p1)`, `(p2)`…) when the commit lands one phase of a plan. Subjects stay short, imperative, and lower-case after the prefix. Commits that are not part of a change (toolchain updates, one-off repo fixes) use a bare type — `chore:` or `docs:` — and should not be folded into a phase commit. Branch off `main` as `<type>/<kebab-desc>` (e.g. `bootstrap/scaffold-and-health-check`, `chore/cleanup-m1l3-artifacts`). Open PRs against `main` (remote: `mati-ck/10xDevs3`).
 
 <!-- BEGIN @przeprogramowani/10x-cli -->
 

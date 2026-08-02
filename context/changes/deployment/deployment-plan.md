@@ -53,6 +53,18 @@ Baseline decision: `@context/foundation/infrastructure.md` (self-hosted Coolify)
 
 Keep the database out of `/health`: a failing probe makes Coolify de-route the container (see the lessons below).
 
+**There is a startup window where `/health` is green but migrations have not run yet.** Hosted
+services start in registration order, and `AddHostedService<DatabaseMigrationHostedService>()` is
+registered after the web host — so Kestrel binds and serves requests while `DatabaseMigrateAsync`
+is still working. `/health` correctly reports `Healthy` throughout (it runs no checks), so nothing
+stops Coolify routing traffic at a container running against a not-yet-migrated schema.
+
+Mitigation: **gate the rollout on `/health/ready`, not `/health`.** `/health` stays the container
+`HEALTHCHECK` — it must, because a database-dependent liveness probe is what caused the documented
+outage below — but traffic should not shift to a new container until `/health/ready` returns
+`Healthy`. Until that gate exists, treat a migration-carrying deploy as having a brief window of
+stale-schema requests, and verify `/health/ready` by hand immediately after deploying.
+
 ## Required environment
 - `ConnectionStrings__Postgres` — Supabase **session pooler** (`aws-<region>.pooler.supabase.com`, port 5432, user `postgres.<project-ref>`). The direct endpoint is IPv6-only without the paid add-on, and the transaction pooler (`:6543`) breaks Npgsql's prepared statements. Set on the Coolify resource; never committed.
 

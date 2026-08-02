@@ -2,6 +2,7 @@ using System.Reflection;
 using _10xnotes.Data.Entities;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace _10xnotes.Data;
 
@@ -68,7 +69,16 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     /// </summary>
     private void ApplyOwnerFilter<TEntity>(ModelBuilder modelBuilder)
         where TEntity : class, IOwnedByUser
-        => modelBuilder.Entity<TEntity>().HasQueryFilter(e => e.OwnerId == CurrentUserId);
+    {
+        var entity = modelBuilder.Entity<TEntity>();
+
+        entity.HasQueryFilter(e => e.OwnerId == CurrentUserId);
+
+        // Ownership is assigned once, at insert, and never moves. EF throws rather than
+        // emitting an UPDATE that hands a row to a different owner.
+        entity.Property(e => e.OwnerId).Metadata
+            .SetAfterSaveBehavior(PropertySaveBehavior.Throw);
+    }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -87,14 +97,22 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     /// <summary>
     /// Assigns ownership on insert so callers cannot forget to, and refuses to write an
     /// unowned row when nobody is authenticated.
+    /// <para>
+    /// Also guards the write side. Global query filters apply to queries only — never to the
+    /// UPDATE/DELETE that <see cref="SaveChanges()"/> emits, which target a row by primary key
+    /// alone. Without this check a tracked entity belonging to somebody else would be written
+    /// unchallenged, so the isolation guarantee would cover reads and nothing more.
+    /// </para>
     /// </summary>
     private void StampOwners()
     {
-        var added = ChangeTracker.Entries<IOwnedByUser>()
-            .Where(entry => entry.State == EntityState.Added)
+        var touched = ChangeTracker.Entries<IOwnedByUser>()
+            .Where(entry => entry.State is EntityState.Added
+                or EntityState.Modified
+                or EntityState.Deleted)
             .ToList();
 
-        if (added.Count == 0)
+        if (touched.Count == 0)
         {
             return;
         }
@@ -105,9 +123,22 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
                 "Cannot persist a user-owned entity without an authenticated user.");
         }
 
-        foreach (var entry in added.Where(entry => entry.Entity.OwnerId == Guid.Empty))
+        foreach (var entry in touched)
         {
-            entry.Entity.OwnerId = CurrentUserId;
+            if (entry.State == EntityState.Added)
+            {
+                // Ownership always comes from the current user, never from the caller. A
+                // supplied OwnerId is overwritten rather than trusted, so binding it from
+                // user input cannot create a row owned by somebody else.
+                entry.Entity.OwnerId = CurrentUserId;
+                continue;
+            }
+
+            if (entry.Entity.OwnerId != CurrentUserId)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot modify or delete a {entry.Metadata.ClrType.Name} owned by another user.");
+            }
         }
     }
 }

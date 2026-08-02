@@ -217,6 +217,14 @@ migrationBuilder.Sql("""
 
 `Down` must drop the constraint before the table. **No policies are created** — with zero policies, `anon`/`authenticated` (neither of which bypasses RLS) can read nothing through the Data API, while the app's `postgres` role (`rolbypassrls = true`) is unaffected. Verified against the live project.
 
+#### 5b. Migration-ledger hardening (added during implementation)
+
+**File**: `Migrations/<timestamp>_HardenMigrationsHistoryRls.cs` (new)
+
+**Intent**: EF creates `__EFMigrationsHistory` itself, so it escaped the RLS switch applied to `public.profiles` above — while sitting in the Data-API-exposed `public` schema where `anon` holds DML. Verified: the anon key could delete rows from the ledger and break the next deploy.
+
+**Contract**: A second migration enabling deny-all RLS on `public."__EFMigrationsHistory"`. No policies, same rationale as `profiles`. This is why criterion 2.6 counts **two** migrations, not one. Recorded as a standing rule in `context/foundation/lessons.md`.
+
 #### 6. Startup migration runner
 
 **File**: `Data/DatabaseMigrationHostedService.cs` (new), registered in `Program.cs`
@@ -289,6 +297,14 @@ Turn the privacy guardrail into an executable assertion and give the repository 
 **Intent**: Three statements become false with this change and would misdirect a future agent.
 
 **Contract**: Update "Project Structure" (a `.sln` now exists; `Data/` and `Migrations/` are new top-level areas), "Build, Test & Development Commands" (add `dotnet test`, `dotnet tool restore`, and the `dotnet ef` workflow), and remove the "No test project exists yet" sentence at `AGENTS.md:21`. Do not touch the `<!-- BEGIN/END @przeprogramowani/10x-cli -->` block (hard rule, `AGENTS.md:9`).
+
+#### 5. Dockerfile publish target (added during implementation)
+
+**File**: `Dockerfile`
+
+**Intent**: Adding `10xnotes.sln` in change 1 above makes a bare `dotnet publish` ambiguous — `/src` now holds both a solution and a project — so the container build breaks unless the target is named.
+
+**Contract**: `dotnet publish` → `dotnet publish 10xnotes.csproj`. A direct consequence of introducing the solution file, so it belongs to this phase; it landed separately as commit `3c1c7c9` and is recorded here retrospectively.
 
 ### Success Criteria:
 
@@ -432,7 +448,7 @@ Two migration ledgers coexist in this database: `__EFMigrationsHistory` (owned b
 #### Manual
 
 - [x] 2.5 MCP `list_tables` shows `public.profiles` with `rls_enabled: true` — a087c3d
-- [x] 2.6 FK to `auth.users` exists and `__EFMigrationsHistory` holds one row — a087c3d
+- [x] 2.6 FK to `auth.users` exists; `__EFMigrationsHistory` holds both migrations and every `public` table has RLS enabled — a087c3d
 - [x] 2.7 Data API read of `profiles` with the anon key returns no rows — a087c3d
 - [x] 2.8 Broken connection string does not crash-loop the app — a087c3d
 

@@ -434,10 +434,10 @@ Existing data: `auth.users` has 0 rows and `profiles` has 0 rows, so there is no
 
 #### Automated
 
-- [x] 4.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors
-- [x] 4.2 Tests pass: `dotnet test` → all green
-- [x] 4.3 No vulnerable packages
-- [ ] 4.4 Container build succeeds: `docker build -t 10xnotes:local .`
+- [x] 4.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors — ea8a251
+- [x] 4.2 Tests pass: `dotnet test` → all green — ea8a251
+- [x] 4.3 No vulnerable packages — ea8a251
+- [x] 4.4 Container build succeeds: `docker build -t 10xnotes:local .`
 - [ ] 4.5 Deploy workflow run is green
 - [ ] 4.6 Public `/health` → `Healthy`; public `/health/ready` → `Healthy`
 
@@ -446,5 +446,5 @@ Existing data: `auth.users` has 0 rows and `profiles` has 0 rows, so there is no
 - [ ] 4.7 Register, log in, and log out against the deployed app
 - [ ] 4.8 A second account cannot see the first account's profile row
 - [ ] 4.9 Session survives a redeploy
-- [x] 4.10 Supabase security advisor reports no `rls_disabled` findings
+- [x] 4.10 Supabase security advisor reports no `rls_disabled` findings — ea8a251
 - [ ] 4.11 Supabase config and connection string set in Coolify

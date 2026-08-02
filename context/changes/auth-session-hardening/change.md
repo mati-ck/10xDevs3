@@ -1,7 +1,7 @@
 ---
 change_id: auth-session-hardening
 title: Domknięcie sesji i kontraktu właściciela przed S-01
-status: implemented
+status: impl_reviewed
 created: 2026-08-02
 updated: 2026-08-02
 archived_at: null
@@ -79,7 +79,14 @@ zmieniła — nadal `/counter`, nadal e-mail w nawigacji.
 
 Co limit **daje**: principal w obwodzie staje się anonimowy, więc `ICurrentUserAccessor` zwraca
 `null` i każde zapytanie objęte filtrem właściciela zwraca zero wierszy. Obwód przestaje serwować
-dane — to jest treść znaleziska. Interfejs dogania przy najbliższym żądaniu HTTP.
+dane — to jest treść znaleziska.
+
+**Uzupełnione po review F-03 (2026-08-02).** Samo to zostawiało stan czytający się jak utrata
+danych: nawigacja z e-mailem nad aplikacją, która nic nie zwraca. `Program.cs` obsługuje teraz
+`OnValidatePrincipal` — principal po limicie jest odrzucany i wylogowywany przy pierwszym żądaniu,
+które go niesie, więc interfejs dogania od razu i użytkownik widzi stronę logowania zamiast pustki.
+Zdarzenie odpala się wyłącznie przy walidacji **istniejącego** ciasteczka, nigdy przy jego
+wydawaniu, więc świeże logowanie nie potyka się o własny limit.
 
 Czego **nie da się tanio naprawić**: interaktywny router uczyniłby interaktywnymi także `Login`,
 `Register` i `Logout`, a `HttpContext.SignInAsync` wymaga odpowiedzi, która się jeszcze nie

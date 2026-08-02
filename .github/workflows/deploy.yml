@@ -45,23 +45,22 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # TEMPORARY — read-only diagnostics to work out what this runner is before deciding how to
-      # give it libsqlite3. Remove once that is settled. Runs nothing that changes the machine.
-      - name: Inspect the runner
+      # The test project links the system SQLite (SQLitePCLRaw.bundle_sqlite3) rather than
+      # carrying its own build, because the bundled one needs GLIBC_2.33 and this runner is
+      # Ubuntu 20.04 with 2.31. P/Invoke resolves that as "libsqlite3.so", and the image ships
+      # only "libsqlite3.so.0" — the unversioned symlink lives in libsqlite3-dev. The runner is
+      # a container, so installing by hand would vanish when it is recreated; doing it here
+      # keeps it in git. No-op once the symlink exists.
+      - name: Ensure libsqlite3 is loadable
         run: |
-          echo "--- identity ---";      id; echo "HOME=$HOME  PWD=$PWD"
-          echo "--- os ---";            cat /etc/os-release 2>/dev/null | head -4
-          echo "--- glibc ---";         ldd --version 2>/dev/null | head -1
-          echo "--- container? ---"
-          if [ -f /.dockerenv ]; then echo "/.dockerenv present -> running inside a container"; else echo "no /.dockerenv"; fi
-          grep -qE 'docker|containerd|kubepods' /proc/1/cgroup 2>/dev/null \
-            && echo "pid 1 cgroup looks containerised" || echo "pid 1 cgroup looks like a host"
-          echo "--- package tooling ---"
-          command -v apt-get >/dev/null && echo "apt-get: yes" || echo "apt-get: no"
-          command -v sudo    >/dev/null && echo "sudo: yes"    || echo "sudo: no"
-          sudo -n true 2>/dev/null && echo "passwordless sudo: yes" || echo "passwordless sudo: no"
-          echo "--- sqlite present? ---"
-          ldconfig -p 2>/dev/null | grep -i sqlite || echo "no libsqlite3 in the linker cache"
+          if ldconfig -p | grep -q 'libsqlite3\.so '; then
+            echo "libsqlite3.so already resolvable"
+            exit 0
+          fi
+          SUDO=""; [ "$(id -u)" -eq 0 ] || SUDO=sudo
+          $SUDO apt-get update -qq
+          $SUDO apt-get install -y --no-install-recommends libsqlite3-dev
+          ldconfig -p | grep 'libsqlite3\.so '
 
       - name: Run the test suite
         run: dotnet test 10xnotes.sln --configuration Release

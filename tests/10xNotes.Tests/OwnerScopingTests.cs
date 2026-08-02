@@ -98,6 +98,93 @@ public sealed class OwnerScopingTests : IDisposable
         Assert.Equal(2, context.Profiles.IgnoreQueryFilters().Count());
     }
 
+    [Fact]
+    public void A_caller_supplied_OwnerId_is_overwritten_on_insert()
+    {
+        // The classic vector is a model-bound form or a DTO round-trip carrying OwnerId. Trusting
+        // it would let anyone insert a row owned by somebody else.
+        using var context = CreateContext(UserA);
+        var smuggled = NewProfile("Podszywacz");
+        smuggled.OwnerId = UserB;
+        context.Profiles.Add(smuggled);
+        context.SaveChanges();
+
+        using var verify = CreateContext(UserA);
+        Assert.Equal(UserA, verify.Profiles.Single().OwnerId);
+    }
+
+    [Fact]
+    public void Modifying_a_row_owned_by_another_user_is_refused()
+    {
+        SeedProfile(UserB, "Bartek");
+
+        using var context = CreateContext(UserA);
+        // Attached rather than queried: the query filter would never hand UserA this row, which
+        // is precisely why the write path needs its own guard.
+        var victim = new Profile { Id = IdOf(UserB), OwnerId = UserB, DisplayName = "Przejete" };
+        context.Attach(victim).State = EntityState.Modified;
+
+        var error = Assert.Throws<InvalidOperationException>(() => context.SaveChanges());
+        Assert.Contains("owned by another user", error.Message);
+    }
+
+    [Fact]
+    public void Deleting_a_row_owned_by_another_user_is_refused()
+    {
+        SeedProfile(UserB, "Bartek");
+
+        using var context = CreateContext(UserA);
+        var victim = new Profile { Id = IdOf(UserB), OwnerId = UserB };
+        context.Attach(victim).State = EntityState.Deleted;
+
+        var error = Assert.Throws<InvalidOperationException>(() => context.SaveChanges());
+        Assert.Contains("owned by another user", error.Message);
+
+        using var verify = CreateContext(UserB);
+        Assert.Single(verify.Profiles);
+    }
+
+    [Fact]
+    public void Attaching_another_users_row_with_a_forged_OwnerId_is_refused()
+    {
+        // The residual gap the F-01 review left open: OwnerId is set to the *attacker's* id, so
+        // the change-tracker guard sees nothing wrong. Only owner_id in the WHERE clause stops
+        // this, which is what IsConcurrencyToken() buys.
+        SeedProfile(UserB, "Bartek");
+
+        using var context = CreateContext(UserA);
+        var forged = new Profile { Id = IdOf(UserB), OwnerId = UserA, DisplayName = "Przejete" };
+        context.Attach(forged).State = EntityState.Modified;
+
+        var error = Assert.Throws<InvalidOperationException>(() => context.SaveChanges());
+        Assert.Contains("owned by another user", error.Message);
+
+        using var verify = CreateContext(UserB);
+        Assert.Equal("Bartek", verify.Profiles.Single().DisplayName);
+    }
+
+    [Fact]
+    public void Updating_your_own_row_still_works()
+    {
+        // Guards that block legitimate writes are worse than no guards, so pin the happy path.
+        SeedProfile(UserA, "Ala");
+
+        using var context = CreateContext(UserA);
+        var mine = context.Profiles.Single();
+        mine.DisplayName = "Ala Nowa";
+        context.SaveChanges();
+
+        using var verify = CreateContext(UserA);
+        Assert.Equal("Ala Nowa", verify.Profiles.Single().DisplayName);
+    }
+
+    /// <summary>The primary key of the single profile owned by <paramref name="ownerId"/>.</summary>
+    private Guid IdOf(Guid ownerId)
+    {
+        using var context = CreateContext(ownerId);
+        return context.Profiles.Single().Id;
+    }
+
     private void SeedProfile(Guid ownerId, string displayName)
     {
         using var context = CreateContext(ownerId);

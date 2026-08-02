@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -15,13 +16,37 @@ namespace _10xnotes.Auth;
 /// </remarks>
 public static class AuthCookie
 {
+    /// <summary>
+    /// How long the cookie stays valid without activity. Sliding: ordinary use renews it.
+    /// </summary>
+    public static readonly TimeSpan CookieWindow = TimeSpan.FromDays(14);
+
+    /// <summary>
+    /// The latest instant a single sign-in may still be trusted, regardless of activity.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately a different number from <see cref="CookieWindow"/>, and deliberately larger.
+    /// A claim stamped at sign-in cannot slide, so it cannot represent "when the cookie expires" —
+    /// that instant moves with every request and a SignalR circuit, which holds a snapshot of the
+    /// principal taken when it opened, has no way to re-read it. What the claim *can* express is
+    /// an outer bound on the sign-in itself, which is what stops a circuit staying authenticated
+    /// for as long as its connection happens to survive.
+    /// </remarks>
+    public static readonly TimeSpan SessionCap = TimeSpan.FromDays(30);
+
+    /// <summary>Unix seconds after which this sign-in is no longer trusted.</summary>
+    public const string SessionCapClaimType = "session_cap";
+
     public static Task SignInAsync(HttpContext httpContext, Guid userId, string email)
     {
+        var cap = DateTimeOffset.UtcNow.Add(SessionCap).ToUnixTimeSeconds();
+
         var identity = new ClaimsIdentity(
             [
                 new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                 new Claim(ClaimTypes.Email, email),
-                new Claim(ClaimTypes.Name, email)
+                new Claim(ClaimTypes.Name, email),
+                new Claim(SessionCapClaimType, cap.ToString(CultureInfo.InvariantCulture))
             ],
             CookieAuthenticationDefaults.AuthenticationScheme);
 
@@ -29,6 +54,28 @@ public static class AuthCookie
             CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(identity),
             new AuthenticationProperties { IsPersistent = true });
+    }
+
+    /// <summary>
+    /// Whether this sign-in has passed its cap at <paramref name="now"/>.
+    /// </summary>
+    /// <remarks>
+    /// "Now" is a parameter rather than a call to <see cref="DateTimeOffset.UtcNow"/> inside, so
+    /// the rule is testable without an <c>HttpContext</c>, a circuit, or a clock that has to be
+    /// waited out.
+    /// <para>
+    /// A principal with no cap claim, or one that will not parse, is treated as past its cap.
+    /// Cookies issued before the cap existed carry none, and retiring those sessions once is the
+    /// right answer — exempting them would grant exactly the unbounded lifetime this exists to
+    /// remove.
+    /// </para>
+    /// </remarks>
+    public static bool IsPastSessionCap(ClaimsPrincipal principal, DateTimeOffset now)
+    {
+        var raw = principal.FindFirstValue(SessionCapClaimType);
+
+        return !long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var capUnixSeconds)
+            || DateTimeOffset.FromUnixTimeSeconds(capUnixSeconds) <= now;
     }
 
     public static Task SignOutAsync(HttpContext httpContext) =>

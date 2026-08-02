@@ -10,10 +10,21 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
-    <!-- EF's SQLite provider pulls SQLitePCLRaw 2.1.11, which carries a known high-severity
-         advisory (GHSA-2m69-gcr7-jv3q). Pin the patched 2.1.12 explicitly. -->
-    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.12" />
+    <!-- ".Core" deliberately: the plain Microsoft.EntityFrameworkCore.Sqlite package hard-pulls
+         SQLitePCLRaw.bundle_e_sqlite3, which ships its own native build of SQLite. That build is
+         linked against GLIBC_2.33, and the self-hosted CI runner has 2.31 — 14 of 34 tests died
+         with "Unable to load shared library 'e_sqlite3'" the first time CI ran them. The .Core
+         provider leaves the bundle choice to us. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core" Version="10.0.10" />
+    <!-- bundle_sqlite3 links the SQLite the operating system already ships instead of carrying
+         its own, so there is no glibc floor to trip over and patching belongs to the OS vendor.
+         2.1.11 is its newest version — there is no 2.1.12 — and that is fine here:
+         GHSA-2m69-gcr7-jv3q is filed against the *bundled* native build, so it does not apply to
+         a bundle that ships no native SQLite. Verified, not assumed: `dotnet list` with the
+         vulnerable + include-transitive switches reports no vulnerable packages in either project.
+         SQLite is a test-only dependency — the app talks to Postgres through Npgsql — so nothing
+         about the deployed image changes either way. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_sqlite3" Version="2.1.11" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />

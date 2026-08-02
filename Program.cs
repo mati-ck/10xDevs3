@@ -3,6 +3,8 @@ using _10xnotes.Components;
 using _10xnotes.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -43,7 +45,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/login";
         options.LogoutPath = "/logout";
         options.AccessDeniedPath = "/login";
-        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        // Sliding, unchanged. The circuit's own bound is AuthCookie.SessionCap, a separate and
+        // deliberately larger number — see the remarks there for why the two cannot be one.
+        options.ExpireTimeSpan = AuthCookie.CookieWindow;
         options.SlidingExpiration = true;
         options.Cookie.Name = "10xnotes.auth";
         options.Cookie.HttpOnly = true;
@@ -68,6 +72,15 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddCascadingAuthenticationState();
+
+// Replaces the default ServerAuthenticationStateProvider, which seeds the principal once when a
+// circuit opens and never re-checks it. Registered for IHostEnvironmentAuthenticationStateProvider
+// too, and resolved through AuthenticationStateProvider so both land on the *same instance*: the
+// static-SSR path pushes the principal in through that interface, and a second instance would
+// leave every circuit anonymous while looking correctly wired.
+builder.Services.AddScoped<AuthenticationStateProvider, SessionCapAuthenticationStateProvider>();
+builder.Services.AddScoped<IHostEnvironmentAuthenticationStateProvider>(sp =>
+    (SessionCapAuthenticationStateProvider)sp.GetRequiredService<AuthenticationStateProvider>());
 
 builder.Services.Configure<SupabaseAuthOptions>(
     builder.Configuration.GetSection(SupabaseAuthOptions.SectionName));

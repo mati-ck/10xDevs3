@@ -6,18 +6,73 @@ on:
     paths-ignore:
       - 'context/**'
       - '**/*.md'
+  # Pull requests run the test job only — see the `if` on the deploy job below. A gate that
+  # first fires on a push to main reports the problem after it has already landed, which is
+  # too late to be a gate at all.
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - 'context/**'
+      - '**/*.md'
   workflow_dispatch:
 
-# Coolify owns the build + release. This workflow triggers it and then makes the
-# GitHub status truthful: it captures the deployment_uuid, polls until the
-# deployment reaches a terminal state, and confirms the app answers 200 on /health.
-# A green check means the app is genuinely deployed and serving, not just that the
-# API accepted the request. The self-hosted runner has no Docker daemon access, so
-# there is no local build step — a broken build surfaces as deployment status=failed.
+# Coolify owns the build + release. This workflow gates on the test suite, then
+# triggers Coolify and makes the GitHub status truthful: it captures the
+# deployment_uuid, polls until the deployment reaches a terminal state, and confirms
+# the app answers 200 on /health. A green check means the app is genuinely deployed
+# and serving, not just that the API accepted the request. The self-hosted runner has
+# no Docker daemon access, so there is no local image build — a broken build surfaces
+# as deployment status=failed.
 # JSON is parsed with grep/cut to avoid a jq dependency on the runner.
 
 jobs:
+  # Runs before anything is deployed, so an assertion the suite makes is an assertion
+  # about main. Without this the tests only ever ran when someone chose to run them
+  # locally, which made every guard in the suite advisory — including
+  # DataAccessBoundaryTests, whose whole purpose is to stop a mistake reaching main.
+  # The suite needs no network, no database and no secrets by design: SQLite in-memory
+  # for the data tests, a stubbed HttpMessageHandler for the Supabase client.
+  test:
+    runs-on: [self-hosted, coolify]
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      # The runner is not guaranteed to carry an SDK, and pinning it here keeps this
+      # job independent of whatever happens to be installed on the box.
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # The test project links the system SQLite (SQLitePCLRaw.bundle_sqlite3) rather than
+      # carrying its own build, because the bundled one needs GLIBC_2.33 and this runner is
+      # Ubuntu 20.04 with 2.31. P/Invoke resolves that as "libsqlite3.so", and the image ships
+      # only "libsqlite3.so.0" — the unversioned symlink lives in libsqlite3-dev. The runner is
+      # a container, so installing by hand would vanish when it is recreated; doing it here
+      # keeps it in git. No-op once the symlink exists.
+      - name: Ensure libsqlite3 is loadable
+        run: |
+          # Check for the file, not for an ldconfig entry: the linker cache only carries
+          # versioned sonames (libsqlite3.so.0), never the unversioned dev symlink.
+          if ls /usr/lib/*/libsqlite3.so /usr/lib/libsqlite3.so >/dev/null 2>&1; then
+            echo "libsqlite3.so already present"
+            exit 0
+          fi
+          SUDO=""; [ "$(id -u)" -eq 0 ] || SUDO=sudo
+          $SUDO apt-get update -qq
+          $SUDO apt-get install -y --no-install-recommends libsqlite3-dev
+          ls -l /usr/lib/*/libsqlite3.so
+
+      - name: Run the test suite
+        run: dotnet test 10xnotes.sln --configuration Release
+
   deploy:
+    needs: test
+    # Never deploy from a pull request: the branch is unmerged, and Coolify builds whatever
+    # `main` is at trigger time regardless of the ref, so a PR deploy would be both premature
+    # and misleading about what shipped.
+    if: github.event_name != 'pull_request'
     runs-on: [self-hosted, coolify]
     steps:
       - name: Trigger Coolify deployment

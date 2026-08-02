@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Security.Claims;
+using _10xnotes.Auth;
 using _10xnotes.Data;
 using _10xnotes.Data.Entities;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -122,9 +124,23 @@ public sealed class CurrentUserAccessorTests : IDisposable
     }
 
     private static ClaimsPrincipal Authenticated(string claimType, string value)
+    {
         // The authentication type is what makes IsAuthenticated true; an identity without one
         // is anonymous no matter which claims it carries.
-        => new(new ClaimsIdentity([new Claim(claimType, value)], authenticationType: "TestAuth"));
+        //
+        // The session-cap claim is part of what "signed in" means since Phase 3 — the accessor
+        // treats a principal without one as past its cap and hands back no user id. These tests
+        // are about claim-to-id mapping, so they carry a live cap and let SessionCapTests own
+        // the cap rules themselves.
+        var cap = DateTimeOffset.UtcNow.Add(AuthCookie.SessionCap).ToUnixTimeSeconds();
+
+        return new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(claimType, value),
+                new Claim(AuthCookie.SessionCapClaimType, cap.ToString(CultureInfo.InvariantCulture))
+            ],
+            authenticationType: "TestAuth"));
+    }
 
     private static AuthenticationStateCurrentUserAccessor AccessorFor(ClaimsPrincipal principal)
         => new(new StubAuthenticationStateProvider(principal));

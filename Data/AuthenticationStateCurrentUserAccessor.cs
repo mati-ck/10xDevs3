@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using _10xnotes.Auth;
 using Microsoft.AspNetCore.Components.Authorization;
 
 namespace _10xnotes.Data;
@@ -20,7 +21,10 @@ public sealed class AuthenticationStateCurrentUserAccessor(AuthenticationStatePr
         var state = await authenticationStateProvider.GetAuthenticationStateAsync();
         var user = state.User;
 
-        if (user.Identity?.IsAuthenticated != true)
+        // The cap is re-checked here as well as in SessionCapAuthenticationStateProvider: the
+        // provider's timer only runs for a live circuit, and the data layer must fail closed on
+        // every path, including static SSR.
+        if (user.Identity?.IsAuthenticated != true || AuthCookie.IsPastSessionCap(user, DateTimeOffset.UtcNow))
         {
             return null;
         }

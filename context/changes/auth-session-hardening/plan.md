@@ -358,9 +358,9 @@ Existing data is untouched — no column is added, moved or dropped.
 
 #### Automated
 
-- [ ] 4.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors
-- [ ] 4.2 Tests pass: `dotnet test` → all green
-- [ ] 4.3 No vulnerable packages
+- [x] 4.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors
+- [x] 4.2 Tests pass: `dotnet test` → all green
+- [x] 4.3 No vulnerable packages
 - [ ] 4.4 Container builds: `docker build -t 10xnotes:local .`
 - [ ] 4.5 Deploy workflow run is green
 - [ ] 4.6 Public `/health` → `Healthy`; public `/health/ready` → `Healthy`
@@ -370,5 +370,5 @@ Existing data is untouched — no column is added, moved or dropped.
 - [ ] 4.7 Register, log in and log out against the deployed app
 - [ ] 4.8 A second account cannot see the first account's profile row
 - [ ] 4.9 Session survives a redeploy
-- [ ] 4.10 Supabase security advisor reports no `rls_disabled` findings
-- [ ] 4.11 Accepted risk recorded in `change.md`
+- [x] 4.10 Supabase security advisor reports no `rls_disabled` findings
+- [x] 4.11 Accepted risk recorded in `change.md`

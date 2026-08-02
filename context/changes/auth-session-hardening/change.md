@@ -68,6 +68,32 @@ Jedyna dostępna dźwignia to długość okna. Ciasteczko zachowuje 14-dniowe ok
 (`SlidingExpiration = true`, nietknięte), a obwód dostaje osobny **bezwzględny limit 30 dni** od
 zalogowania, niesiony w claimie. To dwie różne liczby o dwóch różnych znaczeniach: przesuwane okno
 rządzi zwykłymi żądaniami HTTP, limit ogranicza życie obwodu.
+
+### Ryzyko zaakceptowane (Faza 3, 2026-08-02): przekroczenie limitu nie wylogowuje wizualnie
+
+Zmierzone, nie założone. `Components/App.razor:18` renderuje `<Routes />` bez `@rendermode`, więc
+router, `AuthorizeRouteView` i `RedirectToLogin` żyją poza obwodem i nie mają jak zareagować na
+unieważnionego principala. Weryfikacja z 2026-08-02: przy skróconym do 15 s interwale i wymuszonym
+principalu po limicie pętla rewalidacji zwróciła „nieważna" (`pastCap=True`), a strona się nie
+zmieniła — nadal `/counter`, nadal e-mail w nawigacji.
+
+Co limit **daje**: principal w obwodzie staje się anonimowy, więc `ICurrentUserAccessor` zwraca
+`null` i każde zapytanie objęte filtrem właściciela zwraca zero wierszy. Obwód przestaje serwować
+dane — to jest treść znaleziska. Interfejs dogania przy najbliższym żądaniu HTTP.
+
+Czego **nie da się tanio naprawić**: interaktywny router uczyniłby interaktywnymi także `Login`,
+`Register` i `Logout`, a `HttpContext.SignInAsync` wymaga odpowiedzi, która się jeszcze nie
+zaczęła — F-02 zapisało to jako odkrycie przed implementacją. Osobna zmiana, nie poprawka tutaj.
+
+### Do rozważenia poza tą zmianą (advisor Supabase, 2026-08-02)
+
+Zauważone przy weryfikacji Fazy 4, oba pochodzą sprzed tej zmiany:
+
+- `public.handle_new_user()` jest wywoływalna przez `anon` i `authenticated` przez
+  `/rest/v1/rpc/handle_new_user`. Jest `SECURITY DEFINER`, więc wstawiałaby do `profiles` z
+  pominięciem RLS. Realnie niewykorzystywalna, bo PostgreSQL odrzuca bezpośrednie wywołanie funkcji
+  `RETURNS trigger`. Domyka to `REVOKE EXECUTE ... FROM anon, authenticated` w migracji.
+- Ochrona przed wyciekłymi hasłami (HaveIBeenPwned) wyłączona — ustawienie w panelu Supabase.
 Alternatywa, która przywróciłaby unieważnianie: nieść i odnawiać token GoTrue, żeby to Supabase
 było autorytetem sesji — cofa świadomą decyzję F-02 („No Supabase session persistence"), więc
 odłożone jako osobna zmiana, nie faza tej.

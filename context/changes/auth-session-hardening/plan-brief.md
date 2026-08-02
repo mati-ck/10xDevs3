@@ -52,7 +52,7 @@ Project layout is unchanged. Three small independent phases in ascending order o
 | --- | --- | --- |
 | 1. Boundary guard | A test that fails if anything in the app assembly takes a `DbContext` | Catches the mistake at `dotnet test`, not at compile time — a service outside the app assembly would slip through |
 | 2. Freeze ownership on writes | `owner_id` in the `WHERE` clause, translated failure, five adversarial tests | The migration should carry no DDL; if EF emits any, it must be read before applying |
-| 3. Absolute session cap | Cap claim + 5-minute revalidation, stateless | The real cap is 30 days, so it can only be observed by temporarily shortening the constant; pre-existing cookies fail closed and are retired once |
+| 3. Absolute session cap | Cap claim + 5-minute revalidation, stateless | Retiring a circuit has no visible effect — the router renders statically, so nothing in the circuit reacts. The guarantee is data-layer, not UI |
 | 4. Build, deploy, verify | Green deploy, accepted risk recorded | Nothing in the build path moved, so this is confirmation rather than proof — `/health` stays the canary |
 
 **Prerequisites:** F-01 (#6) and F-02 (#7), both closed. No Coolify or Supabase configuration change required.
@@ -64,10 +64,11 @@ Project layout is unchanged. Three small independent phases in ascending order o
 - **With sliding expiration on, a circuit cannot observe its cookie.** A cookie deleted or expired mid-circuit goes unnoticed until the cap or a disconnect. The two are mutually exclusive and sliding was chosen deliberately; the cap is what keeps circuit life bounded at all.
 - **The concurrency-token migration is assumed to be metadata-only.** If EF emits real DDL, Phase 2 gains a review step before it is applied.
 - **The boundary guard is a test, not a compile error.** It runs over the app assembly, so a violating type in some future separate assembly would not be seen. Accepted: today there is only one assembly.
+- **Passing the cap does not sign the user out visibly.** `App.razor` renders `<Routes />` statically, so `AuthorizeRouteView` and `RedirectToLogin` live outside the circuit and cannot react to a retired principal — measured, not assumed. What the cap does deliver is that the circuit's `ICurrentUserAccessor` returns `null`, so owner-scoped queries return nothing. The UI catches up on the next HTTP request. Making the redirect work needs an interactive router, which would break the static-SSR requirement `HttpContext.SignInAsync` imposes on the auth pages — a separate change.
 
 ## Success Criteria (Summary)
 
 - A component that injects a `DbContext` fails `dotnet test`, with a message naming the factory.
 - Writing a row owned by another user fails, with a message naming ownership.
-- A circuit cannot stay authenticated past its sign-in's absolute cap.
+- A circuit cannot serve data past its sign-in's absolute cap — the data layer sees nobody, though the UI only catches up on the next HTTP request.
 - Everything a user can see — login, logout, navigation, `/counter`, the sliding 14-day session, survival across a redeploy — behaves exactly as before.

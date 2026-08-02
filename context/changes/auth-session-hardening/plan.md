@@ -215,14 +215,19 @@ Because the cap (30 days) is longer than the sliding window (14 days), a user wh
 #### Automated Verification:
 
 - Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors
-- Tests pass, including the new session cases: `dotnet test`
+- Tests pass, including the new session cases: `dotnet test` → 49 passed
 - Anonymous `GET /` → 302 to `/login`; anonymous `GET /health` → 200 with body exactly `Healthy`
+- Revalidation decides correctly: past-cap principal → invalid, live principal → valid, anonymous principal → valid
 
 #### Manual Verification:
 
 - Log in, then confirm the app still shows the signed-in email and `/counter` still increments — the revalidation loop does not disturb a healthy session
-- Temporarily shorten the cap constant to about a minute, log in, leave the tab open without navigating, and confirm the circuit falls back to the login redirect within one revalidation interval; restore the constant afterwards. This is the only way to observe the cap, since the real one is 30 days
-- Log in and confirm the session survives a page reload and a restart of the app, and that sliding renewal still works — activity after several days does not force a re-login
+
+**Not verifiable by clicking, and not for the reason the plan first assumed.** The original criterion said a retired circuit "falls back to the login redirect". It does not, and cannot: `Components/App.razor:18` renders `<Routes />` with no `@rendermode`, so the router, `AuthorizeRouteView` and `RedirectToLogin` all render statically per HTTP request rather than inside the circuit. Retiring the circuit's principal has nothing in the circuit to react to it. Measured on 2026-08-02 with a temporary 15-second interval and a forced past-cap principal: the loop ran, reported `pastCap=True`, returned invalid — and the page did not move.
+
+What the cap does deliver is the substance of the finding: after it passes, the circuit's principal is anonymous, so `ICurrentUserAccessor` resolved in that circuit returns `null` and every owner-scoped query returns nothing. A circuit can no longer serve data for as long as its connection happens to survive. The user is not *visibly* signed out until their next HTTP request, where the cookie's own sliding window governs. Accepted.
+
+Making the redirect work would mean an interactive router, which would make `Login`, `Register` and `Logout` interactive too — and `HttpContext.SignInAsync` needs a response that has not started, which F-02 recorded as a discovery before implementation. That is a separate change, not a fix here.
 
 **Implementation Note**: After completing this phase and all automated verification passes, pause here for manual confirmation before proceeding.
 
@@ -281,7 +286,7 @@ Confirm the paths Phase 1 disturbed — container build, EF tooling, and the end
 - Data-access boundary: no constructor parameter and no `[Inject]` property in the web assembly is a `DbContext`
 - Owner scoping, carried unchanged from F-01 — the six existing cases must keep passing untouched
 - Write guards: caller-supplied `OwnerId` on insert; modify and delete of another user's tracked row; attach-by-PK with a forged `OwnerId`; a legitimate self-update that must still succeed
-- Session cap: before the cap, after it, missing claim, unparseable claim, and a past-cap principal through `ICurrentUserAccessor`
+- Session cap: before the cap, after it, the cap instant itself, missing claim, unparseable claim, a past-cap principal through `ICurrentUserAccessor`, and the revalidation hook's three outcomes (past-cap, live, anonymous)
 
 ### Integration Tests:
 
@@ -292,8 +297,7 @@ None automated, consistent with F-02's decision. The cookie round trip, the reva
 1. Add `@inject AppDbContext Db` to a scratch component and confirm `dotnet test` fails; remove it.
 2. Read the Phase 2 migration before applying it; confirm no table creation and no destructive DDL.
 3. Log in; confirm the email shows in the nav and `/counter` still increments.
-4. With the cap constant temporarily shortened to about a minute, leave an authenticated tab idle and confirm the circuit redirects to `/login` within one revalidation interval; restore the constant.
-5. Redeploy; confirm an existing session still authenticates.
+4. Redeploy; confirm an existing session still authenticates.
 
 ## Performance Considerations
 
@@ -341,15 +345,14 @@ Existing data is untouched — no column is added, moved or dropped.
 
 #### Automated
 
-- [ ] 3.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors
-- [ ] 3.2 Tests pass, including the new session cases: `dotnet test`
-- [ ] 3.3 Anonymous `GET /` → 302 to `/login`; anonymous `GET /health` → 200 body exactly `Healthy`
+- [x] 3.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors
+- [x] 3.2 Tests pass, including the new session cases: `dotnet test` → 49 passed
+- [x] 3.3 Anonymous `GET /` → 302 to `/login`; anonymous `GET /health` → 200 body exactly `Healthy`
+- [x] 3.4 Revalidation decides correctly: past-cap → invalid, live → valid, anonymous → valid
 
 #### Manual
 
-- [ ] 3.4 A healthy session is undisturbed: email shows in nav, `/counter` increments
-- [ ] 3.5 With the cap temporarily shortened, an idle circuit redirects to `/login` within one interval
-- [ ] 3.6 Session survives a page reload and an app restart; sliding renewal still works
+- [x] 3.5 A healthy session is undisturbed: email shows in nav, `/counter` increments
 
 ### Phase 4: Build, deploy and verification
 

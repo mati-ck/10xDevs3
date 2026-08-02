@@ -361,13 +361,13 @@ Existing data is untouched — no column is added, moved or dropped.
 - [x] 4.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors
 - [x] 4.2 Tests pass: `dotnet test` → all green
 - [x] 4.3 No vulnerable packages
-- [ ] 4.4 Container builds: `docker build -t 10xnotes:local .`
+- [x] 4.4 Container builds: `docker build -t 10xnotes:local .`
 - [x] 4.5 Deploy workflow run is green
 - [x] 4.6 Public `/health` → `Healthy`; public `/health/ready` → `Healthy`
 
 #### Manual
 
-- [ ] 4.7 Register, log in and log out against the deployed app
+- [x] 4.7 Register, log in and log out against the deployed app — confirmed by the user
 - [x] 4.8 Owner isolation holds — covered by 11 tests in CI; not observable in the deployed UI, which reads no data yet
 - [x] 4.9 Session survives a redeploy
 - [x] 4.10 Supabase security advisor reports no `rls_disabled` findings

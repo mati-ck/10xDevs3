@@ -1,7 +1,12 @@
+using _10xnotes.Auth;
 using _10xnotes.Components;
 using _10xnotes.Data;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,13 +14,70 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ICurrentUserAccessor, HttpContextCurrentUserAccessor>();
-
-builder.Services.AddDbContext<AppDbContext>(options =>
+// Contexts are created per operation by UserScopedDbContextFactory, not held per circuit —
+// a Blazor Server scope lives as long as the circuit, which would freeze the user's identity.
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options
         .UseNpgsql(builder.Configuration.GetConnectionString("Postgres"))
-        .UseSnakeCaseNamingConvention());
+        .UseSnakeCaseNamingConvention(),
+    lifetime: ServiceLifetime.Scoped);
+
+// A directly-resolved AppDbContext has no CurrentUserId, so it sees no owned rows. It exists
+// only for infrastructure that must resolve the context itself: DataProtection's key store and
+// the EF health check.
+builder.Services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
+
+builder.Services.AddScoped<ICurrentUserAccessor, AuthenticationStateCurrentUserAccessor>();
+builder.Services.AddScoped<UserScopedDbContextFactory>();
+
+// Without a persisted key ring, every deploy invalidates auth cookies and antiforgery tokens.
+// Postgres is used rather than a mounted volume so a rebuilt host cannot silently lose the keys.
+builder.Services.AddDataProtection()
+    .SetApplicationName("10xnotes")
+    .PersistKeysToDbContext<AppDbContext>();
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/login";
+        options.LogoutPath = "/logout";
+        options.AccessDeniedPath = "/login";
+        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.SlidingExpiration = true;
+        options.Cookie.Name = "10xnotes.auth";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        // Production is https at the Coolify edge, so the cookie must never travel in clear.
+        // Locally, follow the request scheme: with Always, the http launch profile silently
+        // drops the cookie and login "succeeds" while leaving the user signed out.
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
+    });
+
+// Deny by default: every endpoint without its own authorization metadata requires an
+// authenticated user, so a page added by a future slice is protected even if nobody remembers
+// to mark it. Everything that must stay public is opted out explicitly with AllowAnonymous —
+// the health endpoints and static assets below, [AllowAnonymous] on the auth pages.
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
+builder.Services.AddCascadingAuthenticationState();
+
+builder.Services.Configure<SupabaseAuthOptions>(
+    builder.Configuration.GetSection(SupabaseAuthOptions.SectionName));
+
+builder.Services.AddHttpClient<SupabaseAuthClient>((sp, client) =>
+{
+    var options = sp.GetRequiredService<IOptions<SupabaseAuthOptions>>().Value;
+    client.BaseAddress = new Uri($"{options.Url.TrimEnd('/')}/auth/v1/");
+    client.DefaultRequestHeaders.Add("apikey", options.AnonKey);
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 // Migrations self-apply at boot, but a failure must degrade readiness rather than crash the
 // process — a crash-loop would fail the container HEALTHCHECK and get the app de-routed.
@@ -40,21 +102,32 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseAntiforgery();
 
-app.MapStaticAssets();
+// Anonymous, or the fallback policy makes the login page render unstyled: its CSS would be
+// answered with a redirect to the very page asking for it.
+app.MapStaticAssets().AllowAnonymous();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 // Liveness: "the process is up". Predicate = _ => false runs NO checks, so the response
 // body stays the literal "Healthy" that Dockerfile's HEALTHCHECK and deploy.yml both assert
 // on. A database outage must never fail this probe — Coolify de-routes unhealthy containers.
-app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
+//
+// AllowAnonymous is load-bearing on both probes: under the fallback policy they would answer
+// 302 → /login, the HEALTHCHECK would stop seeing "Healthy", and Coolify would de-route the
+// container — a failure that looks nothing like an auth bug.
+app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false })
+    .AllowAnonymous();
 
 // Readiness: "the process can actually serve" — includes the database.
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains("ready")
-});
+}).AllowAnonymous();
 
 app.Run();

@@ -120,7 +120,9 @@ public sealed class OwnerScopingTests : IDisposable
             .UseSqlite(_connection)
             .Options;
 
-        return new AppDbContext(options, new StubCurrentUserAccessor(userId));
+        // Mirrors what UserScopedDbContextFactory does at runtime: create, then apply the
+        // current user. Guid.Empty stands for "nobody is signed in".
+        return new AppDbContext(options) { CurrentUserId = userId ?? Guid.Empty };
     }
 
     public void Dispose() => _connection.Dispose();

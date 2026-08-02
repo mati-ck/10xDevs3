@@ -1,0 +1,84 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using _10xnotes.Auth
+@inject SupabaseAuthClient AuthClient
+@inject NavigationManager Navigation
+
+@* Static SSR on purpose — no @rendermode. HttpContext.SignInAsync needs a response that has
+   not started, which an interactive circuit cannot provide. *@
+
+<PageTitle>Logowanie</PageTitle>
+
+<h1>Zaloguj się</h1>
+
+@if (errorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
+<EditForm Model="Input" method="post" OnValidSubmit="SignInAsync" FormName="login">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label for="email" class="form-label">Adres e-mail</label>
+        <InputText id="email" class="form-control" @bind-Value="Input!.Email" autocomplete="username" />
+        <ValidationMessage For="() => Input!.Email" class="text-danger" />
+    </div>
+
+    <div class="mb-3">
+        <label for="password" class="form-label">Hasło</label>
+        <InputText id="password" type="password" class="form-control" @bind-Value="Input!.Password" autocomplete="current-password" />
+        <ValidationMessage For="() => Input!.Password" class="text-danger" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Zaloguj się</button>
+</EditForm>
+
+<p class="mt-3">Nie masz konta? <a href="/register">Zarejestruj się</a></p>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    // Not initialized inline: a form post can overwrite the property with null (BL0008).
+    [SupplyParameterFromForm]
+    private LoginInput? Input { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private string? errorMessage;
+
+    protected override void OnInitialized() => Input ??= new LoginInput();
+
+    private async Task SignInAsync()
+    {
+        var result = await AuthClient.SignInAsync(Input!.Email, Input.Password, HttpContext.RequestAborted);
+
+        if (!result.Succeeded)
+        {
+            // Deliberately uniform: never distinguish "no such account" from "wrong password".
+            errorMessage = result.FailureReason == AuthFailureReason.Unavailable
+                ? "Usługa logowania jest chwilowo niedostępna. Spróbuj ponownie za chwilę."
+                : "Nieprawidłowy e-mail lub hasło.";
+            return;
+        }
+
+        await AuthCookie.SignInAsync(HttpContext, result.UserId, result.Email);
+        Navigation.NavigateTo(AuthCookie.SafeReturnUrl(ReturnUrl));
+    }
+
+    private sealed class LoginInput
+    {
+        [Required(ErrorMessage = "Podaj adres e-mail.")]
+        [EmailAddress(ErrorMessage = "Podaj poprawny adres e-mail.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Podaj hasło.")]
+        public string Password { get; set; } = string.Empty;
+    }
+}

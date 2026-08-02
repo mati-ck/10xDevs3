@@ -3,17 +3,15 @@ namespace _10xnotes.Data;
 /// <summary>
 /// Single source of "who is asking" for the data layer.
 /// <para>
-/// Deliberately knows nothing about how authentication works, so F-02 can swap the
-/// implementation (Supabase Auth sign-in exchanged for an ASP.NET cookie) without any
-/// change to <see cref="AppDbContext"/> or the entities.
+/// Asynchronous because Blazor's <c>AuthenticationStateProvider</c> is — which is also why
+/// this cannot be a plain property read inside a DbContext constructor.
 /// </para>
 /// </summary>
 public interface ICurrentUserAccessor
 {
     /// <summary>
     /// The signed-in user's Supabase <c>auth.users.id</c>, or <c>null</c> when no user is
-    /// authenticated. Until F-02 lands this is always <c>null</c> — which is correct:
-    /// an unauthenticated request must see nothing.
+    /// authenticated. Callers treat <c>null</c> as "see nothing", never as "see everything".
     /// </summary>
-    Guid? UserId { get; }
+    ValueTask<Guid?> GetUserIdAsync(CancellationToken cancellationToken = default);
 }

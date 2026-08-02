@@ -5,5 +5,6 @@ namespace _10xNotes.Tests;
 /// <summary>Stands in for the real accessor so tests can pick who is asking.</summary>
 internal sealed class StubCurrentUserAccessor(Guid? userId) : ICurrentUserAccessor
 {
-    public Guid? UserId { get; } = userId;
+    public ValueTask<Guid?> GetUserIdAsync(CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(userId);
 }

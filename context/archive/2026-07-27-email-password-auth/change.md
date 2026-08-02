@@ -1,10 +1,10 @@
 ---
 change_id: email-password-auth
 title: F-02 — uwierzytelnianie e-mail + hasło i ochrona tras
-status: implementing
+status: archived
 created: 2026-07-27
-updated: 2026-07-27
-archived_at: null
+updated: 2026-08-02
+archived_at: 2026-08-02T10:08:41Z
 ---
 
 ## Notes

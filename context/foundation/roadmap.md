@@ -3,7 +3,7 @@ project: "10xNotes"
 version: 1
 status: draft
 created: 2026-07-02
-updated: 2026-07-02
+updated: 2026-08-02
 prd_version: 1
 main_goal: speed
 top_blocker: capacity
@@ -30,7 +30,7 @@ Przeglądanie długich materiałów odbija się o barierę startu: trzeba usią�
 | ID    | Change ID                  | Outcome (user can …)                                              | Prerequisites | PRD refs                        | Status   |
 | ----- | -------------------------- | ---------------------------------------------------------------- | ------------- | ------------------------------- | -------- |
 | F-01  | persistence-baseline       | (foundation) trwałe dane per użytkownik (DB + EF + migracje)      | —             | NFR: trwałość, NFR: prywatność  | ready    |
-| F-02  | email-password-auth        | (foundation) rejestracja/logowanie e-mail+hasło, ochrona tras     | F-01          | FR-001, FR-002, Access Control  | proposed |
+| F-02  | email-password-auth        | (foundation) rejestracja/logowanie e-mail+hasło, ochrona tras     | F-01          | FR-001, FR-002, Access Control  | done     |
 | S-01  | markdown-import-generation | zaimportować plik MD, wygenerować notatkę AI, poprawić i zapisać  | F-01, F-02    | US-01, FR-004, FR-005, FR-006, FR-008 | proposed |
 | S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01          | FR-003                          | proposed |
 | S-03  | browse-notes-and-sources   | przeglądać własne notatki i materiały źródłowe                    | S-01, F-02    | FR-007                          | proposed |
@@ -86,7 +86,7 @@ Fundamenty poniżej zakładają obecność tych warstw i ich NIE odtwarzają.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Sekwencjonowany zaraz po trwałości, bo prywatność (NFR) blokuje premierę i gwiazda wymaga „zapisu na koncie"; ryzyko to rozrost w stronę pełnego systemu ról — trzymamy płaski model z PRD.
-- **Status:** proposed
+- **Status:** done
 
 ## Slices
 
@@ -193,3 +193,5 @@ Fundamenty poniżej zakładają obecność tych warstw i ich NIE odtwarzają.
 ## Done
 
 (Empty on first generation. `/10x-archive` appends here — and flips the item's `Status` to `done` — when a change whose `Change ID` matches a roadmap item is archived. Do NOT pre-populate.)
+
+- **F-02: (foundation) użytkownik może się zarejestrować, zalogować i wylogować; aplikacja rozpoznaje zalogowanego użytkownika i chroni trasy tak, że niezalogowany nie widzi żadnych danych. Płaski model, bez ról.** — Archived 2026-08-02 → `context/archive/2026-07-27-email-password-auth/`. Lesson: —.

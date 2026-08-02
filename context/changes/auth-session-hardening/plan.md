@@ -48,7 +48,8 @@ Verify by:
 - **No change to where identity comes from** — `ICurrentUserAccessor` keeps reading claims, never the database.
 - **No repository or store types yet.** The first store lands with S-01, which is when there is something to query; until then the guard simply asserts nobody reaches past the factory.
 - **No project split.** Extracting the data layer into its own assembly was planned, implemented, verified working (`error CS0122` on `@inject AppDbContext`), and then **backed out on 2026-08-02**. It worked, but it cost a second project, a re-added EF tooling package on the startup project, three `<Using>` items replacing the ASP.NET implicit usings, a `Dockerfile` `COPY` line, and a `DefaultItemExcludes` entry — friction disproportionate to an MVP with one owned entity. The lighter guard is a test. Revisit if the data layer grows enough to justify the boundary on its own merits.
-- **No RLS policies**, no change to the `postgres` connection role, no `deploy.yml` change.
+- **No RLS policies**, no change to the `postgres` connection role.
+- ~~**No `deploy.yml` change.**~~ **Reversed during Phase 1 triage (2026-08-02).** The review found that no workflow ran `dotnet test` at all, so every guard this change adds — the boundary test here, the adversarial write tests in Phase 2, the session-cap tests in Phase 3 — would only ever have fired when somebody chose to run them locally. A test suite that does not gate `main` is advisory, which undercuts the purpose of the whole change. `deploy.yml` gained a `test` job that the `deploy` job now `needs`. The deployment steps themselves are untouched.
 - **Not revisiting F-02's decision to discard GoTrue tokens.** Recorded as the alternative that would make revocation possible, deferred as its own change.
 
 ## Implementation Approach
@@ -324,9 +325,9 @@ Existing data is untouched — no column is added, moved or dropped.
 
 #### Automated
 
-- [x] 1.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors
-- [x] 1.2 Tests pass with the new guard: `dotnet test` → 34 passed
-- [x] 1.3 The guard actually guards: injecting a `DbContext` into a component fails `dotnet test` with a message naming `UserScopedDbContextFactory`
+- [x] 1.1 Solution builds: `dotnet build 10xnotes.sln` → 0 warnings, 0 errors — 62421b4
+- [x] 1.2 Tests pass with the new guard: `dotnet test` → 34 passed — 62421b4
+- [x] 1.3 The guard actually guards: injecting a `DbContext` into a component fails `dotnet test` with a message naming `UserScopedDbContextFactory` — 62421b4
 
 ### Phase 2: Freeze ownership on the write path
 

@@ -1,7 +1,7 @@
 ---
 change_id: auth-session-hardening
 title: Domknięcie sesji i kontraktu właściciela przed S-01
-status: implementing
+status: impl_reviewed
 created: 2026-08-02
 updated: 2026-08-02
 archived_at: null
@@ -64,7 +64,10 @@ sesji po stronie serwera i bez tabel. Konsekwencja: **wylogowanie w jednej karci
 w drugiej**, a sesji nie da się odwołać przed jej wygaśnięciem. To ta sama właściwość, którą ma
 każdy stateless JWT — nie błąd implementacji, tylko cena modelu.
 
-Jedyna dostępna dźwignia to długość okna, ustawiona na 14 dni (bezwzględne, bez przedłużania).
+Jedyna dostępna dźwignia to długość okna. Ciasteczko zachowuje 14-dniowe okno przesuwane
+(`SlidingExpiration = true`, nietknięte), a obwód dostaje osobny **bezwzględny limit 30 dni** od
+zalogowania, niesiony w claimie. To dwie różne liczby o dwóch różnych znaczeniach: przesuwane okno
+rządzi zwykłymi żądaniami HTTP, limit ogranicza życie obwodu.
 Alternatywa, która przywróciłaby unieważnianie: nieść i odnawiać token GoTrue, żeby to Supabase
 było autorytetem sesji — cofa świadomą decyzję F-02 („No Supabase session persistence"), więc
 odłożone jako osobna zmiana, nie faza tej.

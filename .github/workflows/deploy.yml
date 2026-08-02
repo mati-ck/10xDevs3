@@ -8,16 +8,40 @@ on:
       - '**/*.md'
   workflow_dispatch:
 
-# Coolify owns the build + release. This workflow triggers it and then makes the
-# GitHub status truthful: it captures the deployment_uuid, polls until the
-# deployment reaches a terminal state, and confirms the app answers 200 on /health.
-# A green check means the app is genuinely deployed and serving, not just that the
-# API accepted the request. The self-hosted runner has no Docker daemon access, so
-# there is no local build step — a broken build surfaces as deployment status=failed.
+# Coolify owns the build + release. This workflow gates on the test suite, then
+# triggers Coolify and makes the GitHub status truthful: it captures the
+# deployment_uuid, polls until the deployment reaches a terminal state, and confirms
+# the app answers 200 on /health. A green check means the app is genuinely deployed
+# and serving, not just that the API accepted the request. The self-hosted runner has
+# no Docker daemon access, so there is no local image build — a broken build surfaces
+# as deployment status=failed.
 # JSON is parsed with grep/cut to avoid a jq dependency on the runner.
 
 jobs:
+  # Runs before anything is deployed, so an assertion the suite makes is an assertion
+  # about main. Without this the tests only ever ran when someone chose to run them
+  # locally, which made every guard in the suite advisory — including
+  # DataAccessBoundaryTests, whose whole purpose is to stop a mistake reaching main.
+  # The suite needs no network, no database and no secrets by design: SQLite in-memory
+  # for the data tests, a stubbed HttpMessageHandler for the Supabase client.
+  test:
+    runs-on: [self-hosted, coolify]
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      # The runner is not guaranteed to carry an SDK, and pinning it here keeps this
+      # job independent of whatever happens to be installed on the box.
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Run the test suite
+        run: dotnet test 10xnotes.sln --configuration Release
+
   deploy:
+    needs: test
     runs-on: [self-hosted, coolify]
     steps:
       - name: Trigger Coolify deployment

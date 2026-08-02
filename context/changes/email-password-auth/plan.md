@@ -447,4 +447,4 @@ Existing data: `auth.users` has 0 rows and `profiles` has 0 rows, so there is no
 - [x] 4.8 A second account cannot see the first account's profile row
 - [x] 4.9 Session survives a redeploy
 - [x] 4.10 Supabase security advisor reports no `rls_disabled` findings — ea8a251
-- [ ] 4.11 Supabase config and connection string set in Coolify
+- [x] 4.11 Supabase config and connection string set in Coolify

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -91,6 +92,30 @@ builder.Services.AddHealthChecks()
     .AddCheck<DatabaseMigrationHealthCheck>("migrations", tags: ["ready"]);
 
 var app = builder.Build();
+
+// First in the pipeline, because everything below reads the scheme it restores. Coolify
+// terminates TLS at the edge and forwards plain HTTP, so without this Request.Scheme is
+// "http" for an https request, and the cookie middleware's challenge answers
+// `Location: http://…/login` — verified against the deployed app. HSTS and
+// UseHttpsRedirection read the same scheme, so this must precede them too.
+//
+// The known-proxy lists must be Clear()ed, not initialized to `{ }`: an object initializer
+// on a collection property ADDS to it, so `{ }` would leave the default loopback-only entry
+// in place. The proxy reaches the container from the Docker network, not 127.0.0.1, so the
+// headers would be ignored in exactly the environment this exists for — and the mistake
+// hides locally, where requests do come from loopback.
+//
+// Emptying both lists accepts the headers from any peer, which is safe here: the container
+// publishes no port of its own and is reachable only through the Coolify proxy, so there is
+// no untrusted client that could forge them.
+var forwardedHeaders = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor
+};
+forwardedHeaders.KnownIPNetworks.Clear();
+forwardedHeaders.KnownProxies.Clear();
+
+app.UseForwardedHeaders(forwardedHeaders);
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

@@ -78,21 +78,68 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         // emitting an UPDATE that hands a row to a different owner.
         entity.Property(e => e.OwnerId).Metadata
             .SetAfterSaveBehavior(PropertySaveBehavior.Throw);
+
+        // Puts owner_id into the WHERE clause of every UPDATE and DELETE. Without it EF targets
+        // the row by primary key alone, so an entity attached with somebody else's key and the
+        // caller's own OwnerId sails past the change-tracker guard below and writes their row.
+        // Applied through the convention rather than on an entity, so every future IOwnedByUser
+        // inherits it without anyone remembering to.
+        entity.Property(e => e.OwnerId).IsConcurrencyToken();
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         StampOwners();
-        return base.SaveChanges(acceptAllChangesOnSuccess);
+
+        try
+        {
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+        catch (DbUpdateConcurrencyException ex) when (IsOwnershipViolation(ex))
+        {
+            throw OwnershipViolation(ex);
+        }
     }
 
-    public override Task<int> SaveChangesAsync(
+    public override async Task<int> SaveChangesAsync(
         bool acceptAllChangesOnSuccess,
         CancellationToken cancellationToken = default)
     {
         StampOwners();
-        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+
+        try
+        {
+            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex) when (IsOwnershipViolation(ex))
+        {
+            throw OwnershipViolation(ex);
+        }
     }
+
+    /// <summary>
+    /// Whether a concurrency failure is really an ownership violation.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="IOwnedByUser.OwnerId"/> is a concurrency token, so an <c>UPDATE</c> or
+    /// <c>DELETE</c> aimed at a row the caller does not own matches nothing and EF reports a
+    /// concurrency conflict. With exactly one owner per row and ownership frozen after insert,
+    /// there is no other way for an owned entity to produce one — a genuine concurrent edit
+    /// cannot change <c>owner_id</c>. Anything involving a non-owned entity is left alone: that
+    /// one really is concurrency.
+    /// </remarks>
+    private static bool IsOwnershipViolation(DbUpdateConcurrencyException exception) =>
+        exception.Entries.Count > 0
+        && exception.Entries.All(entry => entry.Entity is IOwnedByUser);
+
+    /// <summary>
+    /// Reuses the wording <see cref="StampOwners"/> uses for the tracked case, so both guards —
+    /// the change-tracker one and the database one — read as the same problem.
+    /// </summary>
+    private static InvalidOperationException OwnershipViolation(DbUpdateConcurrencyException exception) =>
+        new(
+            $"Cannot modify or delete a {exception.Entries[0].Metadata.ClrType.Name} owned by another user.",
+            exception);
 
     /// <summary>
     /// Assigns ownership on insert so callers cannot forget to, and refuses to write an

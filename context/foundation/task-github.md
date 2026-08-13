@@ -197,6 +197,12 @@ Issues opened after the migration run. Same conventions: English body, `MVP` mil
 | --- | --- | --- |
 | `auth-session-hardening` | [#22](https://github.com/mati-ck/10xDevs3/issues/22) | Carry-forward from the F-01 and F-02 implementation reviews (2026-08-02). Closed and archived 2026-08-02 → `context/archive/2026-08-02-auth-session-hardening/` |
 
+### Post-migration edits to existing issues
+
+| Date | Issue | Edit |
+| --- | --- | --- |
+| 2026-08-13 | [#8](https://github.com/mati-ck/10xDevs3/issues/8) (S-01) | Change ID renamed `markdown-import-generation` → `import-generation-review-save` to match the change folder; title and body updated, `status:proposed` → `status:ready` (prerequisites #6 and #7 both closed). The §"Issue set" entry above records the original migration state and is left as-is. |
+
 ## Issue hygiene convention
 
 - **Closing a change closes its issue** — verified on #6 (F-01) and #7 (F-02).

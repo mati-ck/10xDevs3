@@ -3,7 +3,7 @@ project: "10xNotes"
 version: 1
 status: draft
 created: 2026-07-02
-updated: 2026-08-02
+updated: 2026-08-13
 prd_version: 1
 main_goal: speed
 top_blocker: capacity
@@ -29,9 +29,9 @@ Przeglądanie długich materiałów odbija się o barierę startu: trzeba usią�
 
 | ID    | Change ID                  | Outcome (user can …)                                              | Prerequisites | PRD refs                        | Status   |
 | ----- | -------------------------- | ---------------------------------------------------------------- | ------------- | ------------------------------- | -------- |
-| F-01  | persistence-baseline       | (foundation) trwałe dane per użytkownik (DB + EF + migracje)      | —             | NFR: trwałość, NFR: prywatność  | ready    |
+| F-01  | persistence-baseline       | (foundation) trwałe dane per użytkownik (DB + EF + migracje)      | —             | NFR: trwałość, NFR: prywatność  | done     |
 | F-02  | email-password-auth        | (foundation) rejestracja/logowanie e-mail+hasło, ochrona tras     | F-01          | FR-001, FR-002, Access Control  | done     |
-| S-01  | markdown-import-generation | zaimportować plik MD, wygenerować notatkę AI, poprawić i zapisać  | F-01, F-02    | US-01, FR-004, FR-005, FR-006, FR-008 | proposed |
+| S-01  | import-generation-review-save | zaimportować plik MD, wygenerować notatkę AI, poprawić i zapisać  | F-01, F-02    | US-01, FR-004, FR-005, FR-006, FR-008 | ready    |
 | S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01          | FR-003                          | proposed |
 | S-03  | browse-notes-and-sources   | przeglądać własne notatki i materiały źródłowe                    | S-01, F-02    | FR-007                          | proposed |
 | S-04  | edit-source-material       | edytować zapisany materiał źródłowy                               | S-01          | FR-009                          | blocked  |
@@ -73,7 +73,7 @@ Fundamenty poniżej zakładają obecność tych warstw i ich NIE odtwarzają.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Sekwencjonowany pierwszy, bo auth (F-02) i zapis notatek (S-01) nie istnieją bez magazynu; ryzyko to over-scope — wolno zbudować tylko połączenie + migracje + izolację, a nie encje domenowe (te wchodzą w S-01).
-- **Status:** ready
+- **Status:** done
 
 ### F-02: Uwierzytelnianie e-mail + hasło
 
@@ -93,14 +93,14 @@ Fundamenty poniżej zakładają obecność tych warstw i ich NIE odtwarzają.
 ### S-01: Import Markdown → generowanie AI → przegląd → zapis  *(gwiazda przewodnia)*
 
 - **Outcome:** użytkownik importuje plik Markdown jako materiał źródłowy, jednym kliknięciem generuje obok niego notatkę AI, może ją poprawić i zapisać (zapis = akceptacja); materiał źródłowy pozostaje niezmieniony.
-- **Change ID:** markdown-import-generation
+- **Change ID:** import-generation-review-save
 - **PRD refs:** US-01, FR-004, FR-005, FR-006, FR-008, NFR (widoczna informacja zwrotna >2s)
 - **Prerequisites:** F-01, F-02
 - **Parallel with:** —
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Najbardziej ryzykowne założenie produktu (jakość generowania AI domykająca 75% akceptacji) domyka się tutaj; wolno dowieźć minimalną pętlę, a nie od razu oba tryby importu (wklejanie idzie osobno w S-02), żeby przy budżecie „po godzinach" walidacja przyszła jak najszybciej.
-- **Status:** proposed
+- **Status:** ready
 
 ### S-02: Wklejenie tekstu → generowanie AI
 
@@ -171,7 +171,7 @@ Fundamenty poniżej zakładają obecność tych warstw i ich NIE odtwarzają.
 | ---------- | -------------------------- | ------------------------------------------------------- | --------------------- | -------------------------------------- |
 | F-01       | persistence-baseline       | Trwała warstwa danych per użytkownik (DB + EF + migracje)| yes                   | Run `/10x-plan persistence-baseline`   |
 | F-02       | email-password-auth        | Uwierzytelnianie e-mail + hasło + ochrona tras          | no                    | Czeka na F-01                          |
-| S-01       | markdown-import-generation | Import MD → generowanie AI → przegląd → zapis (gwiazda)  | no                    | Czeka na F-01, F-02                     |
+| S-01       | import-generation-review-save | Import MD → generowanie AI → przegląd → zapis (gwiazda)  | yes                   | Run `/10x-plan import-generation-review-save` |
 | S-02       | paste-text-generation      | Wklejenie tekstu jako źródła i generowanie notatki       | no                    | Czeka na S-01                          |
 | S-03       | browse-notes-and-sources   | Przeglądanie własnych notatek i materiałów              | no                    | Czeka na S-01, F-02                     |
 | S-04       | edit-source-material       | Edycja materiału źródłowego                             | no                    | Zablokowane — Open Question 1           |
@@ -194,4 +194,5 @@ Fundamenty poniżej zakładają obecność tych warstw i ich NIE odtwarzają.
 
 (Empty on first generation. `/10x-archive` appends here — and flips the item's `Status` to `done` — when a change whose `Change ID` matches a roadmap item is archived. Do NOT pre-populate.)
 
+- **F-01: (foundation) baza jest połączona, EF Core i migracje działają, a rekordy da się przypisać i odpytać w zakresie jednego użytkownika.** — Shipped; issue [#6](https://github.com/mati-ck/10xDevs3/issues/6) closed. Status flipped by hand 2026-08-13 — `context/changes/persistence-baseline/` is at `impl_reviewed` and not yet archived, so `/10x-archive` has not written this entry itself. Lesson: —.
 - **F-02: (foundation) użytkownik może się zarejestrować, zalogować i wylogować; aplikacja rozpoznaje zalogowanego użytkownika i chroni trasy tak, że niezalogowany nie widzi żadnych danych. Płaski model, bez ról.** — Archived 2026-08-02 → `context/archive/2026-07-27-email-password-auth/`. Lesson: —.

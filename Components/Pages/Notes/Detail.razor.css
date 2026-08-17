@@ -1,0 +1,11 @@
+/* Same box as the material page's source panel, and deliberately identical: the PRD guardrail is
+   that the material stays available beside the note, so it should look and behave the same
+   wherever it is shown. Long lines wrap rather than scroll the page sideways, and a tall document
+   scrolls inside its own box rather than burying the editor next to it. */
+.source-content {
+    max-height: 60vh;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    background-color: var(--bs-secondary-bg, #f8f9fa);
+}

@@ -1,0 +1,186 @@
+@page "/notes/{Id:guid}"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using System.Globalization
+@using Microsoft.EntityFrameworkCore
+@using _10xnotes.Data
+@using _10xnotes.Data.Entities
+@using _10xnotes.Notes
+@using _10xnotes.Time
+@inject UserScopedDbContextFactory DbContextFactory
+@inject NoteService NoteService
+@inject TimeProvider TimeProvider
+@inject ILogger<Detail> Logger
+
+@* Interactive for the same reason the material page is: the editor is a live component, not a
+   posted form. Data comes through UserScopedDbContextFactory and NoteService — injecting
+   IDbContextFactory<> here fails DataAccessBoundaryTests and blocks the deploy.
+
+   The note reaches this address two ways today: the redirect after accepting a draft, and the
+   link on its material's page. A notes index is S-03. *@
+
+<PageTitle>@(note?.Title ?? "Notatka")</PageTitle>
+
+@if (note is null)
+{
+    @* A note that is not yours renders exactly like a note that does not exist. Telling the two
+       apart would turn this page into a probe for which ids are real. *@
+    <h1>Nie znaleziono notatki</h1>
+    <p>Ta notatka nie istnieje albo nie należy do Twojego konta.</p>
+    <a href="/materials/import">Zaimportuj nowy materiał</a>
+}
+else
+{
+    <h1>@note.Title</h1>
+
+    <p class="text-secondary">
+        @* ToDisplayTime, not ToLocalTime: "local" resolves against the container's clock, which
+           is UTC. The culture is named explicitly so the month renders in Polish. *@
+        Zapisano @TimeProvider.ToDisplayTime(note.UpdatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture).
+    </p>
+
+    @* The same two columns as the material page, and for the same PRD guardrail: the source stays
+       available beside the note. Correcting a note without its material in front of you is
+       exactly the thing the guardrail exists to prevent. *@
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <h2 class="h5">Materiał źródłowy</h2>
+
+            @if (material is null)
+            {
+                <p class="text-secondary">Materiał źródłowy nie jest już dostępny.</p>
+            }
+            else
+            {
+                <p class="text-secondary">
+                    <a href="/materials/@note.SourceMaterialId">@material.Title</a>
+                </p>
+
+                @* Raw text, never rendered as Markdown or markup — identical treatment to the
+                   material page, so the source is provably unchanged wherever it is shown. *@
+                <pre class="source-content border rounded p-3">@material.Content</pre>
+            }
+        </div>
+
+        <div class="col-lg-6">
+            <h2 class="h5">Notatka</h2>
+
+            @if (savedMessage is not null)
+            {
+                <div class="alert alert-success" role="alert">@savedMessage</div>
+            }
+
+            @* No replace confirmation here, unlike the material page: this is the same note being
+               corrected, not a fresh draft overwriting somebody's accepted work. No ledger event
+               either — re-saving is not a new acceptance. *@
+            <NoteEditor @bind-Title="editorTitle"
+                        @bind-Content="editorContent"
+                        SaveLabel="Zapisz zmiany"
+                        IsBusy="@isSaving"
+                        ErrorMessage="@saveErrorMessage"
+                        OnSave="SaveAsync" />
+        </div>
+    </div>
+}
+
+@code {
+    private static readonly CultureInfo PolishCulture = CultureInfo.GetCultureInfo("pl-PL");
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private Note? note;
+    private SourceMaterial? material;
+
+    private string editorTitle = string.Empty;
+    private string editorContent = string.Empty;
+
+    private bool isSaving;
+    private string? saveErrorMessage;
+    private string? savedMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Owner-scoped by the global query filter, so somebody else's id simply finds nothing.
+        note = await NoteService.GetAsync(Id);
+
+        if (note is null)
+        {
+            return;
+        }
+
+        editorTitle = note.Title;
+        editorContent = note.Content;
+
+        await using var db = await DbContextFactory.CreateAsync();
+
+        // A second query rather than a join: the project has no navigation properties, and the
+        // material is owner-scoped in its own right, so this cannot reach across accounts.
+        material = await db.SourceMaterials.FirstOrDefaultAsync(m => m.Id == note.SourceMaterialId);
+    }
+
+    private async Task SaveAsync()
+    {
+        if (note is null || isSaving)
+        {
+            return;
+        }
+
+        // Set before the first await: Blazor renders the moment this handler yields, so leaving
+        // it until later hands the browser a render with the button still enabled.
+        isSaving = true;
+        saveErrorMessage = null;
+        savedMessage = null;
+
+        try
+        {
+            // UpdateAsync, never AcceptAsync. The difference is the whole point of this page: it
+            // appends no acceptance event, because correcting a note is not a second acceptance.
+            var result = await NoteService.UpdateAsync(Id, editorTitle, editorContent);
+
+            if (!result.Succeeded)
+            {
+                saveErrorMessage = MessageFor(result.FailureReason);
+                return;
+            }
+
+            // Stays on the page rather than navigating: the user is here to keep working on this
+            // note, so the only thing that has to change is the confirmation that it landed.
+            note = result.Note;
+
+            savedMessage = "Zapisano zmiany o "
+                + TimeProvider.ToDisplayTime(note!.UpdatedAt).ToString("HH:mm", PolishCulture)
+                + ".";
+        }
+        catch (Exception exception)
+        {
+            // NoteService returns failures rather than throwing, so reaching this means something
+            // outside its contract broke. Unhandled it would tear the circuit down and cost the
+            // user the edits they were trying to keep.
+            Logger.LogError(exception, "Saving note {NoteId} failed.", Id);
+            saveErrorMessage = "Nie udało się zapisać notatki. Spróbuj ponownie za chwilę.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private static string MessageFor(NoteSaveFailure failure) => failure switch
+    {
+        NoteSaveFailure.TitleEmpty =>
+            "Podaj tytuł notatki.",
+        NoteSaveFailure.TitleTooLong =>
+            $"Tytuł może mieć najwyżej {NoteValidator.MaxTitleLength} znaków.",
+        NoteSaveFailure.ContentEmpty =>
+            "Notatka jest pusta — nie ma czego zapisać.",
+        NoteSaveFailure.ContentTooLong =>
+            $"Notatka może mieć najwyżej {NoteValidator.MaxContentLength / 1024} KB.",
+        NoteSaveFailure.NotFound =>
+            "Ta notatka już nie istnieje albo nie należy do Twojego konta.",
+        // Conflict and anything added to the enum later. The default branch exists so a new member
+        // cannot leave the user staring at an empty alert.
+        _ =>
+            "Nie udało się zapisać notatki. Spróbuj ponownie za chwilę."
+    };
+}

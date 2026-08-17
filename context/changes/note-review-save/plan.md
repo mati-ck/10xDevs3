@@ -490,29 +490,29 @@ Nic nie trzeba backfillować: brak wiersza w `notes` znaczy „ten materiał nie
 
 #### Manual
 
-- [x] 3.4 Po generowaniu panel zamienia się w edytor z wypełnionym tytułem
-- [x] 3.5 Podgląd pokazuje strukturę, nie dosłowne `##` i `-`
-- [x] 3.6 W trakcie generowania panel jest tylko do odczytu
-- [x] 3.7 Zapis prowadzi na `/notes/{id}`, notatka przeżywa odświeżenie i wylogowanie
-- [x] 3.8 Zapis przy istniejącej notatce pyta o zastąpienie; odmowa niczego nie zmienia
-- [x] 3.9 Ponowne generowanie przy niezapisanych poprawkach pyta o potwierdzenie
-- [x] 3.10 Materiał źródłowy nietknięty po zapisie
-- [x] 3.11 Materiał z istniejącą notatką pokazuje link do niej
+- [x] 3.4 Po generowaniu panel zamienia się w edytor z wypełnionym tytułem — 8a19869
+- [x] 3.5 Podgląd pokazuje strukturę, nie dosłowne `##` i `-` — 8a19869
+- [x] 3.6 W trakcie generowania panel jest tylko do odczytu — 8a19869
+- [x] 3.7 Zapis prowadzi na `/notes/{id}`, notatka przeżywa odświeżenie i wylogowanie — 8a19869
+- [x] 3.8 Zapis przy istniejącej notatce pyta o zastąpienie; odmowa niczego nie zmienia — 8a19869
+- [x] 3.9 Ponowne generowanie przy niezapisanych poprawkach pyta o potwierdzenie — 8a19869
+- [x] 3.10 Materiał źródłowy nietknięty po zapisie — 8a19869
+- [x] 3.11 Materiał z istniejącą notatką pokazuje link do niej — 8a19869
 
 ### Phase 4: Strona notatki
 
 #### Automated
 
-- [x] 4.1 Kompilacja przechodzi: `dotnet build`
-- [x] 4.2 Cały pakiet testów przechodzi: `dotnet test`
-- [x] 4.3 `DataAccessBoundaryTests` przechodzi po dodaniu strony notatki
+- [x] 4.1 Kompilacja przechodzi: `dotnet build` — 8a19869
+- [x] 4.2 Cały pakiet testów przechodzi: `dotnet test` — 8a19869
+- [x] 4.3 `DataAccessBoundaryTests` przechodzi po dodaniu strony notatki — 8a19869
 
 #### Manual
 
-- [x] 4.4 `/notes/{id}` pokazuje materiał obok notatki
-- [x] 4.5 Poprawka i ponowny zapis działają w miejscu
-- [x] 4.6 Ponowny zapis nie zwiększa liczby zdarzeń `Saved` w rejestrze
-- [x] 4.7 Cudza i nieistniejąca notatka renderują się identycznie
-- [x] 4.8 Niezalogowany użytkownik jest przekierowany na logowanie
-- [x] 4.9 Linki materiał ↔ notatka działają w obie strony
-- [x] 4.10 Pełna pętla import → generowanie → poprawka → zapis → poprawka → zapis przechodzi
+- [x] 4.4 `/notes/{id}` pokazuje materiał obok notatki — 8a19869
+- [x] 4.5 Poprawka i ponowny zapis działają w miejscu — 8a19869
+- [x] 4.6 Ponowny zapis nie zwiększa liczby zdarzeń `Saved` w rejestrze — 8a19869
+- [x] 4.7 Cudza i nieistniejąca notatka renderują się identycznie — 8a19869
+- [x] 4.8 Niezalogowany użytkownik jest przekierowany na logowanie — 8a19869
+- [x] 4.9 Linki materiał ↔ notatka działają w obie strony — 8a19869
+- [x] 4.10 Pełna pętla import → generowanie → poprawka → zapis → poprawka → zapis przechodzi — 8a19869

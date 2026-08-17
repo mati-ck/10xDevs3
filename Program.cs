@@ -1,6 +1,8 @@
+using System.ClientModel;
 using _10xnotes.Auth;
 using _10xnotes.Components;
 using _10xnotes.Data;
+using _10xnotes.Generation;
 using _10xnotes.Time;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +12,9 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
+using OpenAI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -124,6 +128,31 @@ builder.Services.AddHttpClient<SupabaseAuthClient>((sp, client) =>
     client.DefaultRequestHeaders.Add("apikey", options.AnonKey);
     client.Timeout = TimeSpan.FromSeconds(10);
 });
+
+builder.Services.Configure<AiOptions>(
+    builder.Configuration.GetSection(AiOptions.SectionName));
+
+// The provider is reached through its OpenAI-compatible endpoint rather than a bespoke connector:
+// OpenRouter speaks that dialect, and going through IChatClient means swapping model or provider
+// is a configuration change. Registered as a singleton (AddChatClient's default) because the
+// client is stateless and shares one HTTP connection pool.
+//
+// The credential falls back to a placeholder rather than throwing on an empty key: ApiKeyCredential
+// rejects an empty string, and letting that surface here would take the whole app down at first
+// use over a missing secret. NoteGenerator checks the real key up front and fails closed with a
+// message the user can read.
+builder.Services.AddChatClient(serviceProvider =>
+{
+    var aiOptions = serviceProvider.GetRequiredService<IOptions<AiOptions>>().Value;
+
+    return new OpenAI.Chat.ChatClient(
+            aiOptions.Model,
+            new ApiKeyCredential(aiOptions.ApiKey is { Length: > 0 } key ? key : "unconfigured"),
+            new OpenAIClientOptions { Endpoint = new Uri(aiOptions.Endpoint) })
+        .AsIChatClient();
+});
+
+builder.Services.AddScoped<NoteGenerator>();
 
 // Migrations self-apply at boot, but a failure must degrade readiness rather than crash the
 // process — a crash-loop would fail the container HEALTHCHECK and get the app de-routed.

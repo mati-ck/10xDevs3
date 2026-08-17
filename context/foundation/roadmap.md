@@ -34,7 +34,7 @@ Sam przepływ pozostaje niepodzielny jako **cel**, ale jest dostarczany w trzech
 | F-01  | persistence-baseline       | (foundation) trwałe dane per użytkownik (DB + EF + migracje)      | —             | NFR: trwałość, NFR: prywatność  | done     |
 | F-02  | email-password-auth        | (foundation) rejestracja/logowanie e-mail+hasło, ochrona tras     | F-01          | FR-001, FR-002, Access Control  | done     |
 | S-01a | markdown-import            | zaimportować plik Markdown i mieć go zapisanym na koncie          | F-01, F-02    | FR-004                          | done     |
-| S-01b | ai-note-generation         | wygenerować notatkę AI obok materiału (jeszcze bez zapisu)        | S-01a         | US-01 (część), FR-005           | proposed |
+| S-01b | ai-note-generation         | wygenerować notatkę AI obok materiału (jeszcze bez zapisu)        | S-01a         | US-01 (część), FR-005           | in-progress |
 | S-01c | note-review-save           | poprawić wygenerowaną notatkę i zapisać ją (zapis = akceptacja)   | S-01b         | US-01 (domknięcie), FR-006, FR-008 | proposed |
 | S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01c         | FR-003                          | proposed |
 | S-03  | browse-notes-and-sources   | przeglądać własne notatki i materiały źródłowe                    | S-01c, F-02   | FR-007                          | proposed |
@@ -122,9 +122,9 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 - **Parallel with:** —
 - **Blockers:** —
 - **Unknowns:**
-  - Który dostawca AI, jaki model i jak trzymany klucz? — Owner: użytkownik. Block: no. (`tech-stack.md` ustawia `has_ai: true`, ale nie wskazuje dostawcy — decyzja domyka się w `/10x-plan` w oparciu o zewnętrzny research: Context7 + exa.)
+  - ~~Który dostawca AI, jaki model i jak trzymany klucz?~~ — Rozstrzygnięte 2026-08-17 w `plan.md`: `Microsoft.Extensions.AI` (`IChatClient`) na endpoint OpenRouter, model `google/gemini-3.7-flash` jako wartość konfiguracji, klucz jako sekret (`Ai__ApiKey`).
 - **Risk:** Tu domyka się najbardziej ryzykowne założenie produktu — jakość generowania. Odcięcie tego kawałka od zapisu jest celowe: prompt i dostawcę da się iterować bez dotykania modelu danych ani edytora. Ryzyko to rozrost w stronę parametrów generowania (PRD wymaga jednego kliknięcia, bez ustawień).
-- **Status:** proposed
+- **Status:** in-progress
 
 #### S-01c: Przegląd, edycja i zapis notatki (zapis = akceptacja)
 

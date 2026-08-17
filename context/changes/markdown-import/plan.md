@@ -300,23 +300,23 @@ Run `dotnet tool restore` before `dotnet ef migrations add` — the `dotnet-ef` 
 
 #### Automated
 
-- [x] 1.1 Build succeeds: `dotnet build`
-- [x] 1.2 Full suite passes, including the new `SourceMaterial` owner-scoping cases: `dotnet test`
-- [x] 1.3 Data-access boundary test still passes: `dotnet test --filter DataAccessBoundaryTests`
-- [x] 1.4 Migration generated and model snapshot in sync — no pending-model-changes warning
+- [x] 1.1 Build succeeds: `dotnet build` — 4564472
+- [x] 1.2 Full suite passes, including the new `SourceMaterial` owner-scoping cases: `dotnet test` — 4564472
+- [x] 1.3 Data-access boundary test still passes: `dotnet test --filter DataAccessBoundaryTests` — 4564472
+- [x] 1.4 Migration generated and model snapshot in sync — no pending-model-changes warning — 4564472
 
 #### Manual
 
-- [x] 1.5 `dotnet run` boots and `/health/ready` reports healthy
-- [x] 1.6 Supabase security advisor reports no new RLS finding for `public.source_materials`
+- [x] 1.5 `dotnet run` boots and `/health/ready` reports healthy — 4564472
+- [x] 1.6 Supabase security advisor reports no new RLS finding for `public.source_materials` — 4564472
 
 ### Phase 2: Import validation seam
 
 #### Automated
 
-- [ ] 2.1 Build succeeds: `dotnet build`
-- [ ] 2.2 Validator tests pass: `dotnet test --filter MarkdownImportValidatorTests`
-- [ ] 2.3 Full suite still green: `dotnet test`
+- [x] 2.1 Build succeeds: `dotnet build`
+- [x] 2.2 Validator tests pass: `dotnet test --filter MarkdownImportValidatorTests`
+- [x] 2.3 Full suite still green: `dotnet test`
 
 ### Phase 3: Import and detail pages
 

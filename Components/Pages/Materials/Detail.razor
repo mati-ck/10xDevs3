@@ -1,0 +1,50 @@
+@page "/materials/{Id:guid}"
+@using Microsoft.EntityFrameworkCore
+@using _10xnotes.Data
+@using _10xnotes.Data.Entities
+@inject UserScopedDbContextFactory DbContextFactory
+
+@* Static SSR: this page only reads, so it needs no circuit. The current user still resolves —
+   the principal is pushed into SessionCapAuthenticationStateProvider on the static path, which
+   is what UserScopedDbContextFactory reads. *@
+
+<PageTitle>@(material?.Title ?? "Materiał")</PageTitle>
+
+@if (material is null)
+{
+    <h1>Nie znaleziono materiału</h1>
+    <p>Ten materiał nie istnieje albo nie należy do Twojego konta.</p>
+    <a href="/materials/import">Zaimportuj nowy materiał</a>
+}
+else
+{
+    <h1>@material.Title</h1>
+
+    <p class="text-secondary">
+        Zaimportowano @material.CreatedAt.ToLocalTime().ToString("d MMMM yyyy, HH:mm")
+        z pliku <code>@material.OriginalFileName</code>.
+    </p>
+
+    @* Raw text, never rendered as Markdown or markup. The material is user-supplied and the PRD
+       guardrail is that the source stays available and unchanged — showing it verbatim proves
+       that literally, and keeps user content from ever reaching the DOM as HTML. *@
+    <pre class="source-content border rounded p-3">@material.Content</pre>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private SourceMaterial? material;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbContextFactory.CreateAsync();
+
+        // No owner filter written here: the global query filter already scopes this by the
+        // signed-in user, so another user's id simply finds nothing. The missing and the
+        // not-yours cases render identically on purpose — distinguishing them would let anyone
+        // probe which ids exist.
+        material = await db.SourceMaterials.FirstOrDefaultAsync(m => m.Id == Id);
+    }
+}

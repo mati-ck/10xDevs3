@@ -1,0 +1,177 @@
+@page "/materials/import"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using _10xnotes.Data
+@using _10xnotes.Data.Entities
+@using _10xnotes.SourceMaterials
+@inject UserScopedDbContextFactory DbContextFactory
+@inject NavigationManager Navigation
+
+@* Interactive on purpose, unlike the auth pages: InputFile's change event does not fire under
+   static SSR in a Blazor Web App, so the file would never reach the server. Data still comes
+   through UserScopedDbContextFactory — injecting IDbContextFactory<> here, which is what the
+   Blazor docs reach for, fails DataAccessBoundaryTests and blocks the deploy. *@
+
+<PageTitle>Import materiału</PageTitle>
+
+<h1>Zaimportuj materiał</h1>
+
+<p class="text-secondary">
+    Wybierz plik Markdown (.md), a zapiszemy go na Twoim koncie.
+    Maksymalny rozmiar to @(MarkdownImportValidator.MaxFileSizeBytes / 1024) KB.
+</p>
+
+@if (errorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
+<EditForm Model="Input" OnValidSubmit="ImportAsync" FormName="import">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label for="file" class="form-label">Plik Markdown</label>
+        <InputFile id="file" class="form-control" accept=".md,.markdown" OnChange="OnFileSelected" />
+    </div>
+
+    <div class="mb-3">
+        <label for="title" class="form-label">Tytuł</label>
+        <InputText id="title" class="form-control" @bind-Value="Input.Title" />
+        <div class="form-text">Uzupełniamy go z nazwy pliku — możesz poprawić przed zapisem.</div>
+        <ValidationMessage For="() => Input.Title" class="text-danger" />
+    </div>
+
+    <button type="submit" class="btn btn-primary" disabled="@isImporting">
+        @(isImporting ? "Importowanie…" : "Importuj")
+    </button>
+</EditForm>
+
+@code {
+    private ImportInput Input { get; set; } = new();
+
+    private IBrowserFile? selectedFile;
+    private string? errorMessage;
+    private bool isImporting;
+
+    /// <summary>
+    /// The last title this page filled in. Picking a second file only overwrites the box when it
+    /// still holds this value — otherwise selecting another file would silently discard whatever
+    /// the user had typed.
+    /// </summary>
+    private string autoFilledTitle = string.Empty;
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        errorMessage = null;
+        selectedFile = e.File;
+
+        if (Input.Title.Length == 0 || Input.Title == autoFilledTitle)
+        {
+            autoFilledTitle = MarkdownImportValidator.DeriveTitle(e.File.Name);
+            Input.Title = autoFilledTitle;
+        }
+    }
+
+    private async Task ImportAsync()
+    {
+        errorMessage = null;
+
+        if (selectedFile is null)
+        {
+            errorMessage = "Wybierz plik do zaimportowania.";
+            return;
+        }
+
+        isImporting = true;
+
+        try
+        {
+            var content = await ReadAsync(selectedFile);
+
+            if (content is null)
+            {
+                // OpenReadStream refused the file outright — see ReadAsync.
+                errorMessage = MessageFor(MarkdownImportFailure.TooLarge);
+                return;
+            }
+
+            var result = MarkdownImportValidator.Validate(content, selectedFile.Name);
+
+            if (!result.Succeeded)
+            {
+                errorMessage = MessageFor(result.FailureReason);
+                return;
+            }
+
+            var material = new SourceMaterial
+            {
+                Title = Input.Title.Trim(),
+                Content = result.Content,
+                OriginalFileName = MarkdownImportValidator.SanitizeFileName(selectedFile.Name)
+            };
+
+            // OwnerId is deliberately not set: AppDbContext stamps it from the signed-in user and
+            // overwrites anything supplied, so ownership can never come from the request.
+            await using var db = await DbContextFactory.CreateAsync();
+            db.SourceMaterials.Add(material);
+            await db.SaveChangesAsync();
+
+            Navigation.NavigateTo($"/materials/{material.Id}");
+        }
+        finally
+        {
+            isImporting = false;
+        }
+    }
+
+    /// <summary>
+    /// Reads the whole file into memory, or returns null when it is too large.
+    /// </summary>
+    /// <remarks>
+    /// The bound is passed to <c>OpenReadStream</c> explicitly — its own default is 500 KB, and
+    /// <c>IBrowserFile.Size</c> is supplied by the client, so neither can be relied on. The size
+    /// pre-check exists only to fail fast; the stream bound is what actually holds, and it throws
+    /// rather than truncating, so a client that lies about Size lands in the catch below instead
+    /// of producing an unhandled exception.
+    /// </remarks>
+    private static async Task<byte[]?> ReadAsync(IBrowserFile file)
+    {
+        if (file.Size > MarkdownImportValidator.MaxFileSizeBytes)
+        {
+            return null;
+        }
+
+        try
+        {
+            await using var stream = file.OpenReadStream(MarkdownImportValidator.MaxFileSizeBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            return buffer.ToArray();
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+    }
+
+    private static string MessageFor(MarkdownImportFailure failure) => failure switch
+    {
+        MarkdownImportFailure.UnsupportedExtension =>
+            "To nie jest plik Markdown. Wybierz plik z rozszerzeniem .md lub .markdown.",
+        MarkdownImportFailure.TooLarge =>
+            $"Plik jest za duży. Maksymalny rozmiar to {MarkdownImportValidator.MaxFileSizeBytes / 1024} KB.",
+        MarkdownImportFailure.NotValidUtf8 =>
+            "Nie udało się odczytać pliku jako tekstu. Zapisz go w kodowaniu UTF-8 i spróbuj ponownie.",
+        MarkdownImportFailure.Empty =>
+            "Plik jest pusty — nie ma z czego zrobić notatki.",
+        _ =>
+            "Nie udało się zaimportować pliku. Spróbuj ponownie."
+    };
+
+    private sealed class ImportInput
+    {
+        [Required(ErrorMessage = "Podaj tytuł materiału.")]
+        [StringLength(200, ErrorMessage = "Tytuł może mieć najwyżej 200 znaków.")]
+        public string Title { get; set; } = string.Empty;
+    }
+}

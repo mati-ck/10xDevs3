@@ -314,24 +314,24 @@ Run `dotnet tool restore` before `dotnet ef migrations add` — the `dotnet-ef` 
 
 #### Automated
 
-- [x] 2.1 Build succeeds: `dotnet build`
-- [x] 2.2 Validator tests pass: `dotnet test --filter MarkdownImportValidatorTests`
-- [x] 2.3 Full suite still green: `dotnet test`
+- [x] 2.1 Build succeeds: `dotnet build` — b48fa4f
+- [x] 2.2 Validator tests pass: `dotnet test --filter MarkdownImportValidatorTests` — b48fa4f
+- [x] 2.3 Full suite still green: `dotnet test` — b48fa4f
 
 ### Phase 3: Import and detail pages
 
 #### Automated
 
-- [ ] 3.1 Build succeeds: `dotnet build`
-- [ ] 3.2 Full suite passes: `dotnet test`
-- [ ] 3.3 Boundary test confirms the new pages use the sanctioned seam: `dotnet test --filter DataAccessBoundaryTests`
+- [x] 3.1 Build succeeds: `dotnet build`
+- [x] 3.2 Full suite passes: `dotnet test`
+- [x] 3.3 Boundary test confirms the new pages use the sanctioned seam: `dotnet test --filter DataAccessBoundaryTests`
 
 #### Manual
 
-- [ ] 3.4 Signed out, `/materials/import` redirects to `/login`
-- [ ] 3.5 A valid `.md` file with Polish characters imports and renders correctly on the detail page
-- [ ] 3.6 Title auto-fills on selection, is editable, and the edited value is saved
-- [ ] 3.7 All four rejections show a Polish message and save nothing (`.txt`, >128 KB, renamed binary, empty)
-- [ ] 3.8 After logout and login, the detail URL still shows the material
-- [ ] 3.9 A second account gets the not-found message at the first account's detail URL
-- [ ] 3.10 The import nav link appears only when signed in
+- [x] 3.4 Signed out, `/materials/import` redirects to `/login`
+- [x] 3.5 A valid `.md` file with Polish characters imports and renders correctly on the detail page
+- [x] 3.6 Title auto-fills on selection, is editable, and the edited value is saved
+- [x] 3.7 All four rejections show a Polish message and save nothing (`.txt`, >128 KB, renamed binary, empty)
+- [x] 3.8 After logout and login, the detail URL still shows the material
+- [x] 3.9 A second account gets the not-found message at the first account's detail URL
+- [x] 3.10 The import nav link appears only when signed in

@@ -191,7 +191,9 @@ Doba liczona w strefie wyświetlania (`AppTimeProvider`, konfigurowana przez `Di
 
 **Intent**: Dodać `DbSet` i konfigurację encji obok `SourceMaterial`; filtr właściciela dołoży się sam przez `IOwnedByUser`.
 
-**Contract**: `DbSet<GenerationQuota> GenerationQuotas => Set<GenerationQuota>();` oraz blok `modelBuilder.Entity<GenerationQuota>` z `HasKey`, `gen_random_uuid()` na `Id`, `now()` na `CreatedAt` i **unikalnym** indeksem złożonym `(OwnerId, UsageDate)` — inaczej równoległe żądania tworzą dwa wiersze na tę samą dobę i limit przestaje obowiązywać.
+**Contract**: `DbSet<GenerationQuota> GenerationQuotas => Set<GenerationQuota>();` oraz blok `modelBuilder.Entity<GenerationQuota>` z `HasKey`, ~~`gen_random_uuid()` na `Id`, `now()` na `CreatedAt`~~ i **unikalnym** indeksem złożonym `(OwnerId, UsageDate)` — inaczej równoległe żądania tworzą dwa wiersze na tę samą dobę i limit przestaje obowiązywać.
+
+> **Korekta (2026-08-17, w trakcie Fazy 2 — zatwierdzona przez użytkownika):** domyślne wartości bazodanowe zostały **wycofane** z tej encji. `EnsureCreated()` przenosi nazwy funkcji Postgresa wprost do DDL SQLite, więc każdy insert przez serwis kończył się `unknown function: gen_random_uuid()` — testy limitu na SQLite i domyślne wartości bazodanowe wykluczają się wzajemnie. `GenerationQuotaService` stempluje `Id` i `CreatedAt` sam, dzięki czemu `CreatedAt` pochodzi z tego samego zegara co `UsageDate`. `Profile` i `SourceMaterial` zachowują swoje domyślne wartości bez zmian. Rozbieżność jest udokumentowana w `AppDbContext.OnModelCreating`, w serwisie i w migracji.
 
 #### 3. Migracja
 

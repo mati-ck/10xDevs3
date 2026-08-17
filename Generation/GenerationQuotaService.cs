@@ -20,6 +20,17 @@ public sealed class GenerationQuotaService(
     IOptions<AiOptions> options,
     ILogger<GenerationQuotaService> logger)
 {
+    /// <summary>
+    /// How many times a contended reservation re-tries before giving up.
+    /// </summary>
+    /// <remarks>
+    /// Each pass either takes a slot, refuses definitively, or loses a race to another request —
+    /// and every lost race means some other request won, so the loop cannot spin without the
+    /// ledger advancing. A handful of passes covers far more concurrency than one person with a
+    /// few tabs can produce.
+    /// </remarks>
+    private const int MaxAttempts = 5;
+
     private readonly AiOptions _options = options.Value;
 
     /// <summary>
@@ -33,67 +44,97 @@ public sealed class GenerationQuotaService(
     /// <returns><c>true</c> when a slot was taken and the caller may generate.</returns>
     public async Task<bool> TryReserveAsync(CancellationToken cancellationToken = default)
     {
-        // One retry, because the only realistic conflict is two requests inserting the first row
-        // of the same day at once. The retry re-reads, so the loser of that race increments the
-        // winner's row instead of failing the user for a race they cannot see.
-        for (var attempt = 0; attempt < 2; attempt++)
-        {
-            try
-            {
-                return await ReserveOnceAsync(cancellationToken);
-            }
-            catch (DbUpdateException exception) when (attempt == 0)
-            {
-                logger.LogInformation(
-                    exception,
-                    "Concurrent generation quota insert; re-reading the row and retrying once.");
-            }
-        }
-
-        return false;
-    }
-
-    private async Task<bool> ReserveOnceAsync(CancellationToken cancellationToken)
-    {
         var today = Today();
 
-        await using var db = await dbContextFactory.CreateAsync(cancellationToken);
+        // Hoisted so it parameterizes into the statement below rather than being re-read per row.
+        var limit = _options.DailyGenerationLimit;
 
-        // No owner filter written here: the global query filter scopes this to the signed-in
-        // user, so this can only ever find that user's row.
-        var quota = await db.GenerationQuotas
-            .FirstOrDefaultAsync(q => q.UsageDate == today, cancellationToken);
-
-        // Checked before the branch, not inside it: doing it per-branch once let the
-        // create-the-first-row path skip the check entirely, so every user got one generation a
-        // day for free no matter how the limit was set — including a limit of 0, which an
-        // operator would reasonably expect to switch generation off.
-        if ((quota?.Count ?? 0) >= _options.DailyGenerationLimit)
+        for (var attempt = 0; attempt < MaxAttempts; attempt++)
         {
-            return false;
-        }
+            await using var db = await dbContextFactory.CreateAsync(cancellationToken);
 
-        if (quota is null)
-        {
-            // Id and CreatedAt are stamped here rather than by a database default, so that
-            // CreatedAt comes from the same clock that decided UsageDate above. OwnerId is
-            // deliberately NOT set: AppDbContext stamps it from the signed-in user and overwrites
-            // anything supplied, so ownership can never come from the caller.
-            db.GenerationQuotas.Add(new GenerationQuota
+            // One statement both tests the limit and takes the slot. Reading the row, checking the
+            // count in C# and then writing count+1 is a read-modify-write with a window in the
+            // middle: two concurrent requests both read 4, both pass a limit of 5, and both write
+            // 5 — and nothing raises, because the UPDATE matches a row for each of them. OwnerId is
+            // the entity's only concurrency token and it never changes, so it cannot detect that
+            // conflict. Putting the limit into the WHERE clause makes the database serialize the
+            // decision on the row, so the overrun cannot happen however many requests arrive at
+            // once.
+            //
+            // No owner filter written here: ExecuteUpdate honours the global query filter, so this
+            // can only ever touch the signed-in user's row.
+            var taken = await db.GenerationQuotas
+                .Where(q => q.UsageDate == today && q.Count < limit)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(q => q.Count, q => q.Count + 1),
+                    cancellationToken);
+
+            if (taken > 0)
             {
-                Id = Guid.NewGuid(),
-                UsageDate = today,
-                Count = 1,
-                CreatedAt = timeProvider.GetUtcNow()
-            });
-        }
-        else
-        {
-            quota.Count++;
+                return true;
+            }
+
+            // Nothing was updated: either today has no row yet, or the allowance is spent. Read
+            // the count rather than merely testing existence — a row that appeared between the
+            // UPDATE and this read was just created by a concurrent request and still has room,
+            // and treating "a row exists" as "the allowance is spent" would refuse a caller that
+            // had a slot waiting for it.
+            var spent = await db.GenerationQuotas
+                .Where(q => q.UsageDate == today)
+                .Select(q => (int?)q.Count)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (spent is not null)
+            {
+                if (spent >= limit)
+                {
+                    return false;
+                }
+
+                // Raced with whoever created the row; the next pass takes a slot from it.
+                continue;
+            }
+
+            if (limit < 1)
+            {
+                return false;
+            }
+
+            try
+            {
+                // Id and CreatedAt are stamped here rather than by a database default, so that
+                // CreatedAt comes from the same clock that decided UsageDate. OwnerId is
+                // deliberately NOT set: AppDbContext stamps it from the signed-in user and
+                // overwrites anything supplied, so ownership can never come from the caller.
+                db.GenerationQuotas.Add(new GenerationQuota
+                {
+                    Id = Guid.NewGuid(),
+                    UsageDate = today,
+                    Count = 1,
+                    CreatedAt = timeProvider.GetUtcNow()
+                });
+
+                await db.SaveChangesAsync(cancellationToken);
+                return true;
+            }
+            catch (DbUpdateException exception)
+            {
+                // Lost the race to create the day's first row — the unique index on
+                // (owner_id, usage_date) is what turns that into an exception rather than a second
+                // row silently doubling the allowance. The next pass increments the winner's row.
+                logger.LogInformation(
+                    exception,
+                    "Concurrent insert of the daily quota row; retrying against the winning row.");
+            }
         }
 
-        await db.SaveChangesAsync(cancellationToken);
-        return true;
+        // Every pass lost a race. Refusing is the safe direction: the caller sees the quota
+        // message and can click again, whereas granting would spend money on an unverified slot.
+        logger.LogWarning(
+            "Gave up reserving a generation slot after {Attempts} contended attempts.", MaxAttempts);
+
+        return false;
     }
 
     /// <summary>

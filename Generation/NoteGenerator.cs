@@ -28,6 +28,17 @@ public sealed class NoteGenerator(
     private readonly AiOptions _options = options.Value;
 
     /// <summary>
+    /// Whether a generation can even be attempted, i.e. whether an API key is configured.
+    /// </summary>
+    /// <remarks>
+    /// Exposed so the caller can refuse *before* spending a quota slot. Reserving first is right
+    /// for a real attempt — a timeout still bills for the tokens it produced — but a missing key
+    /// is knowably free, and burning a user's whole daily allowance on a misconfiguration would
+    /// then tell them to come back tomorrow.
+    /// </remarks>
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(_options.ApiKey);
+
+    /// <summary>
     /// Streams the note for <paramref name="material"/>, or a single terminal failure.
     /// </summary>
     /// <remarks>
@@ -43,7 +54,7 @@ public sealed class NoteGenerator(
     {
         ArgumentNullException.ThrowIfNull(material);
 
-        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        if (!IsConfigured)
         {
             // Fail before spending a round-trip on a request that cannot succeed. Logged loudly
             // because this is an operator mistake, not a user one — the user just sees the same
@@ -143,11 +154,15 @@ public sealed class NoteGenerator(
 
             case ClientResultException clientResult:
                 var failure = ClassifyStatus(clientResult);
+                // Status and a bounded excerpt rather than the exception object: the SDK embeds the
+                // provider's whole response body in its message, and some providers echo prompt
+                // fragments back in validation or moderation errors — which would put the user's
+                // own material into application logs, against the PRD privacy guardrail.
                 logger.LogError(
-                    clientResult,
-                    "The AI provider rejected the request with status {Status}, classified as {Failure}.",
+                    "The AI provider rejected the request with status {Status}, classified as {Failure}. Excerpt: {Excerpt}",
                     clientResult.Status,
-                    failure);
+                    failure,
+                    Excerpt(clientResult.Message));
                 return failure;
 
             case HttpRequestException:
@@ -171,6 +186,23 @@ public sealed class NoteGenerator(
         400 when MentionsContextLength(exception.Message) => GenerationFailure.TooLong,
         _ => GenerationFailure.Unavailable
     };
+
+    /// <summary>
+    /// Enough of a provider error to diagnose it, capped so an echoed prompt cannot land in the
+    /// log wholesale. Error codes and reasons sit at the front of these payloads; user material,
+    /// when it appears at all, follows.
+    /// </summary>
+    private static string Excerpt(string? message)
+    {
+        if (string.IsNullOrEmpty(message))
+        {
+            return string.Empty;
+        }
+
+        const int maxLength = 200;
+
+        return message.Length <= maxLength ? message : message[..maxLength] + "…";
+    }
 
     private static bool MentionsContextLength(string? message) =>
         message is not null

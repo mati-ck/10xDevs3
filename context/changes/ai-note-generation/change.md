@@ -1,7 +1,7 @@
 ---
 change_id: ai-note-generation
 title: Ai note generation
-status: implemented
+status: impl_reviewed
 created: 2026-08-17
 updated: 2026-08-17
 archived_at: null

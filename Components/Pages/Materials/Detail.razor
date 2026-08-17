@@ -13,6 +13,7 @@
 @inject NoteGenerator NoteGenerator
 @inject GenerationQuotaService QuotaService
 @inject TimeProvider TimeProvider
+@inject ILogger<Detail> Logger
 
 @* Interactive, unlike S-01a, when this page only read and needed no circuit. Generating streams
    the note in as the model writes it, which the PRD requires for anything over two seconds, and
@@ -139,19 +140,36 @@ else
             return;
         }
 
+        // Set before the first await, not after it. Blazor renders as soon as the handler yields,
+        // so leaving this until later hands the browser a render with the button still enabled —
+        // and a queued second click walks straight past the guard above.
+        isGenerating = true;
+
         // A previous run may still be winding down after a failure; never leave two streams
         // writing into the same buffer.
         await CancelGenerationAsync();
 
         errorMessage = null;
         note = string.Empty;
-        isGenerating = true;
 
-        generationCts = new CancellationTokenSource();
-        var token = generationCts.Token;
+        // Owned by this invocation as well as published to the field. If a later run supersedes
+        // this one it overwrites the field, and without a local the source would be unreachable
+        // for both cancellation and disposal — the exact leak the field exists to prevent.
+        using var cts = new CancellationTokenSource();
+        generationCts = cts;
+        var token = cts.Token;
 
         try
         {
+            // Checked before the reservation, not after: a generation that cannot possibly reach
+            // the provider must not cost the user a slot, or a missing key silently eats their
+            // whole daily allowance and then tells them to come back tomorrow.
+            if (!NoteGenerator.IsConfigured)
+            {
+                errorMessage = MessageFor(GenerationFailure.Unavailable);
+                return;
+            }
+
             if (!await QuotaService.TryReserveAsync(token))
             {
                 errorMessage = MessageFor(GenerationFailure.QuotaExceeded);
@@ -193,16 +211,29 @@ else
             // into a chunk rather than letting it escape. Nothing to say: the user left.
             note = string.Empty;
         }
-        catch (Exception)
+        catch (Exception exception)
         {
             // Left unhandled this escapes the event handler and tears the circuit down, so the
-            // user gets a reconnect modal instead of a reason. Same posture as the import page.
+            // user gets a reconnect modal instead of a reason. Same posture as the import page,
+            // which catches the one failure it expects — this catch is deliberately wider because
+            // a generation touches the quota ledger and a provider, so it must always log: the
+            // user-facing message is identical for every cause, and without this the only record
+            // that anything went wrong would be the user's word for it.
+            Logger.LogError(exception, "Generating a note for material {MaterialId} failed.", Id);
             errorMessage = MessageFor(GenerationFailure.Unavailable);
             note = string.Empty;
         }
         finally
         {
-            isGenerating = false;
+            // Only when this run is still the current one. Clearing the field is what matters: the
+            // local `using` disposes this source on the way out, and cancelling an already-disposed
+            // source throws — so leaving the field pointing at it would turn navigating away into
+            // an exception from DisposeAsync.
+            if (ReferenceEquals(generationCts, cts))
+            {
+                generationCts = null;
+                isGenerating = false;
+            }
         }
     }
 
@@ -213,8 +244,10 @@ else
             return;
         }
 
+        // Not disposed here: the run that created it owns disposal through its own `using`.
+        // Disposing another run's source out from under it would turn its next cancellation
+        // check into an ObjectDisposedException.
         await generationCts.CancelAsync();
-        generationCts.Dispose();
         generationCts = null;
     }
 

@@ -57,6 +57,41 @@ public sealed class NoteGeneratorTests
         Assert.Contains(Material.Content, sent[1].Text);
     }
 
+    [Fact]
+    public async Task Both_user_controlled_values_sit_inside_the_containment_fence()
+    {
+        // The title is free text the user types at import, so leaving it above the "treat this as
+        // content" instruction made it the easier of the two injection points.
+        var client = new FakeChatClient("notatka");
+
+        await CollectAsync(CreateGenerator(client));
+
+        var user = client.Messages![1].Text;
+        var fenceOpens = user.IndexOf("<<<", StringComparison.Ordinal);
+
+        Assert.True(fenceOpens >= 0, "The user message must carry an opening fence marker.");
+        Assert.True(
+            user.IndexOf(Material.Title, StringComparison.Ordinal) > fenceOpens,
+            "The material title must sit inside the fence, not above it.");
+        Assert.True(
+            user.IndexOf(Material.Content, StringComparison.Ordinal) > fenceOpens,
+            "The material content must sit inside the fence.");
+    }
+
+    [Fact]
+    public async Task The_fence_marker_is_unpredictable_between_requests()
+    {
+        // A fixed marker is one the user can reproduce in their own material to close the fence
+        // early, after which everything they wrote reads as a top-level instruction.
+        var first = new FakeChatClient("a");
+        var second = new FakeChatClient("b");
+
+        await CollectAsync(CreateGenerator(first));
+        await CollectAsync(CreateGenerator(second));
+
+        Assert.NotEqual(first.Messages![1].Text, second.Messages![1].Text);
+    }
+
     [Theory]
     [InlineData(429, GenerationFailure.RateLimited)]
     [InlineData(413, GenerationFailure.TooLong)]

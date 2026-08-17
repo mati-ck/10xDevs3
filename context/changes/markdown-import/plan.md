@@ -322,16 +322,16 @@ Run `dotnet tool restore` before `dotnet ef migrations add` — the `dotnet-ef` 
 
 #### Automated
 
-- [x] 3.1 Build succeeds: `dotnet build`
-- [x] 3.2 Full suite passes: `dotnet test`
-- [x] 3.3 Boundary test confirms the new pages use the sanctioned seam: `dotnet test --filter DataAccessBoundaryTests`
+- [x] 3.1 Build succeeds: `dotnet build` — fbd7ec6
+- [x] 3.2 Full suite passes: `dotnet test` — fbd7ec6
+- [x] 3.3 Boundary test confirms the new pages use the sanctioned seam: `dotnet test --filter DataAccessBoundaryTests` — fbd7ec6
 
 #### Manual
 
-- [x] 3.4 Signed out, `/materials/import` redirects to `/login`
-- [x] 3.5 A valid `.md` file with Polish characters imports and renders correctly on the detail page
-- [x] 3.6 Title auto-fills on selection, is editable, and the edited value is saved
-- [x] 3.7 All four rejections show a Polish message and save nothing (`.txt`, >128 KB, renamed binary, empty)
-- [x] 3.8 After logout and login, the detail URL still shows the material
-- [x] 3.9 A second account gets the not-found message at the first account's detail URL
-- [x] 3.10 The import nav link appears only when signed in
+- [x] 3.4 Signed out, `/materials/import` redirects to `/login` — fbd7ec6
+- [x] 3.5 A valid `.md` file with Polish characters imports and renders correctly on the detail page — fbd7ec6
+- [x] 3.6 Title auto-fills on selection, is editable, and the edited value is saved — fbd7ec6
+- [x] 3.7 All four rejections show a Polish message and save nothing (`.txt`, >128 KB, renamed binary, empty) — fbd7ec6
+- [x] 3.8 After logout and login, the detail URL still shows the material — fbd7ec6
+- [x] 3.9 A second account gets the not-found message at the first account's detail URL — fbd7ec6
+- [x] 3.10 The import nav link appears only when signed in — fbd7ec6

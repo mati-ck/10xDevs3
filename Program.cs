@@ -3,6 +3,7 @@ using _10xnotes.Auth;
 using _10xnotes.Components;
 using _10xnotes.Data;
 using _10xnotes.Generation;
+using _10xnotes.Notes;
 using _10xnotes.Time;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -154,6 +155,7 @@ builder.Services.AddChatClient(serviceProvider =>
 
 builder.Services.AddScoped<NoteGenerator>();
 builder.Services.AddScoped<GenerationQuotaService>();
+builder.Services.AddScoped<NoteService>();
 
 // Migrations self-apply at boot, but a failure must degrade readiness rather than crash the
 // process — a crash-loop would fail the container HEALTHCHECK and get the app de-routed.

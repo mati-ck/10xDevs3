@@ -38,6 +38,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<GenerationQuota> GenerationQuotas => Set<GenerationQuota>();
 
+    public DbSet<Note> Notes => Set<Note>();
+
+    public DbSet<NoteEvent> NoteEvents => Set<NoteEvent>();
+
     /// <summary>Key ring for ASP.NET DataProtection — see <see cref="IDataProtectionKeyContext"/>.</summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
@@ -86,6 +90,66 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             // generation of the day at once is enough to produce one, so the constraint is what
             // makes the cap real — GenerationQuotaService is written to expect the conflict.
             entity.HasIndex(q => new { q.OwnerId, q.UsageDate }).IsUnique();
+        });
+
+        modelBuilder.Entity<Note>(entity =>
+        {
+            entity.HasKey(n => n.Id);
+            entity.Property(n => n.Id).HasDefaultValueSql("gen_random_uuid()");
+            entity.Property(n => n.Title).IsRequired().HasMaxLength(200);
+            entity.Property(n => n.Content).IsRequired();
+            entity.Property(n => n.DraftContent).IsRequired();
+            entity.Property(n => n.PromptVersion).IsRequired().HasMaxLength(50);
+            entity.Property(n => n.Model).IsRequired().HasMaxLength(200);
+            entity.Property(n => n.CreatedAt).HasDefaultValueSql("now()");
+            entity.Property(n => n.UpdatedAt).HasDefaultValueSql("now()");
+
+            // What makes the note-per-material relationship 1:1 rather than merely intended.
+            // Without it, two tabs accepting at once leave two notes for one material and the
+            // page silently shows whichever comes back first.
+            entity.HasIndex(n => n.SourceMaterialId).IsUnique();
+
+            // NO ACTION is a decision, not a default — do NOT "fix" this to Cascade.
+            //
+            // EF's default for a required foreign key is Cascade, which would quietly answer the
+            // PRD's open question about what deleting a source material does to its note. That
+            // question blocks S-06 and belongs to whoever plans it, not to a framework default.
+            //
+            // Restrict is not the alternative either: Postgres checks it immediately, and
+            // deleting an account cascades from auth.users into source_materials and notes within
+            // one statement — Restrict would fire mid-statement and make account deletion fail.
+            // NO ACTION defers the check to the end of the statement, so that cascade succeeds
+            // while a bare DELETE FROM source_materials still bounces.
+            //
+            // No navigation properties, because the project has none anywhere: ownership and
+            // relationships are expressed by id, and every read is a deliberate query.
+            entity.HasOne<SourceMaterial>()
+                .WithMany()
+                .HasForeignKey(n => n.SourceMaterialId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<NoteEvent>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
+            entity.Property(e => e.PromptVersion).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Model).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.OccurredAt).HasDefaultValueSql("now()");
+
+            // Stored as text rather than as an int. The only consumer is a SQL query somebody
+            // writes by hand against the database — "where kind = 'Saved'" is legible there,
+            // "where kind = 1" needs this file open beside it.
+            entity.Property(e => e.Kind)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasConversion<string>();
+
+            // The shape of the only query this table exists for: one user's events over a period.
+            entity.HasIndex(e => new { e.OwnerId, e.OccurredAt });
+
+            // No foreign key on SourceMaterialId, deliberately — see NoteEvent's remarks. The
+            // ledger has to outlive the material, or the acceptance measurement deletes itself.
         });
 
         // Apply the owner filter to every entity that opts in via IOwnedByUser. Materialized

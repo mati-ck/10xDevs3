@@ -34,7 +34,7 @@ Sam przepływ pozostaje niepodzielny jako **cel**, ale jest dostarczany w trzech
 | F-01  | persistence-baseline       | (foundation) trwałe dane per użytkownik (DB + EF + migracje)      | —             | NFR: trwałość, NFR: prywatność  | done     |
 | F-02  | email-password-auth        | (foundation) rejestracja/logowanie e-mail+hasło, ochrona tras     | F-01          | FR-001, FR-002, Access Control  | done     |
 | S-01a | markdown-import            | zaimportować plik Markdown i mieć go zapisanym na koncie          | F-01, F-02    | FR-004                          | done     |
-| S-01b | ai-note-generation         | wygenerować notatkę AI obok materiału (jeszcze bez zapisu)        | S-01a         | US-01 (część), FR-005           | in-progress |
+| S-01b | ai-note-generation         | wygenerować notatkę AI obok materiału (jeszcze bez zapisu)        | S-01a         | US-01 (część), FR-005           | done     |
 | S-01c | note-review-save           | poprawić wygenerowaną notatkę i zapisać ją (zapis = akceptacja)   | S-01b         | US-01 (domknięcie), FR-006, FR-008 | proposed |
 | S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01c         | FR-003                          | proposed |
 | S-03  | browse-notes-and-sources   | przeglądać własne notatki i materiały źródłowe                    | S-01c, F-02   | FR-007                          | proposed |
@@ -124,7 +124,7 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 - **Unknowns:**
   - ~~Który dostawca AI, jaki model i jak trzymany klucz?~~ — Rozstrzygnięte 2026-08-17 w `plan.md`: `Microsoft.Extensions.AI` (`IChatClient`) na endpoint OpenRouter, model `google/gemini-3.7-flash` jako wartość konfiguracji, klucz jako sekret (`Ai__ApiKey`).
 - **Risk:** Tu domyka się najbardziej ryzykowne założenie produktu — jakość generowania. Odcięcie tego kawałka od zapisu jest celowe: prompt i dostawcę da się iterować bez dotykania modelu danych ani edytora. Ryzyko to rozrost w stronę parametrów generowania (PRD wymaga jednego kliknięcia, bez ustawień).
-- **Status:** in-progress
+- **Status:** done
 
 #### S-01c: Przegląd, edycja i zapis notatki (zapis = akceptacja)
 
@@ -236,3 +236,4 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 - **F-01: (foundation) baza jest połączona, EF Core i migracje działają, a rekordy da się przypisać i odpytać w zakresie jednego użytkownika.** — Shipped; issue [#6](https://github.com/mati-ck/10xDevs3/issues/6) closed. Status flipped by hand 2026-08-13 — `context/changes/persistence-baseline/` is at `impl_reviewed` and not yet archived, so `/10x-archive` has not written this entry itself. Lesson: —.
 - **F-02: (foundation) użytkownik może się zarejestrować, zalogować i wylogować; aplikacja rozpoznaje zalogowanego użytkownika i chroni trasy tak, że niezalogowany nie widzi żadnych danych. Płaski model, bez ról.** — Archived 2026-08-02 → `context/archive/2026-07-27-email-password-auth/`. Lesson: —.
 - **S-01a: użytkownik wgrywa plik `.md` i widzi go zapisanego na swoim koncie — materiał przetrwa wylogowanie i nie jest widoczny dla nikogo innego. Bez generowania.** — Archived 2026-08-17 → `context/archive/2026-08-17-markdown-import/`. Lesson: —.
+- **S-01b: jednym kliknięciem użytkownik generuje notatkę z zapisanego materiału i widzi ją obok źródła, z ciągłą, widoczną informacją zwrotną w trakcie. Notatka jest na tym etapie ulotna (nie trafia jeszcze na konto), materiał źródłowy pozostaje niezmieniony.** — Archived 2026-08-17 → `context/archive/2026-08-17-ai-note-generation/`. Lesson: —.

@@ -468,25 +468,25 @@ Nic nie trzeba backfillować: brak wiersza w `notes` znaczy „ten materiał nie
 
 #### Automated
 
-- [x] 2.1 Kompilacja przechodzi: `dotnet build`
-- [x] 2.2 Cały pakiet testów przechodzi: `dotnet test`
-- [x] 2.3 `NoteServiceTests` dowodzi nadpisywania 1:1, izolacji i braku zdarzenia przy `UpdateAsync`
-- [x] 2.4 `DataAccessBoundaryTests` przechodzi — `NoteService` bierze `UserScopedDbContextFactory`
-- [x] 2.5 Migracja stosuje się czysto: `dotnet ef database update`
-- [x] 2.6 Migracja zawiera `ON DELETE NO ACTION` dla FK do `source_materials`
+- [x] 2.1 Kompilacja przechodzi: `dotnet build` — debda62
+- [x] 2.2 Cały pakiet testów przechodzi: `dotnet test` — debda62
+- [x] 2.3 `NoteServiceTests` dowodzi nadpisywania 1:1, izolacji i braku zdarzenia przy `UpdateAsync` — debda62
+- [x] 2.4 `DataAccessBoundaryTests` przechodzi — `NoteService` bierze `UserScopedDbContextFactory` — debda62
+- [x] 2.5 Migracja stosuje się czysto: `dotnet ef database update` — debda62
+- [x] 2.6 Migracja zawiera `ON DELETE NO ACTION` dla FK do `source_materials` — debda62
 
 #### Manual
 
-- [x] 2.7 Supabase security advisor nie zgłasza `notes` ani `note_events` bez RLS
-- [x] 2.8 Obie tabele istnieją po starcie, `/health/ready` zwraca `Healthy`
+- [x] 2.7 Supabase security advisor nie zgłasza `notes` ani `note_events` bez RLS — debda62
+- [x] 2.8 Obie tabele istnieją po starcie, `/health/ready` zwraca `Healthy` — debda62
 
 ### Phase 3: Edytor i zapis na stronie materiału
 
 #### Automated
 
-- [ ] 3.1 Kompilacja przechodzi: `dotnet build`
-- [ ] 3.2 Cały pakiet testów przechodzi: `dotnet test`
-- [ ] 3.3 `DataAccessBoundaryTests` przechodzi po dodaniu edytora i wstrzyknięć
+- [x] 3.1 Kompilacja przechodzi: `dotnet build`
+- [x] 3.2 Cały pakiet testów przechodzi: `dotnet test`
+- [x] 3.3 `DataAccessBoundaryTests` przechodzi po dodaniu edytora i wstrzyknięć
 
 #### Manual
 

@@ -1,0 +1,43 @@
+/* The editor and its preview must not resize the page as the user types or toggles, so both
+   claim the same box: tall enough to work in, bounded so the source column stays beside it. */
+.note-source {
+    min-height: 60vh;
+    max-height: 60vh;
+    font-family: var(--bs-font-monospace);
+    font-size: 0.9rem;
+}
+
+/* Matches the textarea's box exactly, so switching to Podgląd does not make the page jump. */
+.note-preview {
+    min-height: 60vh;
+    max-height: 60vh;
+    overflow-y: auto;
+    word-break: break-word;
+}
+
+/* Rendered note content comes from Markdown, so its headings arrive at whatever level the model
+   wrote. Scaled down here rather than left at browser defaults, where an <h1> inside the panel
+   would out-shout the page's own title. */
+.note-preview ::deep h1,
+.note-preview ::deep h2 {
+    font-size: 1.25rem;
+}
+
+.note-preview ::deep h3,
+.note-preview ::deep h4,
+.note-preview ::deep h5,
+.note-preview ::deep h6 {
+    font-size: 1.1rem;
+}
+
+/* The last block in a rendered document carries a bottom margin that reads as a stray gap
+   against the panel's own padding. */
+.note-preview ::deep > *:last-child {
+    margin-bottom: 0;
+}
+
+/* Long URLs and code spans in a note must wrap rather than push the panel sideways. */
+.note-preview ::deep pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+}

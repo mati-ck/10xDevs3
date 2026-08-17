@@ -49,6 +49,8 @@ Weryfikacja: `dotnet build` i `dotnet test` przechodzą, migracja stosuje się c
 
 - **Wielu notatek na jeden materiał** — decyzja: ściśle 1:1, zapis zastępuje. Wersjonowanie i historia notatek są poza MVP (`roadmap.md:139`).
 - **Listy notatek i materiałów** — to S-03 (`browse-notes-and-sources`). `/notes/{id}` jest osiągalne przez zapis i przez link ze strony materiału, nie przez indeks.
+
+  Uczciwie o cenie tej decyzji: **materiały też nie mają indeksu** i nie miały go od S-01a, a `NavMenu` oferuje wyłącznie Home / „Zaimportuj materiał" / Wyloguj. Notatka i materiał linkują więc do siebie nawzajem wewnątrz spójnej wysepki, do której **nie ma wejścia** — po opuszczeniu strony zapisana notatka jest nieosiągalna bez wklejenia adresu z ręki. Kryterium „notatka przeżywa odświeżenie i wylogowanie" jest spełnione dosłownie i puste w praktyce. To nie zmienia zakresu tego plasterka, ale przesuwa akcent w S-03: jego zadaniem jest **wejście** do grafu treści, nie samo listowanie. S-03 ma prerequisites `S-01c, F-02` — ten plasterek jest tym, który je domyka, więc S-03 jest po nim odblokowane.
 - **Usuwania notatki** — to S-05 (`delete-note`).
 - **Edycji materiału źródłowego** — to S-04, zablokowane OQ1.
 - **Rozstrzygania OQ2 (kaskada przy usuwaniu źródła)** — FK jest celowo ustawiony tak, żeby nie przesądzać odpowiedzi.
@@ -103,7 +105,7 @@ Walidacja, wyprowadzenie tytułu i renderowanie Markdownu jako statyczne funkcje
 
 #### 2. Walidacja notatki
 
-**File**: `Notes/NoteValidator.cs` (nowy)
+**File**: `Notes/NoteValidator.cs` (nowy), `Notes/NoteValidationResult.cs` (nowy)
 
 **Intent**: Nazwać każdy powód, dla którego notatki nie da się zapisać, i wyprowadzić tytuł startowy z materiału — dokładnie tak, jak `MarkdownImportValidator` robi to dla importu.
 
@@ -122,7 +124,9 @@ Limit treści jest niższy niż 128 KB importu celowo: notatka jest streszczenie
 Dwie warstwy, obie wymagane:
 
 1. `.DisableHtml()` na budowniczym — usuwa parser bloków HTML i parsowanie HTML-a inline, więc `<script>` w treści wychodzi jako tekst, nie jako znacznik.
-2. Allowlista schematów URL — dokument jest parsowany, przechodzimy po węzłach linków i obrazów, a adres, którego schemat nie jest `http`, `https` ani `mailto`, jest neutralizowany. Dopiero potem renderujemy. To jest ta pozostała powierzchnia, o której mówi dokumentacja Markdiga; `DisableHtml()` sam jej nie zamyka.
+2. Allowlista schematów URL — dokument jest parsowany, przechodzimy po węzłach adresowych, a adres, którego schemat nie jest `http`, `https` ani `mailto`, jest neutralizowany. Dopiero potem renderujemy. To jest ta pozostała powierzchnia, o której mówi dokumentacja Markdiga; `DisableHtml()` sam jej nie zamyka.
+
+**Węzły adresowe to dwa typy, nie jeden** — i to jest ta pułapka, na której ten plan łatwo zbudować dziurę. `LinkInline` obejmuje linki i obrazy (obraz to `LinkInline` z `IsImage`), ale **autolink to osobny typ `AutolinkInline`** i nigdy nie przechodzi przez ten sam obchód. `<javascript:alert(1)>` jest poprawnym autolinkiem CommonMark, więc pominięcie tego typu daje na wyjściu `<a href="javascript:alert(1)">` — wprost w jedyny `MarkupString` w projekcie. Obchód musi objąć **oba** typy.
 
 Adresy względne i kotwice (`#sekcja`) przechodzą — nie mają schematu, więc nie mogą wykonać kodu.
 
@@ -136,7 +140,7 @@ Adresy względne i kotwice (`#sekcja`) przechodzą — nie mają schematu, więc
 
 `NoteValidatorTests`: pusty tytuł, tytuł na granicy i ponad, pusta treść (w tym sama biała spacja), treść na granicy i ponad, wyprowadzenie tytułu z materiału wraz z przycięciem.
 
-`NoteMarkdownTests`: nagłówki i punkty stają się `<h2>` / `<li>`; `<script>alert(1)</script>` w treści **nie** pojawia się na wyjściu jako znacznik; `<img onerror=...>` również nie; `[x](javascript:alert(1))` nie zostawia `javascript:` w wyjściu; `[x](https://example.com)` przechodzi nietknięty; link względny i kotwica przechodzą; `mailto:` przechodzi.
+`NoteMarkdownTests`: nagłówki i punkty stają się `<h2>` / `<li>`; `<script>alert(1)</script>` i `<img onerror=...>` w treści **nie** otwierają znacznika na wyjściu (wychodzą jako tekst z encjami — asercja idzie po braku `<script` / `<img`, nie po braku słowa `onerror`, bo notatka *o* atrybutach zdarzeń jest legalną notatką); `[x](javascript:alert(1))` nie zostawia `javascript:` w wyjściu; **`<javascript:alert(1)>` jako autolink też nie** — to osobny typ węzła i bez własnego przypadku testowego dziura z §3 przechodzi na zielono; `data:` i `vbscript:` neutralizowane; `[x](https://example.com)` przechodzi nietknięty; link względny i kotwica przechodzą; `mailto:` i autolink e-mailowy przechodzą.
 
 ### Success Criteria:
 
@@ -192,7 +196,9 @@ Wskaźnik akceptacji to `count(Saved) / count(Generated)`. `SavedLength` przy `G
 
 **Intent**: Dodać oba `DbSet`-y i konfigurację encji obok istniejących; filtr właściciela dołoży się sam przez `IOwnedByUser`.
 
-**Contract**: `DbSet<Note> Notes` i `DbSet<NoteEvent> NoteEvents`. Blok `modelBuilder.Entity<Note>`: klucz na `Id`, `gen_random_uuid()` na `Id` i `now()` na `CreatedAt` (wzorem `SourceMaterial` — te wiersze wstawia strona, nie serwis trzymający własny zegar), `Title` wymagany `HasMaxLength(200)`, `Content` i `DraftContent` wymagane bez limitu, `PromptVersion` i `Model` wymagane z rozsądnymi limitami, **unikalny** indeks na `SourceMaterialId` — to on egzekwuje 1:1.
+**Contract**: `DbSet<Note> Notes` i `DbSet<NoteEvent> NoteEvents`. Blok `modelBuilder.Entity<Note>`: klucz na `Id`, `gen_random_uuid()` na `Id` oraz `now()` na `CreatedAt` i `UpdatedAt`, `Title` wymagany `HasMaxLength(200)`, `Content` i `DraftContent` wymagane bez limitu, `PromptVersion` i `Model` wymagane z rozsądnymi limitami, **unikalny** indeks na `SourceMaterialId` — to on egzekwuje 1:1.
+
+Domyślne wartości bazodanowe są tu **zabezpieczeniem, nie ścieżką zapisu**, i tym się różnią od `SourceMaterial`. Tamten wiersz wstawia strona, która nie ma zegara; ten wstawia `NoteService`, który zegar (`TimeProvider`) ma — i musi go mieć, bo `UpdatedAt` inaczej nie ma skąd wziąć wartości. Gdyby serwis zostawił `CreatedAt` bazie, a `UpdatedAt` stemplował sam, jeden świeżo wstawiony wiersz nosiłby dwa znaczniki czasu z dwóch różnych zegarów — dokładnie to, przed czym ostrzega komentarz przy `GenerationQuota` w tym samym pliku. Dlatego `NoteService` stempluje `Id`, `CreatedAt` i `UpdatedAt` sam; domyślne wartości zostają zadeklarowane na wypadek wstawki, która o nich zapomni. Efekt uboczny: testy na SQLite przechodzą prawdziwą ścieżką serwisu zamiast dosypywać wartości ręcznie.
 
 Relacja bez właściwości nawigacyjnych, bo w projekcie nie ma ani jednej: `HasOne<SourceMaterial>().WithMany().HasForeignKey(n => n.SourceMaterialId).OnDelete(DeleteBehavior.NoAction)`. Wybór `NoAction` jest wyjaśniony w Critical Implementation Details i **musi** trafić do komentarza w tym miejscu — inaczej pierwszy czytelnik „poprawi" go na `Cascade`.
 
@@ -206,11 +212,11 @@ Blok `modelBuilder.Entity<NoteEvent>`: klucz na `Id`, domyślne wartości bazoda
 
 **Contract**: `dotnet ef migrations add AddNoteAndNoteEvent`, następnie ręcznie dopisać blok `migrationBuilder.Sql` z FK `owner_id → auth.users(id) ON DELETE CASCADE` dla **obu** tabel oraz `ENABLE ROW LEVEL SECURITY` (bez polityk) dla **obu**. `Down` zdejmuje oba FK przed `DropTable`. Wzorzec skopiować dosłownie z `Migrations/20260817174948_AddGenerationQuota.cs:52-58`.
 
-FK `notes.source_material_id → source_materials(id)` generuje EF; zweryfikować w wygenerowanym pliku, że wyszedł jako `ON DELETE NO ACTION`, i **nie** poprawiać go na `RESTRICT` ani `CASCADE`.
+FK `notes.source_material_id → source_materials(id)` generuje EF — ale **nie szukaj w wygenerowanym SQL-u napisu `ON DELETE NO ACTION`, bo go tam nie będzie**. `NO ACTION` jest domyślnym zachowaniem Postgresa dla FK bez klauzuli, więc EF ją pomija i poprawna migracja wygląda tak, jakby nikt o tym nie pomyślał. Stąd dwie rzeczy: w `CreateTable` dopisać `onDelete: ReferentialAction.NoAction` **jawnie**, żeby decyzja była widoczna dla czytającego plik, a weryfikować ją w bazie, nie w pliku (patrz kryterium 2.6). I **nie** poprawiać jej na `RESTRICT` ani `CASCADE`.
 
 #### 5. Serwis notatek
 
-**File**: `Notes/NoteService.cs` (nowy)
+**File**: `Notes/NoteService.cs` (nowy), `Notes/NoteSaveResult.cs` (nowy)
 
 **Intent**: Zapisać notatkę, nadpisać istniejącą i dopisać właściwe zdarzenie do rejestru — tak, żeby strona nigdy nie rozmawiała z bazą sama.
 
@@ -220,7 +226,7 @@ FK `notes.source_material_id → source_materials(id)` generuje EF; zweryfikowa�
 - `GetAsync(Guid noteId, CancellationToken)` → `Note?` — dla `/notes/{id}`.
 - `AcceptAsync(...)` → typowany wynik z `Note` albo porażką — **akceptacja świeżego wygenerowania**: tworzy albo nadpisuje wiersz notatki dla tego materiału i dopisuje zdarzenie `Saved`.
 - `UpdateAsync(...)` → typowany wynik — **ponowny zapis już zapisanej notatki**: aktualizuje `Title`, `Content`, `UpdatedAt` i **nie** dopisuje żadnego zdarzenia.
-- `RecordGenerationAsync(...)` — dopisuje zdarzenie `Generated`; wołane wyłącznie po pomyślnym zakończeniu strumienia.
+- `RecordGenerationAsync(...)` — dopisuje zdarzenie `Generated`; wołane wyłącznie po pomyślnym zakończeniu strumienia. **Zapis best-effort**: niepowodzenie jest logowane i połykane, nigdy nie wychodzi z metody. Powód jest konkretny, nie ostrożnościowy — na stronie ta metoda jest wołana wewnątrz bloku `try` obsługi generowania, którego `catch` czyści panel notatki, więc wyjątek (w tym `OperationCanceledException` przy odejściu ze strony) skasowałby użytkownikowi notatkę, która właśnie się wygenerowała, w zamian za wiersz rejestru, którego nikt nie czyta na bieżąco. Log jest tym, co czyni ewentualną dziurę w mianowniku znajdowalną.
 
 Rozdzielenie `AcceptAsync` od `UpdateAsync` jest tym, co utrzymuje wskaźnik akceptacji poniżej 100% — uzasadnienie w Critical Implementation Details.
 
@@ -240,7 +246,7 @@ Serwis waliduje przez `NoteValidator` przed zapisem — strona nie jest jedynym 
 
 Testy na SQLite in-memory, wzorem `GenerationQuotaTests`: własne `SqliteConnection` w konstruktorze klasy, `EnsureCreated()`, `IDisposable`, prawdziwy `UserScopedDbContextFactory` owinięty wokół testowej fabryki i `StubCurrentUserAccessor`, `FixedClock : TimeProvider`, `NullLogger<T>.Instance`. Wartości domyślne Postgresa (`gen_random_uuid()`, `now()`) trzeba w seedach podać ręcznie — SQLite ich nie zna.
 
-Przypadki: zapis tworzy notatkę powiązaną z materiałem; drugi `AcceptAsync` dla tego samego materiału **nadpisuje** i zostawia dokładnie jeden wiersz; notatka jednego użytkownika jest niewidoczna dla drugiego; `AcceptAsync` bez zalogowanego użytkownika rzuca; `AcceptAsync` dopisuje zdarzenie `Saved`, a `UpdateAsync` **nie** dopisuje żadnego; `RecordGenerationAsync` dopisuje `Generated`; `UpdateAsync` podbija `UpdatedAt` i zostawia `CreatedAt` bez zmian; `DraftContent` przeżywa edycję `Content`; treść ponad limitem jest odrzucona przez serwis, nie tylko przez UI.
+Przypadki: zapis tworzy notatkę powiązaną z materiałem; drugi `AcceptAsync` dla tego samego materiału **nadpisuje** i zostawia dokładnie jeden wiersz; notatka jednego użytkownika jest niewidoczna dla drugiego; `AcceptAsync` bez zalogowanego użytkownika zwraca `NotFound` i **nie zapisuje ani notatki, ani zdarzenia** (nie rzuca — sprawdzenie materiału jest filtrowane właścicielem, więc metoda kończy się zanim cokolwiek dojdzie do `StampOwners`; typowana odmowa zamiast wyjątku to zresztą dokładnie ta zasada, którą ten plan uzasadnia wyżej); `AcceptAsync` dopisuje zdarzenie `Saved`, a `UpdateAsync` **nie** dopisuje żadnego; `RecordGenerationAsync` dopisuje `Generated`; `UpdateAsync` podbija `UpdatedAt` i zostawia `CreatedAt` bez zmian; `DraftContent` przeżywa edycję `Content`; treść ponad limitem jest odrzucona przez serwis, nie tylko przez UI.
 
 ### Success Criteria:
 
@@ -251,7 +257,7 @@ Przypadki: zapis tworzy notatkę powiązaną z materiałem; drugi `AcceptAsync` 
 - `NoteServiceTests` dowodzi nadpisywania 1:1, izolacji per użytkownik i tego, że `UpdateAsync` nie dopisuje zdarzenia akceptacji
 - `DataAccessBoundaryTests` przechodzi — `NoteService` bierze `UserScopedDbContextFactory`
 - Migracja stosuje się czysto: `dotnet ef database update`
-- Wygenerowana migracja zawiera `ON DELETE NO ACTION` dla FK do `source_materials`
+- FK `notes → source_materials` nie jest ani `CASCADE`, ani `RESTRICT` — sprawdzone **w bazie**, nie w pliku migracji: `select confdeltype from pg_constraint where conname = 'fk_notes_source_materials_source_material_id'` zwraca `a` (= `NO ACTION`)
 
 #### Manual Verification:
 
@@ -292,7 +298,7 @@ Komponent jest **bezstanowy poza swoimi parametrami** i nie dotyka bazy: strona 
 
 Istniejące pola i przepływ generowania (`isGenerating`, dławiony repaint, `IAsyncDisposable`, `CancelGenerationAsync`, mapowanie `GenerationFailure` na polską kopię) zostają bez zmian. Porażka dalej czyści panel.
 
-Po pomyślnym zakończeniu strumienia strona woła `NoteService.RecordGenerationAsync(...)` — to mianownik wskaźnika akceptacji.
+Po pomyślnym zakończeniu strumienia strona woła `NoteService.RecordGenerationAsync(...)` — to mianownik wskaźnika akceptacji. Wołanie idzie **po** przekazaniu bufora do edytora i nie może wpaść w `catch` obsługi generowania, bo ten czyści panel: notatka jest już wygenerowana i na ekranie, a rejestr jest wobec niej drugorzędny (patrz kontrakt `RecordGenerationAsync` w Fazie 2).
 
 #### 3. Zapis z potwierdzeniem zastąpienia
 
@@ -333,11 +339,11 @@ Porażka walidacji lub zapisu mapuje typowany wynik na polską kopię, wzorem `M
 - Po wygenerowaniu notatki panel zamienia się w edytor z polem tytułu wypełnionym tytułem materiału
 - Przełącznik **Podgląd** pokazuje nagłówki i punkty jako strukturę, nie jako dosłowne `##` i `-`
 - W trakcie generowania panel jest tylko do odczytu — nie da się w nim pisać
-- Zapis prowadzi na `/notes/{id}`, a notatka przeżywa odświeżenie i wylogowanie
+- Zapis przekierowuje na `/notes/{id}` i wiersz jest w bazie — **sama strona notatki powstaje dopiero w Fazie 4**, więc na tej bramce docelowy adres jest zwrotem 404 i to jest zachowanie oczekiwane, nie usterka. Trwałość po odświeżeniu i wylogowaniu sprawdza kryterium 4.5.
 - Zapis przy istniejącej już notatce pyta o potwierdzenie zastąpienia i po odmowie niczego nie zmienia
 - Ponowne generowanie przy niezapisanych poprawkach pyta o potwierdzenie
 - Materiał źródłowy jest nietknięty po zapisie (guardrail PRD)
-- Wejście na materiał, który ma już notatkę, pokazuje link do niej
+- Wejście na materiał, który ma już notatkę, pokazuje link do niej (że link *prowadzi* do działającej strony, weryfikuje kryterium 4.9 w Fazie 4)
 
 **Implementation Note**: Po tej fazie i przejściu weryfikacji automatycznej zatrzymaj się i poczekaj na potwierdzenie ręcznego testu przed Fazą 4.
 
@@ -382,7 +388,7 @@ Zapis woła `NoteService.UpdateAsync(...)`, zostaje na stronie i pokazuje potwie
 #### Manual Verification:
 
 - `/notes/{id}` pokazuje materiał obok notatki, obie kolumny z właściwą treścią
-- Poprawka i ponowny zapis działają w miejscu; odświeżenie pokazuje zapisaną wersję
+- Poprawka i ponowny zapis działają w miejscu; odświeżenie **i ponowne zalogowanie** pokazują zapisaną wersję (druga połowa kryterium 3.7 — trwałość NFR)
 - Ponowny zapis **nie** zwiększa liczby zdarzeń `Saved` w rejestrze (sprawdzone zapytaniem do bazy)
 - Notatka innego użytkownika i notatka nieistniejąca renderują się tak samo
 - Niezalogowany użytkownik jest przekierowany na logowanie
@@ -473,7 +479,7 @@ Nic nie trzeba backfillować: brak wiersza w `notes` znaczy „ten materiał nie
 - [x] 2.3 `NoteServiceTests` dowodzi nadpisywania 1:1, izolacji i braku zdarzenia przy `UpdateAsync` — debda62
 - [x] 2.4 `DataAccessBoundaryTests` przechodzi — `NoteService` bierze `UserScopedDbContextFactory` — debda62
 - [x] 2.5 Migracja stosuje się czysto: `dotnet ef database update` — debda62
-- [x] 2.6 Migracja zawiera `ON DELETE NO ACTION` dla FK do `source_materials` — debda62
+- [x] 2.6 FK do `source_materials` nie jest `CASCADE` ani `RESTRICT` — `pg_constraint.confdeltype` = `a` w bazie — debda62
 
 #### Manual
 
@@ -493,11 +499,11 @@ Nic nie trzeba backfillować: brak wiersza w `notes` znaczy „ten materiał nie
 - [x] 3.4 Po generowaniu panel zamienia się w edytor z wypełnionym tytułem — 8a19869
 - [x] 3.5 Podgląd pokazuje strukturę, nie dosłowne `##` i `-` — 8a19869
 - [x] 3.6 W trakcie generowania panel jest tylko do odczytu — 8a19869
-- [x] 3.7 Zapis prowadzi na `/notes/{id}`, notatka przeżywa odświeżenie i wylogowanie — 8a19869
+- [x] 3.7 Zapis przekierowuje na `/notes/{id}` i wiersz jest w bazie (strona notatki dopiero w Fazie 4 — 404 na tej bramce jest oczekiwane) — 8a19869
 - [x] 3.8 Zapis przy istniejącej notatce pyta o zastąpienie; odmowa niczego nie zmienia — 8a19869
 - [x] 3.9 Ponowne generowanie przy niezapisanych poprawkach pyta o potwierdzenie — 8a19869
 - [x] 3.10 Materiał źródłowy nietknięty po zapisie — 8a19869
-- [x] 3.11 Materiał z istniejącą notatką pokazuje link do niej — 8a19869
+- [x] 3.11 Materiał z istniejącą notatką pokazuje link do niej (czy link działa — kryterium 4.9) — 8a19869
 
 ### Phase 4: Strona notatki
 
@@ -510,7 +516,7 @@ Nic nie trzeba backfillować: brak wiersza w `notes` znaczy „ten materiał nie
 #### Manual
 
 - [x] 4.4 `/notes/{id}` pokazuje materiał obok notatki — 8a19869
-- [x] 4.5 Poprawka i ponowny zapis działają w miejscu — 8a19869
+- [x] 4.5 Poprawka i ponowny zapis działają w miejscu; notatka przeżywa odświeżenie i wylogowanie — 8a19869
 - [x] 4.6 Ponowny zapis nie zwiększa liczby zdarzeń `Saved` w rejestrze — 8a19869
 - [x] 4.7 Cudza i nieistniejąca notatka renderują się identycznie — 8a19869
 - [x] 4.8 Niezalogowany użytkownik jest przekierowany na logowanie — 8a19869

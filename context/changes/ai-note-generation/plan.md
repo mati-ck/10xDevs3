@@ -382,32 +382,32 @@ Nowa zmienna środowiskowa na Coolify: **`Ai__ApiKey`** (podwójne podkreślenie
 
 #### Automated
 
-- [x] 2.1 Kompilacja przechodzi: `dotnet build`
-- [x] 2.2 Cały pakiet testów przechodzi: `dotnet test`
-- [x] 2.3 `GenerationQuotaTests` dowodzi izolacji, odmowy i resetu dobowego
-- [x] 2.4 `DataAccessBoundaryTests` przechodzi — serwis bierze `UserScopedDbContextFactory`
-- [x] 2.5 Migracja stosuje się czysto: `dotnet ef database update`
+- [x] 2.1 Kompilacja przechodzi: `dotnet build` — 4d0e7d2
+- [x] 2.2 Cały pakiet testów przechodzi: `dotnet test` — 4d0e7d2
+- [x] 2.3 `GenerationQuotaTests` dowodzi izolacji, odmowy i resetu dobowego — 4d0e7d2
+- [x] 2.4 `DataAccessBoundaryTests` przechodzi — serwis bierze `UserScopedDbContextFactory` — 4d0e7d2
+- [x] 2.5 Migracja stosuje się czysto: `dotnet ef database update` — 4d0e7d2
 
 #### Manual
 
-- [x] 2.6 Supabase security advisor nie zgłasza `generation_quotas` bez RLS
-- [x] 2.7 Tabela istnieje po starcie, `/health/ready` zwraca `Healthy`
+- [x] 2.6 Supabase security advisor nie zgłasza `generation_quotas` bez RLS — 4d0e7d2
+- [x] 2.7 Tabela istnieje po starcie, `/health/ready` zwraca `Healthy` — 4d0e7d2
 
 ### Phase 3: Strona dwukolumnowa ze strumieniowaniem
 
 #### Automated
 
-- [ ] 3.1 Kompilacja przechodzi: `dotnet build`
-- [ ] 3.2 Cały pakiet testów przechodzi: `dotnet test`
-- [ ] 3.3 `DataAccessBoundaryTests` przechodzi po zmianie trybu renderowania
+- [x] 3.1 Kompilacja przechodzi: `dotnet build`
+- [x] 3.2 Cały pakiet testów przechodzi: `dotnet test`
+- [x] 3.3 `DataAccessBoundaryTests` przechodzi po zmianie trybu renderowania
 
 #### Manual
 
-- [ ] 3.4 Import prowadzi na stronę z przyciskiem „Generuj notatkę"
-- [ ] 3.5 Tekst przyrasta na ekranie w trakcie generowania
-- [ ] 3.6 Notatka to streszczenie plus konspekt, w języku materiału
-- [ ] 3.7 Materiał źródłowy nietknięty po generowaniu
-- [ ] 3.8 Odświeżenie strony traci notatkę — nic nie zapisano
-- [ ] 3.9 Wyjście w trakcie generowania nie zostawia błędu ani nie wywraca circuit
-- [ ] 3.10 Wyczerpany limit dobowy daje komunikat o limicie
-- [ ] 3.11 Brak `Ai__ApiKey` daje neutralny komunikat, nie ekran błędu
+- [x] 3.4 Import prowadzi na stronę z przyciskiem „Generuj notatkę"
+- [x] 3.5 Tekst przyrasta na ekranie w trakcie generowania
+- [x] 3.6 Notatka to streszczenie plus konspekt, w języku materiału
+- [x] 3.7 Materiał źródłowy nietknięty po generowaniu
+- [x] 3.8 Odświeżenie strony traci notatkę — nic nie zapisano
+- [x] 3.9 Wyjście w trakcie generowania nie zostawia błędu ani nie wywraca circuit
+- [x] 3.10 Wyczerpany limit dobowy daje komunikat o limicie
+- [x] 3.11 Brak `Ai__ApiKey` daje neutralny komunikat, nie ekran błędu

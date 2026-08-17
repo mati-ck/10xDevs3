@@ -1,10 +1,18 @@
 /* The source material is shown verbatim, so long lines must wrap rather than force the page
    to scroll sideways, and a tall document must scroll inside its own box rather than bury the
    heading. S-01b adds the generated note beside this, so it must not claim unbounded height. */
-.source-content {
+.source-content,
+.note-content {
     max-height: 60vh;
     overflow-y: auto;
     white-space: pre-wrap;
     word-break: break-word;
     background-color: var(--bs-secondary-bg, #f8f9fa);
+}
+
+/* The note is what the user came for, so it reads as the page's own content rather than as a
+   quoted block: same wrapping and scrolling as the source, but not greyed out like an artifact
+   being displayed. */
+.note-content {
+    background-color: transparent;
 }

@@ -1,15 +1,24 @@
 @page "/materials/{Id:guid}"
+@rendermode InteractiveServer
+@using System.Diagnostics
 @using System.Globalization
+@using System.Text
 @using Microsoft.EntityFrameworkCore
 @using _10xnotes.Data
 @using _10xnotes.Data.Entities
+@using _10xnotes.Generation
 @using _10xnotes.Time
+@implements IAsyncDisposable
 @inject UserScopedDbContextFactory DbContextFactory
+@inject NoteGenerator NoteGenerator
+@inject GenerationQuotaService QuotaService
 @inject TimeProvider TimeProvider
 
-@* Static SSR: this page only reads, so it needs no circuit. The current user still resolves —
-   the principal is pushed into SessionCapAuthenticationStateProvider on the static path, which
-   is what UserScopedDbContextFactory reads. *@
+@* Interactive, unlike S-01a, when this page only read and needed no circuit. Generating streams
+   the note in as the model writes it, which the PRD requires for anything over two seconds, and
+   a stream needs a live connection to push into. Data still comes through
+   UserScopedDbContextFactory — injecting IDbContextFactory<> here fails DataAccessBoundaryTests
+   and blocks the deploy. *@
 
 <PageTitle>@(material?.Title ?? "Materiał")</PageTitle>
 
@@ -31,20 +40,87 @@ else
         z pliku <code>@material.OriginalFileName</code>.
     </p>
 
-    @* Raw text, never rendered as Markdown or markup. The material is user-supplied and the PRD
-       guardrail is that the source stays available and unchanged — showing it verbatim proves
-       that literally, and keeps user content from ever reaching the DOM as HTML. *@
-    <pre class="source-content border rounded p-3">@material.Content</pre>
+    @* Two columns so the note can be checked against the source without scrolling between them —
+       the PRD guardrail is that the material stays available beside the note. They stack on a
+       narrow window, source first, because the note is worthless without it. *@
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <h2 class="h5">Materiał źródłowy</h2>
+
+            @* Raw text, never rendered as Markdown or markup. The material is user-supplied and
+               the PRD guardrail is that the source stays available and unchanged — showing it
+               verbatim proves that literally, and keeps user content from ever reaching the DOM
+               as HTML. *@
+            <pre class="source-content border rounded p-3">@material.Content</pre>
+        </div>
+
+        <div class="col-lg-6">
+            <h2 class="h5">Notatka</h2>
+
+            <button type="button" class="btn btn-primary mb-3"
+                    disabled="@isGenerating" @onclick="GenerateAsync">
+                @(isGenerating ? "Generuję…" : "Generuj notatkę")
+            </button>
+
+            @if (errorMessage is not null)
+            {
+                <div class="alert alert-danger" role="alert">@errorMessage</div>
+            }
+
+            @if (note.Length > 0)
+            {
+                @* Same treatment as the source: the model's output is text, not markup. Rendering
+                   it as Markdown belongs to the editor in S-01c, where it can be sanitized. *@
+                <pre class="note-content border rounded p-3">@note</pre>
+            }
+            else if (!isGenerating && errorMessage is null)
+            {
+                <p class="text-secondary">
+                    Kliknij „Generuj notatkę", a AI przygotuje streszczenie i konspekt tego materiału.
+                </p>
+            }
+        </div>
+    </div>
 }
 
 @code {
     private static readonly CultureInfo PolishCulture = CultureInfo.GetCultureInfo("pl-PL");
+
+    /// <summary>
+    /// How often the growing note is pushed to the browser.
+    /// </summary>
+    /// <remarks>
+    /// Repainting per token would put hundreds of micro-diffs through the SignalR circuit for one
+    /// note. At ~10 frames a second the text still visibly grows — which is the point of streaming
+    /// — while the number of round trips stays in the dozens.
+    /// </remarks>
+    private static readonly TimeSpan RepaintInterval = TimeSpan.FromMilliseconds(100);
 
     [Parameter]
     public Guid Id { get; set; }
 
     private SourceMaterial? material;
 
+    private string note = string.Empty;
+    private string? errorMessage;
+    private bool isGenerating;
+
+    /// <summary>
+    /// Cancels the in-flight generation when the user leaves the page.
+    /// </summary>
+    /// <remarks>
+    /// Without this the <c>await foreach</c> keeps running after the component is gone, paying for
+    /// tokens nobody will read. Held in a field rather than scoped to the handler so
+    /// <see cref="DisposeAsync"/> can reach it.
+    /// </remarks>
+    private CancellationTokenSource? generationCts;
+
+    /// <remarks>
+    /// Runs twice per page load now that the page is interactive: once while prerendering and
+    /// again when the circuit opens. That is two reads of one row, and it buys a first paint of
+    /// the material that does not wait for the circuit — worth it on a page whose whole point is
+    /// having the source in front of you.
+    /// </remarks>
     protected override async Task OnInitializedAsync()
     {
         await using var db = await DbContextFactory.CreateAsync();
@@ -55,4 +131,112 @@ else
         // probe which ids exist.
         material = await db.SourceMaterials.FirstOrDefaultAsync(m => m.Id == Id);
     }
+
+    private async Task GenerateAsync()
+    {
+        if (material is null || isGenerating)
+        {
+            return;
+        }
+
+        // A previous run may still be winding down after a failure; never leave two streams
+        // writing into the same buffer.
+        await CancelGenerationAsync();
+
+        errorMessage = null;
+        note = string.Empty;
+        isGenerating = true;
+
+        generationCts = new CancellationTokenSource();
+        var token = generationCts.Token;
+
+        try
+        {
+            if (!await QuotaService.TryReserveAsync(token))
+            {
+                errorMessage = MessageFor(GenerationFailure.QuotaExceeded);
+                return;
+            }
+
+            var buffer = new StringBuilder();
+            var lastRepaint = Stopwatch.GetTimestamp();
+
+            await foreach (var chunk in NoteGenerator.GenerateAsync(material, token))
+            {
+                if (chunk.Failure is { } failure)
+                {
+                    // The panel is cleared rather than left holding a partial note: whatever is on
+                    // screen must always be a note that finished, so a truncated draft can never be
+                    // mistaken for one — which matters more once saving means accepting (S-01c).
+                    note = string.Empty;
+                    errorMessage = MessageFor(failure);
+                    return;
+                }
+
+                buffer.Append(chunk.Text);
+
+                if (Stopwatch.GetElapsedTime(lastRepaint) >= RepaintInterval)
+                {
+                    note = buffer.ToString();
+                    lastRepaint = Stopwatch.GetTimestamp();
+                    StateHasChanged();
+                }
+            }
+
+            // The last fragments almost never land on a repaint boundary, so without this the
+            // note would be missing its tail until something else triggered a render.
+            note = buffer.ToString();
+        }
+        catch (OperationCanceledException)
+        {
+            // Only reachable when the quota read is cancelled — the generator turns cancellation
+            // into a chunk rather than letting it escape. Nothing to say: the user left.
+            note = string.Empty;
+        }
+        catch (Exception)
+        {
+            // Left unhandled this escapes the event handler and tears the circuit down, so the
+            // user gets a reconnect modal instead of a reason. Same posture as the import page.
+            errorMessage = MessageFor(GenerationFailure.Unavailable);
+            note = string.Empty;
+        }
+        finally
+        {
+            isGenerating = false;
+        }
+    }
+
+    private async Task CancelGenerationAsync()
+    {
+        if (generationCts is null)
+        {
+            return;
+        }
+
+        await generationCts.CancelAsync();
+        generationCts.Dispose();
+        generationCts = null;
+    }
+
+    public async ValueTask DisposeAsync() => await CancelGenerationAsync();
+
+    private static string MessageFor(GenerationFailure failure) => failure switch
+    {
+        GenerationFailure.QuotaExceeded =>
+            "Wykorzystałeś dzienny limit generowań. Spróbuj ponownie jutro.",
+        GenerationFailure.RateLimited =>
+            "Zbyt wiele żądań naraz. Odczekaj chwilę i spróbuj ponownie.",
+        GenerationFailure.TimedOut =>
+            "Generowanie trwało zbyt długo i zostało przerwane. Spróbuj ponownie.",
+        GenerationFailure.TooLong =>
+            "Ten materiał jest za długi dla modelu. Skróć go i spróbuj ponownie.",
+        GenerationFailure.Empty =>
+            "Model nie zwrócił żadnej treści. Spróbuj ponownie.",
+        GenerationFailure.Cancelled =>
+            "Generowanie zostało przerwane.",
+        // Unavailable and anything added to the enum later: neutral, never a claim about what the
+        // user did wrong, and never the provider's own English prose.
+        _ =>
+            "Nie udało się wygenerować notatki. Spróbuj ponownie za chwilę."
+    };
 }

@@ -3,7 +3,7 @@ project: "10xNotes"
 version: 1
 status: draft
 created: 2026-07-02
-updated: 2026-08-13
+updated: 2026-08-17
 prd_version: 1
 main_goal: speed
 top_blocker: capacity
@@ -33,7 +33,7 @@ Sam przepływ pozostaje niepodzielny jako **cel**, ale jest dostarczany w trzech
 | ----- | -------------------------- | ---------------------------------------------------------------- | ------------- | ------------------------------- | -------- |
 | F-01  | persistence-baseline       | (foundation) trwałe dane per użytkownik (DB + EF + migracje)      | —             | NFR: trwałość, NFR: prywatność  | done     |
 | F-02  | email-password-auth        | (foundation) rejestracja/logowanie e-mail+hasło, ochrona tras     | F-01          | FR-001, FR-002, Access Control  | done     |
-| S-01a | markdown-import            | zaimportować plik Markdown i mieć go zapisanym na koncie          | F-01, F-02    | FR-004                          | ready    |
+| S-01a | markdown-import            | zaimportować plik Markdown i mieć go zapisanym na koncie          | F-01, F-02    | FR-004                          | in-progress |
 | S-01b | ai-note-generation         | wygenerować notatkę AI obok materiału (jeszcze bez zapisu)        | S-01a         | US-01 (część), FR-005           | proposed |
 | S-01c | note-review-save           | poprawić wygenerowaną notatkę i zapisać ją (zapis = akceptacja)   | S-01b         | US-01 (domknięcie), FR-006, FR-008 | proposed |
 | S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01c         | FR-003                          | proposed |
@@ -111,7 +111,7 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 - **Unknowns:**
   - Limit rozmiaru importowanego pliku i zachowanie po jego przekroczeniu? — Owner: użytkownik. Block: no. (PRD milczy; domyślnie rozsądny limit ustalony w planie.)
 - **Risk:** Pierwsza encja domenowa w projekcie — ryzyko to wciągnięcie modelu notatki i relacji zanim generowanie w ogóle istnieje. Wolno dowieźć wyłącznie `SourceMaterial` + migrację z `ENABLE ROW LEVEL SECURITY` + upload; encja notatki należy do S-01c.
-- **Status:** ready
+- **Status:** in-progress
 
 #### S-01b: Generowanie notatki AI obok materiału
 

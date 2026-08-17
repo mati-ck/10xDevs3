@@ -34,6 +34,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<Profile> Profiles => Set<Profile>();
 
+    public DbSet<SourceMaterial> SourceMaterials => Set<SourceMaterial>();
+
     /// <summary>Key ring for ASP.NET DataProtection — see <see cref="IDataProtectionKeyContext"/>.</summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
@@ -48,6 +50,21 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(p => p.DisplayName).HasMaxLength(200);
             entity.Property(p => p.CreatedAt).HasDefaultValueSql("now()");
             entity.HasIndex(p => p.OwnerId).IsUnique();
+        });
+
+        modelBuilder.Entity<SourceMaterial>(entity =>
+        {
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.Id).HasDefaultValueSql("gen_random_uuid()");
+            entity.Property(m => m.Title).IsRequired().HasMaxLength(200);
+            entity.Property(m => m.Content).IsRequired();
+            entity.Property(m => m.OriginalFileName).IsRequired().HasMaxLength(260);
+            entity.Property(m => m.CreatedAt).HasDefaultValueSql("now()");
+
+            // Not unique, unlike the one on Profile: a user owns many materials. It exists
+            // because every read path filters by owner — the global query filter puts owner_id
+            // in the WHERE clause of literally every query against this table.
+            entity.HasIndex(m => m.OwnerId);
         });
 
         // Apply the owner filter to every entity that opts in via IOwnedByUser. Materialized

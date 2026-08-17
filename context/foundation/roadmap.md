@@ -33,7 +33,7 @@ Sam przepływ pozostaje niepodzielny jako **cel**, ale jest dostarczany w trzech
 | ----- | -------------------------- | ---------------------------------------------------------------- | ------------- | ------------------------------- | -------- |
 | F-01  | persistence-baseline       | (foundation) trwałe dane per użytkownik (DB + EF + migracje)      | —             | NFR: trwałość, NFR: prywatność  | done     |
 | F-02  | email-password-auth        | (foundation) rejestracja/logowanie e-mail+hasło, ochrona tras     | F-01          | FR-001, FR-002, Access Control  | done     |
-| S-01a | markdown-import            | zaimportować plik Markdown i mieć go zapisanym na koncie          | F-01, F-02    | FR-004                          | in-progress |
+| S-01a | markdown-import            | zaimportować plik Markdown i mieć go zapisanym na koncie          | F-01, F-02    | FR-004                          | done     |
 | S-01b | ai-note-generation         | wygenerować notatkę AI obok materiału (jeszcze bez zapisu)        | S-01a         | US-01 (część), FR-005           | proposed |
 | S-01c | note-review-save           | poprawić wygenerowaną notatkę i zapisać ją (zapis = akceptacja)   | S-01b         | US-01 (domknięcie), FR-006, FR-008 | proposed |
 | S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01c         | FR-003                          | proposed |
@@ -111,7 +111,7 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 - **Unknowns:**
   - Limit rozmiaru importowanego pliku i zachowanie po jego przekroczeniu? — Owner: użytkownik. Block: no. (PRD milczy; domyślnie rozsądny limit ustalony w planie.)
 - **Risk:** Pierwsza encja domenowa w projekcie — ryzyko to wciągnięcie modelu notatki i relacji zanim generowanie w ogóle istnieje. Wolno dowieźć wyłącznie `SourceMaterial` + migrację z `ENABLE ROW LEVEL SECURITY` + upload; encja notatki należy do S-01c.
-- **Status:** in-progress
+- **Status:** done
 
 #### S-01b: Generowanie notatki AI obok materiału
 
@@ -235,3 +235,4 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 
 - **F-01: (foundation) baza jest połączona, EF Core i migracje działają, a rekordy da się przypisać i odpytać w zakresie jednego użytkownika.** — Shipped; issue [#6](https://github.com/mati-ck/10xDevs3/issues/6) closed. Status flipped by hand 2026-08-13 — `context/changes/persistence-baseline/` is at `impl_reviewed` and not yet archived, so `/10x-archive` has not written this entry itself. Lesson: —.
 - **F-02: (foundation) użytkownik może się zarejestrować, zalogować i wylogować; aplikacja rozpoznaje zalogowanego użytkownika i chroni trasy tak, że niezalogowany nie widzi żadnych danych. Płaski model, bez ról.** — Archived 2026-08-02 → `context/archive/2026-07-27-email-password-auth/`. Lesson: —.
+- **S-01a: użytkownik wgrywa plik `.md` i widzi go zapisanego na swoim koncie — materiał przetrwa wylogowanie i nie jest widoczny dla nikogo innego. Bez generowania.** — Archived 2026-08-17 → `context/archive/2026-08-17-markdown-import/`. Lesson: —.

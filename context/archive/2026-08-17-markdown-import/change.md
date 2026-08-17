@@ -1,10 +1,10 @@
 ---
 change_id: markdown-import
 title: Import pliku Markdown jako materiał źródłowy (S-01a)
-status: impl_reviewed
+status: archived
 created: 2026-08-17
 updated: 2026-08-17
-archived_at: null
+archived_at: 2026-08-17T17:04:57Z
 ---
 
 ## Notes

@@ -369,29 +369,29 @@ Nowa zmienna środowiskowa na Coolify: **`Ai__ApiKey`** (podwójne podkreślenie
 
 #### Automated
 
-- [x] 1.1 Kompilacja przechodzi: `dotnet build`
-- [x] 1.2 Cały pakiet testów przechodzi: `dotnet test`
-- [x] 1.3 `NoteGeneratorTests` pokrywa każdą wartość `GenerationFailure` osiągalną bez bazy
-- [x] 1.4 `DataAccessBoundaryTests` nadal przechodzi
+- [x] 1.1 Kompilacja przechodzi: `dotnet build` — 6a8707c
+- [x] 1.2 Cały pakiet testów przechodzi: `dotnet test` — 6a8707c
+- [x] 1.3 `NoteGeneratorTests` pokrywa każdą wartość `GenerationFailure` osiągalną bez bazy — 6a8707c
+- [x] 1.4 `DataAccessBoundaryTests` nadal przechodzi — 6a8707c
 
 #### Manual
 
-- [x] 1.5 `dotnet run` startuje bez ustawionego `Ai__ApiKey`
+- [x] 1.5 `dotnet run` startuje bez ustawionego `Ai__ApiKey` — 6a8707c
 
 ### Phase 2: Rejestr limitu dobowego
 
 #### Automated
 
-- [ ] 2.1 Kompilacja przechodzi: `dotnet build`
-- [ ] 2.2 Cały pakiet testów przechodzi: `dotnet test`
-- [ ] 2.3 `GenerationQuotaTests` dowodzi izolacji, odmowy i resetu dobowego
-- [ ] 2.4 `DataAccessBoundaryTests` przechodzi — serwis bierze `UserScopedDbContextFactory`
-- [ ] 2.5 Migracja stosuje się czysto: `dotnet ef database update`
+- [x] 2.1 Kompilacja przechodzi: `dotnet build`
+- [x] 2.2 Cały pakiet testów przechodzi: `dotnet test`
+- [x] 2.3 `GenerationQuotaTests` dowodzi izolacji, odmowy i resetu dobowego
+- [x] 2.4 `DataAccessBoundaryTests` przechodzi — serwis bierze `UserScopedDbContextFactory`
+- [x] 2.5 Migracja stosuje się czysto: `dotnet ef database update`
 
 #### Manual
 
-- [ ] 2.6 Supabase security advisor nie zgłasza `generation_quotas` bez RLS
-- [ ] 2.7 Tabela istnieje po starcie, `/health/ready` zwraca `Healthy`
+- [x] 2.6 Supabase security advisor nie zgłasza `generation_quotas` bez RLS
+- [x] 2.7 Tabela istnieje po starcie, `/health/ready` zwraca `Healthy`
 
 ### Phase 3: Strona dwukolumnowa ze strumieniowaniem
 

@@ -36,6 +36,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<SourceMaterial> SourceMaterials => Set<SourceMaterial>();
 
+    public DbSet<GenerationQuota> GenerationQuotas => Set<GenerationQuota>();
+
     /// <summary>Key ring for ASP.NET DataProtection — see <see cref="IDataProtectionKeyContext"/>.</summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
@@ -65,6 +67,25 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             // because every read path filters by owner — the global query filter puts owner_id
             // in the WHERE clause of literally every query against this table.
             entity.HasIndex(m => m.OwnerId);
+        });
+
+        modelBuilder.Entity<GenerationQuota>(entity =>
+        {
+            entity.HasKey(q => q.Id);
+
+            // No gen_random_uuid()/now() defaults here, unlike Profile and SourceMaterial. Those
+            // two are only ever inserted by a page that supplies neither, so a database default is
+            // the right home. This row is written by GenerationQuotaService, which already holds
+            // the clock that decides UsageDate — letting the database stamp CreatedAt from its own
+            // UTC clock would put two timestamps that disagree about "now" on the same row. Keeping
+            // both app-side also makes the ledger insertable on any provider, which is what lets
+            // the limit be tested without a Postgres instance.
+
+            // Unique, unlike the index on SourceMaterial: a second row for the same user and day
+            // would silently double that user's allowance. Two tabs starting their first
+            // generation of the day at once is enough to produce one, so the constraint is what
+            // makes the cap real — GenerationQuotaService is written to expect the conflict.
+            entity.HasIndex(q => new { q.OwnerId, q.UsageDate }).IsUnique();
         });
 
         // Apply the owner filter to every entity that opts in via IOwnedByUser. Materialized

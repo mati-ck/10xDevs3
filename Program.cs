@@ -153,6 +153,7 @@ builder.Services.AddChatClient(serviceProvider =>
 });
 
 builder.Services.AddScoped<NoteGenerator>();
+builder.Services.AddScoped<GenerationQuotaService>();
 
 // Migrations self-apply at boot, but a failure must degrade readiness rather than crash the
 // process — a crash-loop would fail the container HEALTHCHECK and get the app de-routed.

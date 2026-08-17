@@ -247,7 +247,15 @@ public sealed class NoteService(
 
             await db.SaveChangesAsync(cancellationToken);
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+        catch (OperationCanceledException)
+        {
+            // Deliberately silent, and deliberately caught *here* rather than at the call site.
+            // The user navigating away mid-write is expected rather than a fault, so it is not
+            // worth a log line — but it must not escape, because the only caller runs inside a
+            // handler whose catch clears the note panel. Keeping the guarantee in this method
+            // means a second caller inherits it instead of having to know to re-implement it.
+        }
+        catch (Exception exception)
         {
             logger.LogError(
                 exception,

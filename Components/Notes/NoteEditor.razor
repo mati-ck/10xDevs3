@@ -38,7 +38,12 @@ else
     @* Committed on change rather than on input. Every keystroke of a 64 KB note would otherwise
        be a SignalR round trip and a re-render. Blur fires change before the click that caused it,
        so switching to preview or hitting save always sees what was just typed. *@
+    @* maxlength mirrors the title field above, and is not cosmetic: the browser refusing the
+       65 537th character is the difference between a validation message and a torn-down circuit,
+       because the whole value crosses the wire in one hub invocation. NoteWireLimits is the
+       other half of that guarantee. *@
     <textarea id="note-content" class="form-control note-source" rows="18"
+              maxlength="@NoteValidator.MaxContentLength"
               value="@Content" @onchange="OnContentChanged" disabled="@IsBusy"></textarea>
 }
 

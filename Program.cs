@@ -20,8 +20,14 @@ using OpenAI;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+// The hub bound is raised off SignalR's 32 KB default because the note editor sends a whole note
+// as one invocation, and the app advertises a 64 KB note limit. Left at the default, a note over
+// the wire bound aborts the circuit rather than returning an error — the user sees a reconnect
+// modal and loses work that was never saved. Do not remove this call; see NoteWireLimits.
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents()
+    .AddHubOptions(options =>
+        options.MaximumReceiveMessageSize = NoteWireLimits.MaximumReceiveMessageSize);
 
 // Contexts are created per operation by UserScopedDbContextFactory, not held per circuit —
 // a Blazor Server scope lives as long as the circuit, which would freeze the user's identity.

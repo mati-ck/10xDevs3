@@ -61,11 +61,44 @@ public static class NoteMarkdown
         // passed to both calls, or the renderer runs without the extensions the parser used.
         var document = Markdown.Parse(markdown, Pipeline);
 
+        NeutralizeUnsafeUrls(document);
+
+        return document.ToHtml(Pipeline);
+    }
+
+    /// <summary>
+    /// Rewrites every destination in <paramref name="document"/> that the scheme allowlist does
+    /// not permit, so the rendered HTML can carry no executable address.
+    /// </summary>
+    /// <remarks>
+    /// Public, and separate from <see cref="ToHtml"/>, so this property can be tested against a
+    /// document whose nodes have been tampered with the way a Markdig extension would tamper with
+    /// them — <see cref="ToHtml"/> parses internally, so a test has no way to reach a node between
+    /// parsing and rendering. Given the project has no bUnit, a security guarantee that cannot be
+    /// reached from a test is a security guarantee nobody is holding.
+    /// </remarks>
+    public static void NeutralizeUnsafeUrls(MarkdownDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+
         // Covers both links and images: Markdig models an image as a LinkInline with IsImage set,
         // so one pass reaches every href and every src in the document.
         foreach (var link in document.Descendants<LinkInline>())
         {
-            if (!IsSafe(link.Url))
+            // Cleared unconditionally, and before the check below rather than after it. The HTML
+            // renderer prefers GetDynamicUrl over Url, so a node carrying one renders that
+            // address no matter what Url is set to — neutralizing Url alone would be a no-op.
+            // No extension under the current pipeline sets it, which is exactly the problem:
+            // adding UseAdvancedExtensions, UseMediaLinks, UseJiraLinks or UseAutoLinks would
+            // silently reopen the hole this class exists to close.
+            link.GetDynamicUrl = null;
+
+            // An empty destination is rewritten too, not just an unsafe one. `![x]()` is legal
+            // Markdown and renders `src=""`, which is the case NeutralizedUrl was chosen to avoid
+            // in the first place — some browsers resolve an empty src against the current
+            // document and re-request the page. Inert either way; this just makes the code do
+            // what the constant above says it does.
+            if (string.IsNullOrEmpty(link.Url) || !IsSafe(link.Url))
             {
                 link.Url = NeutralizedUrl;
             }
@@ -85,8 +118,6 @@ public static class NoteMarkdown
                 autolink.Url = NeutralizedUrl;
             }
         }
-
-        return document.ToHtml(Pipeline);
     }
 
     private static bool IsSafe(string? url)

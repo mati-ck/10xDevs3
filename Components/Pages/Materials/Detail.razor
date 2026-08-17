@@ -1,5 +1,6 @@
 @page "/materials/{Id:guid}"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @using System.Diagnostics
 @using System.Globalization
 @using System.Text
@@ -259,7 +260,13 @@ else
     /// hand stops counting as unsaved. Only regeneration is guarded — leaving the page still loses
     /// the work, which is a deliberate scope decision rather than an oversight.
     /// </remarks>
-    private bool HasUnsavedEdits => draft is not null && !string.Equals(draft, editorContent, StringComparison.Ordinal);
+    private bool HasUnsavedEdits =>
+        draft is not null
+        && (!string.Equals(draft, editorContent, StringComparison.Ordinal)
+            // The title counts too. It is the field the editor fills in for the user, so it is
+            // also the one they are most likely to correct on its own — and comparing only the
+            // body would let "Generuj notatkę" discard a retyped title without asking.
+            || !string.Equals(editorTitle, NoteValidator.DeriveTitle(material?.Title), StringComparison.Ordinal));
 
     private async Task ConfirmAsync()
     {
@@ -290,28 +297,37 @@ else
         // and a queued second click walks straight past the guard above.
         isGenerating = true;
 
-        // A previous run may still be winding down after a failure; never leave two streams
-        // writing into the same buffer.
-        await CancelGenerationAsync();
-
-        errorMessage = null;
-        note = string.Empty;
-
-        // The editor is torn down for the duration: the panel it lives in is about to stream
-        // again, and leaving a live editor over a growing buffer is the race this page is
-        // written to avoid.
-        draft = null;
-        saveErrorMessage = null;
-
-        // Owned by this invocation as well as published to the field. If a later run supersedes
-        // this one it overwrites the field, and without a local the source would be unreachable
-        // for both cancellation and disposal — the exact leak the field exists to prevent.
-        using var cts = new CancellationTokenSource();
-        generationCts = cts;
-        var token = cts.Token;
+        // Declared before the try, assigned inside it. The flag above is already set, so every
+        // path from here on has to reach the finally that resets it — otherwise a throw during
+        // setup would leave the Generate button disabled for the life of the circuit, on top of
+        // whatever else went wrong.
+        CancellationTokenSource? cts = null;
 
         try
         {
+            // Belt-and-braces rather than a live concern: the isGenerating guard above already
+            // makes a concurrent run impossible, and a finished run nulls the field in its own
+            // finally, so this is expected to find nothing. Kept because two streams writing one
+            // buffer is the single failure this page could not recover from.
+            await CancelGenerationAsync();
+
+            errorMessage = null;
+            note = string.Empty;
+
+            // The editor is torn down for the duration: the panel it lives in is about to stream
+            // again, and leaving a live editor over a growing buffer is the race this page is
+            // written to avoid.
+            draft = null;
+            saveErrorMessage = null;
+
+            // Owned by this invocation as well as published to the field. If a later run
+            // supersedes this one it overwrites the field, and without a local the source would
+            // be unreachable for both cancellation and disposal — the exact leak the field
+            // exists to prevent.
+            cts = new CancellationTokenSource();
+            generationCts = cts;
+            var token = cts.Token;
+
             // Checked before the reservation, not after: a generation that cannot possibly reach
             // the provider must not cost the user a slot, or a missing key silently eats their
             // whole daily allowance and then tells them to come back tomorrow.
@@ -358,7 +374,16 @@ else
 
             HandOverToEditor(note);
 
-            await RecordGenerationAsync(token);
+            // The denominator of the acceptance rate, recorded only here — after a stream that
+            // completed. A failure, a timeout or a cancellation produces nothing anyone could
+            // accept, so counting it would depress the ratio for something that is not the
+            // model's output quality.
+            //
+            // Called after the hand-over and with no local try: NoteService guarantees this never
+            // throws, cancellation included, so it cannot reach the catch below that clears the
+            // panel. That guarantee lives there rather than here on purpose.
+            await NoteService.RecordGenerationAsync(
+                Id, draft ?? string.Empty, NotePrompt.Version, AiOptions.Value.Model, token);
         }
         catch (OperationCanceledException)
         {
@@ -381,15 +406,23 @@ else
         }
         finally
         {
-            // Only when this run is still the current one. Clearing the field is what matters: the
-            // local `using` disposes this source on the way out, and cancelling an already-disposed
-            // source throws — so leaving the field pointing at it would turn navigating away into
-            // an exception from DisposeAsync.
+            // Only when this run is still the current one. Clearing the field is what matters:
+            // the source is disposed just below, and cancelling an already-disposed source
+            // throws — so leaving the field pointing at it would turn navigating away into an
+            // exception from DisposeAsync.
+            //
+            // A throw before the source was created leaves cts null, and generationCts is null
+            // too on that path, so this still resets the flag rather than stranding the button.
             if (ReferenceEquals(generationCts, cts))
             {
                 generationCts = null;
                 isGenerating = false;
             }
+
+            // Disposed here rather than by a `using`, because the source is now created inside
+            // the try: a `using` there would dispose it before this finally runs, and the field
+            // has to be cleared while it still points at a live source.
+            cts?.Dispose();
         }
     }
 
@@ -409,27 +442,6 @@ else
         // The material's title as a starting point, exactly as the import page proposes one from
         // the file name: never empty, never over the column width, always correctable.
         editorTitle = NoteValidator.DeriveTitle(material?.Title);
-    }
-
-    /// <summary>
-    /// Records the finished generation — the denominator of the acceptance rate.
-    /// </summary>
-    /// <remarks>
-    /// Written only here, after a stream that completed: a failure, a timeout or a cancellation
-    /// produces nothing anyone could accept. Cancellation is swallowed rather than allowed to
-    /// reach the handler's <c>catch</c>, which clears the panel — the note is already generated
-    /// and on screen, and losing it over a ledger row would be a bad trade.
-    /// </remarks>
-    private async Task RecordGenerationAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            await NoteService.RecordGenerationAsync(
-                Id, draft ?? string.Empty, NotePrompt.Version, AiOptions.Value.Model, cancellationToken);
-        }
-        catch (OperationCanceledException)
-        {
-        }
     }
 
     /// <summary>

@@ -1,3 +1,6 @@
+using Markdig;
+using Markdig.Syntax;
+using Markdig.Syntax.Inlines;
 using _10xnotes.Notes;
 
 namespace _10xNotes.Tests;
@@ -166,5 +169,64 @@ public sealed class NoteMarkdownTests
         var html = NoteMarkdown.ToHtml("<kto@example.com>");
 
         Assert.Contains("mailto:kto@example.com", html);
+    }
+
+    [Fact]
+    public void An_empty_destination_is_neutralized_rather_than_left_empty()
+    {
+        // `src=""` resolves against the current document in some browsers, re-requesting the page.
+        // Harmless, but it is the exact case NeutralizedUrl exists to avoid, so the code should
+        // match its own stated reasoning.
+        var html = NoteMarkdown.ToHtml("![obraz]()");
+
+        Assert.DoesNotContain("src=\"\"", html);
+        Assert.Contains("src=\"#\"", html);
+    }
+
+    // -- The property the allowlist depends on --------------------------------------------
+
+    [Fact]
+    public void A_dynamic_url_cannot_smuggle_a_scheme_past_the_allowlist()
+    {
+        // Markdig's renderer prefers LinkInline.GetDynamicUrl over LinkInline.Url, so a node
+        // carrying one renders that address no matter what the allowlist wrote into Url —
+        // neutralizing Url alone is a no-op against it. No extension in the current pipeline sets
+        // it, which is precisely why this needs a test: the day somebody adds
+        // UseAdvancedExtensions or UseMediaLinks, this is the assertion that fails instead of the
+        // boundary silently reopening.
+        var pipeline = new MarkdownPipelineBuilder().DisableHtml().Build();
+        var document = Markdown.Parse("[klik](https://example.com)", pipeline);
+
+        foreach (var link in document.Descendants<LinkInline>())
+        {
+            link.GetDynamicUrl = () => "javascript:alert(1)";
+        }
+
+        NoteMarkdown.NeutralizeUnsafeUrls(document);
+
+        var html = document.ToHtml(pipeline);
+
+        Assert.DoesNotContain("javascript:", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void A_dynamic_url_is_dropped_even_when_it_would_have_been_allowed()
+    {
+        // Cleared unconditionally rather than only when unsafe: deciding per-value would mean
+        // trusting a delegate the allowlist never inspected on a later call.
+        var pipeline = new MarkdownPipelineBuilder().DisableHtml().Build();
+        var document = Markdown.Parse("[klik](https://example.com)", pipeline);
+
+        foreach (var link in document.Descendants<LinkInline>())
+        {
+            link.GetDynamicUrl = () => "https://elsewhere.example";
+        }
+
+        NoteMarkdown.NeutralizeUnsafeUrls(document);
+
+        var html = document.ToHtml(pipeline);
+
+        Assert.Contains("href=\"https://example.com\"", html);
+        Assert.DoesNotContain("elsewhere.example", html);
     }
 }

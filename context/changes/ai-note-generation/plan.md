@@ -397,17 +397,17 @@ Nowa zmienna środowiskowa na Coolify: **`Ai__ApiKey`** (podwójne podkreślenie
 
 #### Automated
 
-- [x] 3.1 Kompilacja przechodzi: `dotnet build`
-- [x] 3.2 Cały pakiet testów przechodzi: `dotnet test`
-- [x] 3.3 `DataAccessBoundaryTests` przechodzi po zmianie trybu renderowania
+- [x] 3.1 Kompilacja przechodzi: `dotnet build` — 6bc4fd3
+- [x] 3.2 Cały pakiet testów przechodzi: `dotnet test` — 6bc4fd3
+- [x] 3.3 `DataAccessBoundaryTests` przechodzi po zmianie trybu renderowania — 6bc4fd3
 
 #### Manual
 
-- [x] 3.4 Import prowadzi na stronę z przyciskiem „Generuj notatkę"
-- [x] 3.5 Tekst przyrasta na ekranie w trakcie generowania
-- [x] 3.6 Notatka to streszczenie plus konspekt, w języku materiału
-- [x] 3.7 Materiał źródłowy nietknięty po generowaniu
-- [x] 3.8 Odświeżenie strony traci notatkę — nic nie zapisano
-- [x] 3.9 Wyjście w trakcie generowania nie zostawia błędu ani nie wywraca circuit
-- [x] 3.10 Wyczerpany limit dobowy daje komunikat o limicie
-- [x] 3.11 Brak `Ai__ApiKey` daje neutralny komunikat, nie ekran błędu
+- [x] 3.4 Import prowadzi na stronę z przyciskiem „Generuj notatkę" — 6bc4fd3
+- [x] 3.5 Tekst przyrasta na ekranie w trakcie generowania — 6bc4fd3
+- [x] 3.6 Notatka to streszczenie plus konspekt, w języku materiału — 6bc4fd3
+- [x] 3.7 Materiał źródłowy nietknięty po generowaniu — 6bc4fd3
+- [x] 3.8 Odświeżenie strony traci notatkę — nic nie zapisano — 6bc4fd3
+- [x] 3.9 Wyjście w trakcie generowania nie zostawia błędu ani nie wywraca circuit — 6bc4fd3
+- [x] 3.10 Wyczerpany limit dobowy daje komunikat o limicie — 6bc4fd3
+- [x] 3.11 Brak `Ai__ApiKey` daje neutralny komunikat, nie ekran błędu — 6bc4fd3

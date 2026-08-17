@@ -35,7 +35,7 @@ Sam przepływ pozostaje niepodzielny jako **cel**, ale jest dostarczany w trzech
 | F-02  | email-password-auth        | (foundation) rejestracja/logowanie e-mail+hasło, ochrona tras     | F-01          | FR-001, FR-002, Access Control  | done     |
 | S-01a | markdown-import            | zaimportować plik Markdown i mieć go zapisanym na koncie          | F-01, F-02    | FR-004                          | done     |
 | S-01b | ai-note-generation         | wygenerować notatkę AI obok materiału (jeszcze bez zapisu)        | S-01a         | US-01 (część), FR-005           | done     |
-| S-01c | note-review-save           | poprawić wygenerowaną notatkę i zapisać ją (zapis = akceptacja)   | S-01b         | US-01 (domknięcie), FR-006, FR-008 | proposed |
+| S-01c | note-review-save           | poprawić wygenerowaną notatkę i zapisać ją (zapis = akceptacja)   | S-01b         | US-01 (domknięcie), FR-006, FR-008 | in-progress |
 | S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01c         | FR-003                          | proposed |
 | S-03  | browse-notes-and-sources   | przeglądać własne notatki i materiały źródłowe                    | S-01c, F-02   | FR-007                          | proposed |
 | S-04  | edit-source-material       | edytować zapisany materiał źródłowy                               | S-01a         | FR-009                          | blocked  |
@@ -135,9 +135,9 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 - **Parallel with:** —
 - **Blockers:** —
 - **Unknowns:**
-  - Czy jeden materiał źródłowy może mieć wiele zapisanych notatek (1:N), czy kolejny zapis nadpisuje poprzednią? — Owner: użytkownik. Block: no. (Kształt relacji wpływa też na OQ2 — kaskadę przy usuwaniu źródła.)
+  - ~~Czy jeden materiał źródłowy może mieć wiele zapisanych notatek (1:N), czy kolejny zapis nadpisuje poprzednią?~~ — Rozstrzygnięte 2026-08-17 w `plan.md`: **ściśle 1:1**, kolejny zapis nadpisuje po potwierdzeniu. OQ2 pozostaje otwarte celowo — FK `notes → source_materials` jest ustawiony na `ON DELETE NO ACTION`, żeby domyślna kaskada EF nie przesądziła odpowiedzi za S-06.
 - **Risk:** Dopiero po tym plasterku da się w ogóle mierzyć 75% akceptacji, więc to on decyduje o terminie walidacji; ryzyko to rozrost w stronę wersjonowania notatek i historii zmian (poza MVP).
-- **Status:** proposed
+- **Status:** in-progress
 
 ### S-02: Wklejenie tekstu → generowanie AI
 

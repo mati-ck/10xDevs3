@@ -1,8 +1,11 @@
 @page "/materials/{Id:guid}"
+@using System.Globalization
 @using Microsoft.EntityFrameworkCore
 @using _10xnotes.Data
 @using _10xnotes.Data.Entities
+@using _10xnotes.Time
 @inject UserScopedDbContextFactory DbContextFactory
+@inject TimeProvider TimeProvider
 
 @* Static SSR: this page only reads, so it needs no circuit. The current user still resolves —
    the principal is pushed into SessionCapAuthenticationStateProvider on the static path, which
@@ -21,7 +24,10 @@ else
     <h1>@material.Title</h1>
 
     <p class="text-secondary">
-        Zaimportowano @material.CreatedAt.ToLocalTime().ToString("d MMMM yyyy, HH:mm")
+        @* ToDisplayTime, not ToLocalTime: "local" resolves against the container's clock, which
+           is UTC. The culture is named explicitly so the month renders in Polish rather than in
+           whatever the server happens to default to. *@
+        Zaimportowano @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)
         z pliku <code>@material.OriginalFileName</code>.
     </p>
 
@@ -32,6 +38,8 @@ else
 }
 
 @code {
+    private static readonly CultureInfo PolishCulture = CultureInfo.GetCultureInfo("pl-PL");
+
     [Parameter]
     public Guid Id { get; set; }
 

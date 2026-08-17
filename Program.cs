@@ -1,6 +1,7 @@
 using _10xnotes.Auth;
 using _10xnotes.Components;
 using _10xnotes.Data;
+using _10xnotes.Time;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -29,6 +30,12 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
 // only for infrastructure that must resolve the context itself: DataProtection's key store and
 // the EF health check.
 builder.Services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
+
+// Registered as the BCL TimeProvider so views and services depend on the framework abstraction
+// rather than a bespoke clock. Its LocalTimeZone is the audience's, not the container's — see
+// AppTimeProvider for why "local" on a server is the wrong answer.
+builder.Services.AddSingleton<TimeProvider>(_ =>
+    new AppTimeProvider(builder.Configuration["Display:TimeZone"]));
 
 builder.Services.AddScoped<ICurrentUserAccessor, AuthenticationStateCurrentUserAccessor>();
 builder.Services.AddScoped<UserScopedDbContextFactory>();

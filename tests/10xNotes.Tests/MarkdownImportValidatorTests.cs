@@ -214,6 +214,63 @@ public sealed class MarkdownImportValidatorTests
         Assert.Equal("wyklad", MarkdownImportValidator.DeriveTitle(@"C:\Users\mati\wyklad.md"));
     }
 
+    /// <summary>
+    /// Asserts the string survives strict UTF-8 encoding — the exact thing a lone surrogate
+    /// breaks on its way to Postgres. Deliberately not "contains no surrogates": a whole emoji
+    /// is a surrogate *pair*, and keeping one is correct.
+    /// </summary>
+    private static void AssertWellFormed(string value) =>
+        Assert.Null(Record.Exception(() => StrictUtf8.GetBytes(value)));
+
+    [Theory]
+    // 199: the cut lands between the emoji's two halves, so it must be dropped whole.
+    // 198: the cut lands just after it, so it must be kept whole. Both are off-by-one from
+    // each other, which is where a guard like this gets it wrong.
+    [InlineData(199)]
+    [InlineData(198)]
+    public void Truncating_a_title_leaves_a_well_formed_string(int padding)
+    {
+        var derived = MarkdownImportValidator.DeriveTitle(new string('a', padding) + "😀aaaaa.md");
+
+        AssertWellFormed(derived);
+        Assert.True(derived.Length <= 200);
+    }
+
+    [Fact]
+    public void An_emoji_split_by_the_cut_is_dropped_whole_rather_than_halved()
+    {
+        var derived = MarkdownImportValidator.DeriveTitle(new string('a', 199) + "😀aaaaa.md");
+
+        Assert.Equal(new string('a', 199), derived);
+    }
+
+    [Fact]
+    public void An_emoji_that_fits_inside_the_cut_is_kept_whole()
+    {
+        var derived = MarkdownImportValidator.DeriveTitle(new string('a', 198) + "😀aaaaa.md");
+
+        Assert.Equal(new string('a', 198) + "😀", derived);
+        AssertWellFormed(derived);
+    }
+
+    [Theory]
+    [InlineData(259)]
+    [InlineData(258)]
+    public void Truncating_a_file_name_leaves_a_well_formed_string(int padding)
+    {
+        var sanitized = MarkdownImportValidator.SanitizeFileName(new string('a', padding) + "😀aaaaa.md");
+
+        AssertWellFormed(sanitized);
+        Assert.True(sanitized.Length <= 260);
+    }
+
+    [Fact]
+    public void A_title_ending_in_an_emoji_that_fits_keeps_it_whole()
+    {
+        // The guard must not eat a character that was never at risk.
+        Assert.Equal("wyklad😀", MarkdownImportValidator.DeriveTitle("wyklad😀.md"));
+    }
+
     [Fact]
     public void An_over_long_file_name_is_clamped_to_the_column_width()
     {

@@ -1,6 +1,7 @@
 @page "/materials/import"
 @rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
+@using Microsoft.EntityFrameworkCore
 @using _10xnotes.Data
 @using _10xnotes.Data.Entities
 @using _10xnotes.SourceMaterials
@@ -26,7 +27,7 @@
     <div class="alert alert-danger" role="alert">@errorMessage</div>
 }
 
-<EditForm Model="Input" OnValidSubmit="ImportAsync" FormName="import">
+<EditForm Model="Input" OnValidSubmit="ImportAsync">
     <DataAnnotationsValidator />
 
     <div class="mb-3">
@@ -110,11 +111,23 @@
                 OriginalFileName = MarkdownImportValidator.SanitizeFileName(selectedFile.Name)
             };
 
-            // OwnerId is deliberately not set: AppDbContext stamps it from the signed-in user and
-            // overwrites anything supplied, so ownership can never come from the request.
-            await using var db = await DbContextFactory.CreateAsync();
-            db.SourceMaterials.Add(material);
-            await db.SaveChangesAsync();
+            try
+            {
+                // OwnerId is deliberately not set: AppDbContext stamps it from the signed-in user
+                // and overwrites anything supplied, so ownership can never come from the request.
+                await using var db = await DbContextFactory.CreateAsync();
+                db.SourceMaterials.Add(material);
+                await db.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                // Left unhandled this escapes the event handler and tears the circuit down, so a
+                // transient database blip costs the user their upload and shows them a reconnect
+                // modal instead of a reason. Same posture the auth pages take when Supabase is
+                // unavailable.
+                errorMessage = "Nie udało się zapisać materiału. Spróbuj ponownie za chwilę.";
+                return;
+            }
 
             Navigation.NavigateTo($"/materials/{material.Id}");
         }

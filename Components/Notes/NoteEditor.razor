@@ -1,0 +1,110 @@
+@using _10xnotes.Notes
+
+@* Shared by the material page (accepting a fresh draft) and the note page (correcting a saved
+   one), which is the whole reason it is a component: the two pages differ in what saving *means*,
+   not in what editing looks like.
+
+   Stateless beyond its parameters and its own preview toggle — it never touches the database, and
+   every rule it appears to enforce lives in NoteValidator. That split is not decoration: the
+   project has no bUnit, so anything left inside a component cannot be tested at all. *@
+
+<div class="mb-3">
+    <label for="note-title" class="form-label">Tytuł notatki</label>
+    <input type="text" id="note-title" class="form-control" maxlength="@NoteValidator.MaxTitleLength"
+           value="@Title" @onchange="OnTitleChanged" disabled="@IsBusy" />
+</div>
+
+<div class="btn-group btn-group-sm mb-2" role="group" aria-label="Tryb notatki">
+    <button type="button" class="btn @(showPreview ? "btn-outline-secondary" : "btn-secondary")"
+            @onclick="() => showPreview = false">
+        Edycja
+    </button>
+    <button type="button" class="btn @(showPreview ? "btn-secondary" : "btn-outline-secondary")"
+            @onclick="() => showPreview = true">
+        Podgląd
+    </button>
+</div>
+
+@if (showPreview)
+{
+    @* The only MarkupString in the project. Everything else — the source material, the streaming
+       panel — is rendered as text on purpose, so this one line is the entire surface on which
+       note content becomes markup. NoteMarkdown is what makes it safe (HTML parsing off plus a
+       URL scheme allowlist) and NoteMarkdownTests is what keeps it that way. *@
+    <div class="note-preview border rounded p-3">@((MarkupString)NoteMarkdown.ToHtml(Content))</div>
+}
+else
+{
+    @* Committed on change rather than on input. Every keystroke of a 64 KB note would otherwise
+       be a SignalR round trip and a re-render. Blur fires change before the click that caused it,
+       so switching to preview or hitting save always sees what was just typed. *@
+    @* maxlength mirrors the title field above, and is not cosmetic: the browser refusing the
+       65 537th character is the difference between a validation message and a torn-down circuit,
+       because the whole value crosses the wire in one hub invocation. NoteWireLimits is the
+       other half of that guarantee. *@
+    <textarea id="note-content" class="form-control note-source" rows="18"
+              maxlength="@NoteValidator.MaxContentLength"
+              value="@Content" @onchange="OnContentChanged" disabled="@IsBusy"></textarea>
+}
+
+<div class="form-text mb-3">
+    @Content.Length / @NoteValidator.MaxContentLength znaków
+</div>
+
+@if (ErrorMessage is not null)
+{
+    <div class="alert alert-danger" role="alert">@ErrorMessage</div>
+}
+
+<button type="button" class="btn btn-primary" disabled="@IsBusy" @onclick="() => OnSave.InvokeAsync()">
+    @(IsBusy ? "Zapisywanie…" : SaveLabel)
+</button>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> TitleChanged { get; set; }
+
+    /// <summary>The note's Markdown source — what the user edits and what is saved.</summary>
+    [Parameter]
+    public string Content { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ContentChanged { get; set; }
+
+    /// <summary>
+    /// What the save button says. The two callers mean different things by saving — accepting a
+    /// generated draft versus correcting an already accepted note — and the copy is the only
+    /// place the user sees that difference.
+    /// </summary>
+    [Parameter]
+    public string SaveLabel { get; set; } = "Zapisz notatkę";
+
+    /// <summary>Disables the whole editor while the page is mid-save.</summary>
+    [Parameter]
+    public bool IsBusy { get; set; }
+
+    /// <summary>
+    /// Already-translated Polish copy, not a failure code. Mapping a typed result onto wording is
+    /// the page's job — the same split <c>Import.razor</c> uses for <c>MarkdownImportFailure</c>.
+    /// </summary>
+    [Parameter]
+    public string? ErrorMessage { get; set; }
+
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    /// <summary>
+    /// Which half of the toggle is showing. The one piece of state that belongs here: it is a
+    /// view preference with no meaning outside this component, and nothing is saved from it.
+    /// </summary>
+    private bool showPreview;
+
+    private Task OnTitleChanged(ChangeEventArgs e) =>
+        TitleChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty);
+
+    private Task OnContentChanged(ChangeEventArgs e) =>
+        ContentChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty);
+}

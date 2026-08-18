@@ -1,6 +1,10 @@
+using System.ClientModel;
 using _10xnotes.Auth;
 using _10xnotes.Components;
 using _10xnotes.Data;
+using _10xnotes.Generation;
+using _10xnotes.Notes;
+using _10xnotes.Time;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -9,13 +13,21 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
+using OpenAI;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+// The hub bound is raised off SignalR's 32 KB default because the note editor sends a whole note
+// as one invocation, and the app advertises a 64 KB note limit. Left at the default, a note over
+// the wire bound aborts the circuit rather than returning an error — the user sees a reconnect
+// modal and loses work that was never saved. Do not remove this call; see NoteWireLimits.
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents()
+    .AddHubOptions(options =>
+        options.MaximumReceiveMessageSize = NoteWireLimits.MaximumReceiveMessageSize);
 
 // Contexts are created per operation by UserScopedDbContextFactory, not held per circuit —
 // a Blazor Server scope lives as long as the circuit, which would freeze the user's identity.
@@ -29,6 +41,12 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
 // only for infrastructure that must resolve the context itself: DataProtection's key store and
 // the EF health check.
 builder.Services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
+
+// Registered as the BCL TimeProvider so views and services depend on the framework abstraction
+// rather than a bespoke clock. Its LocalTimeZone is the audience's, not the container's — see
+// AppTimeProvider for why "local" on a server is the wrong answer.
+builder.Services.AddSingleton<TimeProvider>(_ =>
+    new AppTimeProvider(builder.Configuration["Display:TimeZone"]));
 
 builder.Services.AddScoped<ICurrentUserAccessor, AuthenticationStateCurrentUserAccessor>();
 builder.Services.AddScoped<UserScopedDbContextFactory>();
@@ -117,6 +135,33 @@ builder.Services.AddHttpClient<SupabaseAuthClient>((sp, client) =>
     client.DefaultRequestHeaders.Add("apikey", options.AnonKey);
     client.Timeout = TimeSpan.FromSeconds(10);
 });
+
+builder.Services.Configure<AiOptions>(
+    builder.Configuration.GetSection(AiOptions.SectionName));
+
+// The provider is reached through its OpenAI-compatible endpoint rather than a bespoke connector:
+// OpenRouter speaks that dialect, and going through IChatClient means swapping model or provider
+// is a configuration change. Registered as a singleton (AddChatClient's default) because the
+// client is stateless and shares one HTTP connection pool.
+//
+// The credential falls back to a placeholder rather than throwing on an empty key: ApiKeyCredential
+// rejects an empty string, and letting that surface here would take the whole app down at first
+// use over a missing secret. NoteGenerator checks the real key up front and fails closed with a
+// message the user can read.
+builder.Services.AddChatClient(serviceProvider =>
+{
+    var aiOptions = serviceProvider.GetRequiredService<IOptions<AiOptions>>().Value;
+
+    return new OpenAI.Chat.ChatClient(
+            aiOptions.Model,
+            new ApiKeyCredential(aiOptions.ApiKey is { Length: > 0 } key ? key : "unconfigured"),
+            new OpenAIClientOptions { Endpoint = new Uri(aiOptions.Endpoint) })
+        .AsIChatClient();
+});
+
+builder.Services.AddScoped<NoteGenerator>();
+builder.Services.AddScoped<GenerationQuotaService>();
+builder.Services.AddScoped<NoteService>();
 
 // Migrations self-apply at boot, but a failure must degrade readiness rather than crash the
 // process — a crash-loop would fail the container HEALTHCHECK and get the app de-routed.

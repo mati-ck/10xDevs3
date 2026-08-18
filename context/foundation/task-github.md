@@ -43,6 +43,7 @@
 | `stream:C` | `d4c5f9` | S-03, S-04, S-05, S-06 |
 | `north-star` | `e4b400` | S-01 |
 | `decision-needed` | `d93f0b` | OQ1, OQ2 |
+| `epic` | `c2e0c6` | #8 (dodana 2026-08-13 przy rozbiciu S-01) |
 
 ## Milestone
 
@@ -157,6 +158,33 @@ Cross-references below use roadmap IDs; actual `#N` numbers are substituted at c
 
 ## Dependency map (live issue numbers)
 
+Aktualny stan po rozbiciu S-01 (2026-08-13). `#8` jest odtąd parasolem (epic), nie zadaniem do wzięcia.
+
+```
+F-01 #6 ──unlocks──▶ F-02 #7
+   │                    │
+   └────────┬───────────┘
+            ▼
+      S-01a #25  (import MD → zapisany materiał)
+            │
+            ├──────────────────────┬──────────────┐
+            ▼                      ▼              ▼
+      S-01b #26              S-04 #11        S-06 #13
+   (generowanie AI)       (blocked ← #14)  (blocked ← #15)
+            │                OQ1 #14 ▲       OQ2 #15 ▲
+            ▼
+      S-01c #27  (edycja + zapis = akceptacja)  ← gwiazda dowiedziona tutaj
+            │
+        ┌───┴──────────┬──────────────┐
+        ▼              ▼              ▼
+     S-02 #9       S-03 #10       S-05 #12
+
+   epic #8 ★ north-star  ──tracks──▶  #25, #26, #27
+```
+
+<details>
+<summary>Poprzedni stan (2026-07-02 – 2026-08-13)</summary>
+
 ```
 F-01 #6 ──unlocks──▶ F-02 #7 ──▶ S-01 #8 ★
    └──unlocks──────────────────▶ S-01 #8 ★
@@ -167,6 +195,8 @@ F-01 #6 ──unlocks──▶ F-02 #7 ──▶ S-01 #8 ★
                             (blocked ← #14)              (blocked ← #15)
                              OQ1 #14 ▲                    OQ2 #15 ▲
 ```
+
+</details>
 
 ## Execution approach (gh CLI)
 
@@ -196,6 +226,34 @@ Issues opened after the migration run. Same conventions: English body, `MVP` mil
 | Change ID | Issue | Origin |
 | --- | --- | --- |
 | `auth-session-hardening` | [#22](https://github.com/mati-ck/10xDevs3/issues/22) | Carry-forward from the F-01 and F-02 implementation reviews (2026-08-02). Closed and archived 2026-08-02 → `context/archive/2026-08-02-auth-session-hardening/` |
+| `markdown-import` | [#25](https://github.com/mati-ck/10xDevs3/issues/25) | Rozbicie S-01 (2026-08-13) — kawałek 1/3. Labels: `slice`, `status:ready`, `stream:A`. |
+| `ai-note-generation` | [#26](https://github.com/mati-ck/10xDevs3/issues/26) | Rozbicie S-01 (2026-08-13) — kawałek 2/3. Labels: `slice`, `status:proposed`, `stream:A`. |
+| `note-review-save` | [#27](https://github.com/mati-ck/10xDevs3/issues/27) | Rozbicie S-01 (2026-08-13) — kawałek 3/3, domyka gwiazdę. Labels: `slice`, `status:proposed`, `stream:A`. |
+
+### Post-migration edits to existing issues
+
+| Date | Issue | Edit |
+| --- | --- | --- |
+| 2026-08-13 | [#8](https://github.com/mati-ck/10xDevs3/issues/8) (S-01) | Change ID renamed `markdown-import-generation` → `import-generation-review-save` to match the change folder; title and body updated, `status:proposed` → `status:ready` (prerequisites #6 and #7 both closed). The §"Issue set" entry above records the original migration state and is left as-is. |
+| 2026-08-13 | [#8](https://github.com/mati-ck/10xDevs3/issues/8) (S-01) | **Przekształcone w epic** przy rozbiciu S-01 (patrz sekcja niżej). Tytuł → `[S-01] North star: Markdown import → AI generation → review → save (epic)`; body → checklista dzieci #25/#26/#27 + nota o wycofanym change ID. Labels: `slice` → `epic`, zdjęte `status:ready` (praca do wzięcia żyje w dzieciach), zostają `north-star` i `stream:A`. Change ID `import-generation-review-save` **wycofany** — folder zmiany nigdy nie powstał, `change.md` usunięty w `3c16625`. |
+| 2026-08-13 | [#9](https://github.com/mati-ck/10xDevs3/issues/9), [#12](https://github.com/mati-ck/10xDevs3/issues/12) | `Depends on #8` → `Depends on #27` (S-01c — potrzebna cała pętla). |
+| 2026-08-13 | [#10](https://github.com/mati-ck/10xDevs3/issues/10) | `Depends on #8, #7` → `Depends on #27, #7` (bez zapisanych notatek nie ma czego przeglądać). |
+| 2026-08-13 | [#11](https://github.com/mati-ck/10xDevs3/issues/11), [#13](https://github.com/mati-ck/10xDevs3/issues/13) | `Depends on #8` → `Depends on #25` (S-01a — wystarczy zapisany materiał źródłowy; cykl życia materiału nie czeka już na całą gwiazdę). |
+
+### Rozbicie S-01 (2026-08-13)
+
+**Dlaczego.** `S-01` był jednym plasterkiem pakującym cztery odrębne rzeczy: pierwszą encję domenową (materiał źródłowy), import pliku Markdown, integrację z dostawcą AI (nierozstrzygniętym — `tech-stack.md` ma `has_ai: true`, ale nie wskazuje providera) oraz edytor notatki z zapisem. Do tego **każdy** pozostały plasterek deklarował `S-01` jako prerequisite, więc jego rozmiar wstrzymywał cały równoległy ruch przy `main_goal: speed` i blokerze `capacity`.
+
+**Mapowanie.**
+
+| Było | Jest | Issue | Change ID |
+| --- | --- | --- | --- |
+| S-01 (plasterek) | S-01 (epic, gwiazda przewodnia) | [#8](https://github.com/mati-ck/10xDevs3/issues/8) | — (wycofany `import-generation-review-save`) |
+| ↳ import pliku + model materiału | S-01a | [#25](https://github.com/mati-ck/10xDevs3/issues/25) | `markdown-import` |
+| ↳ integracja AI + informacja zwrotna | S-01b | [#26](https://github.com/mati-ck/10xDevs3/issues/26) | `ai-note-generation` |
+| ↳ edytor + zapis = akceptacja | S-01c | [#27](https://github.com/mati-ck/10xDevs3/issues/27) | `note-review-save` |
+
+**Konsekwencje dla kolejki.** Numeracja `S-02`…`S-06` i issues `#9`–`#15` nie ruszają się z miejsca (dlatego kawałki dostały sufiksy `a/b/c`, a nie własne numery). `S-04` i `S-06` zależą teraz tylko od `S-01a`, więc odblokowują się o dwa plasterki wcześniej niż dotąd — przy czym nadal czekają na decyzje OQ1/OQ2. Jedyna pozycja gotowa do wzięcia: `/10x-plan markdown-import`.
 
 ## Issue hygiene convention
 

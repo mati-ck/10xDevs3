@@ -178,6 +178,178 @@ public sealed class OwnerScopingTests : IDisposable
         Assert.Equal("Ala Nowa", verify.Profiles.Single().DisplayName);
     }
 
+    // ---------------------------------------------------------------------------------------
+    // SourceMaterial — the first domain entity. It gets isolation by implementing IOwnedByUser
+    // and nothing else, so these cases exist to prove that the convention actually carried over
+    // rather than to re-test AppDbContext. They mirror the Profile cases above deliberately: a
+    // future entity that quietly fails to inherit the guarantee should fail here, loudly.
+    // ---------------------------------------------------------------------------------------
+
+    [Fact]
+    public void Materials_are_visible_only_to_their_owner()
+    {
+        SeedMaterial(UserA, "Wyklad 1");
+        SeedMaterial(UserB, "Notatki Bartka");
+
+        using var context = CreateContext(UserA);
+        var visible = context.SourceMaterials.ToList();
+
+        Assert.Single(visible);
+        Assert.Equal("Wyklad 1", visible[0].Title);
+    }
+
+    [Fact]
+    public void A_user_owns_many_materials()
+    {
+        // The one place SourceMaterial deliberately departs from Profile: owner_id carries no
+        // unique index, because re-importing is legitimate and a user accumulates materials.
+        SeedMaterial(UserA, "Wyklad 1");
+        SeedMaterial(UserA, "Wyklad 2");
+
+        using var context = CreateContext(UserA);
+
+        Assert.Equal(2, context.SourceMaterials.Count());
+    }
+
+    [Fact]
+    public void A_caller_supplied_OwnerId_is_overwritten_when_importing()
+    {
+        // Title and content are model-bound from a form; OwnerId must never be, and is
+        // overwritten rather than trusted even if something later binds it by accident.
+        using var context = CreateContext(UserA);
+        var smuggled = NewMaterial("Podszywacz");
+        smuggled.OwnerId = UserB;
+        context.SourceMaterials.Add(smuggled);
+        context.SaveChanges();
+
+        using var verify = CreateContext(UserA);
+        Assert.Equal(UserA, verify.SourceMaterials.Single().OwnerId);
+    }
+
+    [Fact]
+    public void Importing_without_an_authenticated_user_is_refused()
+    {
+        using var context = CreateContext(userId: null);
+        context.SourceMaterials.Add(NewMaterial("Anonim"));
+
+        var error = Assert.Throws<InvalidOperationException>(() => context.SaveChanges());
+        Assert.Contains("authenticated user", error.Message);
+    }
+
+    [Fact]
+    public void An_unauthenticated_context_sees_no_materials()
+    {
+        SeedMaterial(UserA, "Wyklad 1");
+
+        using var context = CreateContext(userId: null);
+
+        Assert.Empty(context.SourceMaterials.ToList());
+    }
+
+    [Fact]
+    public void Modifying_a_material_owned_by_another_user_is_refused()
+    {
+        SeedMaterial(UserB, "Notatki Bartka");
+
+        using var context = CreateContext(UserA);
+        var victim = new SourceMaterial
+        {
+            Id = MaterialIdOf(UserB),
+            OwnerId = UserB,
+            Title = "Przejete",
+            Content = "x",
+            OriginalFileName = "x.md"
+        };
+        context.Attach(victim).State = EntityState.Modified;
+
+        var error = Assert.Throws<InvalidOperationException>(() => context.SaveChanges());
+        Assert.Contains("owned by another user", error.Message);
+    }
+
+    [Fact]
+    public void Deleting_a_material_owned_by_another_user_is_refused()
+    {
+        SeedMaterial(UserB, "Notatki Bartka");
+
+        using var context = CreateContext(UserA);
+        var victim = new SourceMaterial { Id = MaterialIdOf(UserB), OwnerId = UserB };
+        context.Attach(victim).State = EntityState.Deleted;
+
+        var error = Assert.Throws<InvalidOperationException>(() => context.SaveChanges());
+        Assert.Contains("owned by another user", error.Message);
+
+        using var verify = CreateContext(UserB);
+        Assert.Single(verify.SourceMaterials);
+    }
+
+    [Fact]
+    public void Attaching_another_users_material_with_a_forged_OwnerId_is_refused()
+    {
+        // OwnerId set to the *attacker's* id, so the change-tracker guard sees nothing wrong.
+        // Only owner_id in the WHERE clause stops this — the IsConcurrencyToken() convention.
+        SeedMaterial(UserB, "Notatki Bartka");
+
+        using var context = CreateContext(UserA);
+        var forged = new SourceMaterial
+        {
+            Id = MaterialIdOf(UserB),
+            OwnerId = UserA,
+            Title = "Przejete",
+            Content = "x",
+            OriginalFileName = "x.md"
+        };
+        context.Attach(forged).State = EntityState.Modified;
+
+        var error = Assert.Throws<InvalidOperationException>(() => context.SaveChanges());
+        Assert.Contains("owned by another user", error.Message);
+
+        using var verify = CreateContext(UserB);
+        Assert.Equal("Notatki Bartka", verify.SourceMaterials.Single().Title);
+    }
+
+    [Fact]
+    public void Imported_content_round_trips_unchanged()
+    {
+        // The PRD guardrail is that the source material stays available and unchanged. Polish
+        // diacritics and Markdown punctuation are the two things a bad encoding or an
+        // over-eager sanitizer would quietly mangle.
+        const string content = "# Wykład\n\nZażółć gęślą jaźń — *kursywa* i `kod`.\n";
+
+        using var context = CreateContext(UserA);
+        var material = NewMaterial("Wyklad");
+        material.Content = content;
+        context.SourceMaterials.Add(material);
+        context.SaveChanges();
+
+        using var verify = CreateContext(UserA);
+        Assert.Equal(content, verify.SourceMaterials.Single().Content);
+    }
+
+    /// <summary>The primary key of the single material owned by <paramref name="ownerId"/>.</summary>
+    private Guid MaterialIdOf(Guid ownerId)
+    {
+        using var context = CreateContext(ownerId);
+        return context.SourceMaterials.Single().Id;
+    }
+
+    private void SeedMaterial(Guid ownerId, string title)
+    {
+        using var context = CreateContext(ownerId);
+        context.SourceMaterials.Add(NewMaterial(title));
+        context.SaveChanges();
+    }
+
+    // Id and CreatedAt are supplied explicitly for the same reason NewProfile does it: their
+    // defaults are Postgres functions SQLite cannot evaluate.
+    private static SourceMaterial NewMaterial(string title) => new()
+    {
+        Id = Guid.NewGuid(),
+        Title = title,
+        Content = $"# {title}",
+        OriginalFileName = $"{title}.md",
+        CreatedAt = DateTimeOffset.UnixEpoch
+    };
+
     /// <summary>The primary key of the single profile owned by <paramref name="ownerId"/>.</summary>
     private Guid IdOf(Guid ownerId)
     {

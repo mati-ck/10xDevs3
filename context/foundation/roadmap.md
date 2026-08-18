@@ -3,7 +3,7 @@ project: "10xNotes"
 version: 1
 status: draft
 created: 2026-07-02
-updated: 2026-08-02
+updated: 2026-08-17
 prd_version: 1
 main_goal: speed
 top_blocker: capacity
@@ -23,20 +23,26 @@ Przeglądanie długich materiałów odbija się o barierę startu: trzeba usią�
 
 **S-01: Użytkownik importuje plik Markdown, generuje notatkę AI obok źródła, poprawia ją i zapisuje.** — to najmniejszy przepływ, którego skuteczne dostarczenie udowadnia główną hipotezę produktu (AI robi akceptowalny szkic z cudzego materiału), więc trafia najwcześniej, jak pozwalają jego zależności.
 
+Sam przepływ pozostaje niepodzielny jako **cel**, ale jest dostarczany w trzech kawałkach — `S-01a` (import) → `S-01b` (generowanie) → `S-01c` (przegląd i zapis). Gwiazda świeci dopiero po `S-01c`.
+
 > „Gwiazda przewodnia" (north star) = najmniejszy przepływ end-to-end, którego udana premiera dowodzi, że produkt w ogóle działa — ustawiony tak wcześnie, jak pozwalają zależności, bo reszta roadmapy ma sens tylko wtedy, gdy ten fragment się broni. Tu jest to pętla „import → generowanie → akceptacja", bo dokładnie ona odpowiada na pytanie z Kryteriów sukcesu: czy 75% notatek AI jest akceptowanych.
 
 ## At a glance
 
 | ID    | Change ID                  | Outcome (user can …)                                              | Prerequisites | PRD refs                        | Status   |
 | ----- | -------------------------- | ---------------------------------------------------------------- | ------------- | ------------------------------- | -------- |
-| F-01  | persistence-baseline       | (foundation) trwałe dane per użytkownik (DB + EF + migracje)      | —             | NFR: trwałość, NFR: prywatność  | ready    |
+| F-01  | persistence-baseline       | (foundation) trwałe dane per użytkownik (DB + EF + migracje)      | —             | NFR: trwałość, NFR: prywatność  | done     |
 | F-02  | email-password-auth        | (foundation) rejestracja/logowanie e-mail+hasło, ochrona tras     | F-01          | FR-001, FR-002, Access Control  | done     |
-| S-01  | markdown-import-generation | zaimportować plik MD, wygenerować notatkę AI, poprawić i zapisać  | F-01, F-02    | US-01, FR-004, FR-005, FR-006, FR-008 | proposed |
-| S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01          | FR-003                          | proposed |
-| S-03  | browse-notes-and-sources   | przeglądać własne notatki i materiały źródłowe                    | S-01, F-02    | FR-007                          | proposed |
-| S-04  | edit-source-material       | edytować zapisany materiał źródłowy                               | S-01          | FR-009                          | blocked  |
-| S-05  | delete-note                | usunąć własną notatkę                                             | S-01          | FR-010                          | proposed |
-| S-06  | delete-source-material     | usunąć materiał źródłowy                                          | S-01          | FR-011                          | blocked  |
+| S-01a | markdown-import            | zaimportować plik Markdown i mieć go zapisanym na koncie          | F-01, F-02    | FR-004                          | done     |
+| S-01b | ai-note-generation         | wygenerować notatkę AI obok materiału (jeszcze bez zapisu)        | S-01a         | US-01 (część), FR-005           | done     |
+| S-01c | note-review-save           | poprawić wygenerowaną notatkę i zapisać ją (zapis = akceptacja)   | S-01b         | US-01 (domknięcie), FR-006, FR-008 | done     |
+| S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01c         | FR-003                          | proposed |
+| S-03  | browse-notes-and-sources   | przeglądać własne notatki i materiały źródłowe                    | S-01c, F-02   | FR-007                          | proposed |
+| S-04  | edit-source-material       | edytować zapisany materiał źródłowy                               | S-01a         | FR-009                          | blocked  |
+| S-05  | delete-note                | usunąć własną notatkę                                             | S-01c         | FR-010                          | proposed |
+| S-06  | delete-source-material     | usunąć materiał źródłowy                                          | S-01a         | FR-011                          | blocked  |
+
+> **S-01 (gwiazda przewodnia)** nie jest już pojedynczym plasterkiem — pakował cztery rzeczy naraz (model domenowy, import pliku, integrację z AI, edytor + zapis), a zależało od niego wszystko pozostałe. Rozbity 2026-08-13 na `S-01a` → `S-01b` → `S-01c`; gwiazda jest dowiedziona dopiero po `S-01c`. Wycofany change ID: `import-generation-review-save`.
 
 ## Streams
 
@@ -44,9 +50,9 @@ Navigation aid — grupuje elementy dzielące łańcuch zależności. Kanoniczna
 
 | Stream | Theme                              | Chain                                   | Note                                                                          |
 | ------ | ---------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------- |
-| A      | Fundamenty i rdzeń (gwiazda)       | `F-01` → `F-02` → `S-01`                | Ścisła ścieżka must-have do walidacji; wszystko inne zależy od `S-01` (cel: speed). |
-| B      | Warianty importu                   | `S-02`                                  | Dołącza do Strumienia A w `S-01`; drugie wejście (wklejanie tekstu).           |
-| C      | Przeglądanie i cykl życia treści   | `S-03` / `S-05` (gotowe) · `S-04` / `S-06` (czekają) | Wszystkie odgałęziają od `S-01` i biegną równolegle; `S-04`/`S-06` blokują otwarte pytania. |
+| A      | Fundamenty i rdzeń (gwiazda)       | `F-01` → `F-02` → `S-01a` → `S-01b` → `S-01c` | Ścisła ścieżka must-have do walidacji; wszystko inne zależy od jakiegoś kawałka `S-01` (cel: speed). |
+| B      | Warianty importu                   | `S-02`                                  | Dołącza do Strumienia A po `S-01c`; drugie wejście (wklejanie tekstu) do gotowej pętli. |
+| C      | Przeglądanie i cykl życia treści   | `S-03` / `S-05` (po `S-01c`) · `S-04` / `S-06` (po `S-01a`, czekają na decyzje) | Odgałęziają od różnych kawałków `S-01` i biegną równolegle; `S-04`/`S-06` blokują otwarte pytania. Cykl życia materiału źródłowego zaczepia się już o `S-01a`, więc nie czeka na całą gwiazdę. |
 
 ## Baseline
 
@@ -67,20 +73,20 @@ Fundamenty poniżej zakładają obecność tych warstw i ich NIE odtwarzają.
 - **Outcome:** (foundation) baza jest połączona (zewnętrzny zarządzany Postgres wg `infrastructure.md`), EF Core i mechanizm migracji działają, a rekordy da się przypisać i odpytać w zakresie jednego użytkownika. To minimalny kontrakt trwałości — nie pełny model danych.
 - **Change ID:** persistence-baseline
 - **PRD refs:** NFR (trwałość: dane przetrwają ponowne logowanie), NFR (prywatność: mechanizm izolacji per użytkownik)
-- **Unlocks:** F-02 (magazyn tożsamości dla auth), S-01 (zapis notatki i materiału powiązanych z kontem)
+- **Unlocks:** F-02 (magazyn tożsamości dla auth), S-01a (zapis materiału źródłowego powiązanego z kontem)
 - **Prerequisites:** —
 - **Parallel with:** —
 - **Blockers:** —
 - **Unknowns:** —
-- **Risk:** Sekwencjonowany pierwszy, bo auth (F-02) i zapis notatek (S-01) nie istnieją bez magazynu; ryzyko to over-scope — wolno zbudować tylko połączenie + migracje + izolację, a nie encje domenowe (te wchodzą w S-01).
-- **Status:** ready
+- **Risk:** Sekwencjonowany pierwszy, bo auth (F-02) i zapis notatek (S-01a/S-01c) nie istnieją bez magazynu; ryzyko to over-scope — wolno zbudować tylko połączenie + migracje + izolację, a nie encje domenowe (te wchodzą w S-01a i S-01c).
+- **Status:** done
 
 ### F-02: Uwierzytelnianie e-mail + hasło
 
 - **Outcome:** (foundation) użytkownik może się zarejestrować, zalogować i wylogować; aplikacja rozpoznaje zalogowanego użytkownika i chroni trasy tak, że niezalogowany nie widzi żadnych danych. Płaski model, bez ról.
 - **Change ID:** email-password-auth
 - **PRD refs:** FR-001, FR-002, Access Control
-- **Unlocks:** S-01 (zapis = akceptacja wiązana z kontem), S-03 (widok tylko własnych danych), egzekwuje NFR prywatności
+- **Unlocks:** S-01a (materiał wiązany z kontem), S-01c (zapis = akceptacja wiązana z kontem), S-03 (widok tylko własnych danych), egzekwuje NFR prywatności
 - **Prerequisites:** F-01
 - **Parallel with:** —
 - **Blockers:** —
@@ -90,28 +96,59 @@ Fundamenty poniżej zakładają obecność tych warstw i ich NIE odtwarzają.
 
 ## Slices
 
-### S-01: Import Markdown → generowanie AI → przegląd → zapis  *(gwiazda przewodnia)*
+### S-01: Import Markdown → generowanie AI → przegląd → zapis  *(gwiazda przewodnia — parasol)*
 
-- **Outcome:** użytkownik importuje plik Markdown jako materiał źródłowy, jednym kliknięciem generuje obok niego notatkę AI, może ją poprawić i zapisać (zapis = akceptacja); materiał źródłowy pozostaje niezmieniony.
-- **Change ID:** markdown-import-generation
-- **PRD refs:** US-01, FR-004, FR-005, FR-006, FR-008, NFR (widoczna informacja zwrotna >2s)
+Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pytanie z Kryteriów sukcesu (75% akceptacji). Nie jest jednak jednym plasterkiem: w pierwotnym kształcie łączyła model domenowy, import pliku, integrację z dostawcą AI i edytor z zapisem — a przy tym każdy inny plasterek (S-02…S-06) czekał na całość. Rozbita 2026-08-13 na trzy kawałki dostarczane po kolei; **hipoteza produktu jest dowiedziona dopiero po `S-01c`**, wcześniejsze kawałki są demonstrowalne, ale nie rozstrzygające. Change ID `import-generation-review-save` jest wycofany (folder zmiany nie powstał).
+
+#### S-01a: Import pliku Markdown → zapisany materiał źródłowy
+
+- **Outcome:** użytkownik wgrywa plik `.md` i widzi go zapisanego na swoim koncie — materiał przetrwa wylogowanie i nie jest widoczny dla nikogo innego. Bez generowania.
+- **Change ID:** markdown-import
+- **PRD refs:** FR-004, NFR (trwałość), NFR (prywatność)
 - **Prerequisites:** F-01, F-02
 - **Parallel with:** —
 - **Blockers:** —
-- **Unknowns:** —
-- **Risk:** Najbardziej ryzykowne założenie produktu (jakość generowania AI domykająca 75% akceptacji) domyka się tutaj; wolno dowieźć minimalną pętlę, a nie od razu oba tryby importu (wklejanie idzie osobno w S-02), żeby przy budżecie „po godzinach" walidacja przyszła jak najszybciej.
-- **Status:** proposed
+- **Unknowns:**
+  - Limit rozmiaru importowanego pliku i zachowanie po jego przekroczeniu? — Owner: użytkownik. Block: no. (PRD milczy; domyślnie rozsądny limit ustalony w planie.)
+- **Risk:** Pierwsza encja domenowa w projekcie — ryzyko to wciągnięcie modelu notatki i relacji zanim generowanie w ogóle istnieje. Wolno dowieźć wyłącznie `SourceMaterial` + migrację z `ENABLE ROW LEVEL SECURITY` + upload; encja notatki należy do S-01c.
+- **Status:** done
+
+#### S-01b: Generowanie notatki AI obok materiału
+
+- **Outcome:** jednym kliknięciem użytkownik generuje notatkę z zapisanego materiału i widzi ją obok źródła, z ciągłą, widoczną informacją zwrotną w trakcie. Notatka jest na tym etapie ulotna (nie trafia jeszcze na konto), materiał źródłowy pozostaje niezmieniony.
+- **Change ID:** ai-note-generation
+- **PRD refs:** US-01 (część), FR-005, Business Logic, NFR (widoczna informacja zwrotna >2s)
+- **Prerequisites:** S-01a
+- **Parallel with:** —
+- **Blockers:** —
+- **Unknowns:**
+  - ~~Który dostawca AI, jaki model i jak trzymany klucz?~~ — Rozstrzygnięte 2026-08-17 w `plan.md`: `Microsoft.Extensions.AI` (`IChatClient`) na endpoint OpenRouter, model `google/gemini-3.7-flash` jako wartość konfiguracji, klucz jako sekret (`Ai__ApiKey`).
+- **Risk:** Tu domyka się najbardziej ryzykowne założenie produktu — jakość generowania. Odcięcie tego kawałka od zapisu jest celowe: prompt i dostawcę da się iterować bez dotykania modelu danych ani edytora. Ryzyko to rozrost w stronę parametrów generowania (PRD wymaga jednego kliknięcia, bez ustawień).
+- **Status:** done
+
+#### S-01c: Przegląd, edycja i zapis notatki (zapis = akceptacja)
+
+- **Outcome:** użytkownik poprawia wygenerowaną notatkę i zapisuje ją — zapis wiąże notatkę z kontem i liczy się jako akceptacja; porzucenie bez zapisu nie pozostawia jej na koncie; materiał źródłowy zostaje nietknięty. Ten kawałek domyka gwiazdę.
+- **Change ID:** note-review-save
+- **PRD refs:** US-01 (domknięcie), FR-006, FR-008, NFR (trwałość), NFR (prywatność)
+- **Prerequisites:** S-01b
+- **Parallel with:** —
+- **Blockers:** —
+- **Unknowns:**
+  - ~~Czy jeden materiał źródłowy może mieć wiele zapisanych notatek (1:N), czy kolejny zapis nadpisuje poprzednią?~~ — Rozstrzygnięte 2026-08-17 w `plan.md`: **ściśle 1:1**, kolejny zapis nadpisuje po potwierdzeniu. OQ2 pozostaje otwarte celowo — FK `notes → source_materials` jest ustawiony na `ON DELETE NO ACTION`, żeby domyślna kaskada EF nie przesądziła odpowiedzi za S-06.
+- **Risk:** Dopiero po tym plasterku da się w ogóle mierzyć 75% akceptacji, więc to on decyduje o terminie walidacji; ryzyko to rozrost w stronę wersjonowania notatek i historii zmian (poza MVP).
+- **Status:** done
 
 ### S-02: Wklejenie tekstu → generowanie AI
 
-- **Outcome:** użytkownik wkleja surowy tekst jako materiał źródłowy i generuje z niego notatkę tą samą pętlą co w S-01.
+- **Outcome:** użytkownik wkleja surowy tekst jako materiał źródłowy i generuje z niego notatkę tą samą pętlą co w S-01a→S-01c.
 - **Change ID:** paste-text-generation
 - **PRD refs:** FR-003
-- **Prerequisites:** S-01
+- **Prerequisites:** S-01c (cała pętla musi istnieć, zanim doda się drugie wejście)
 - **Parallel with:** S-03, S-04, S-05, S-06
 - **Blockers:** —
 - **Unknowns:** —
-- **Risk:** Drugie wejście do istniejącej pętli generowania — niskie ryzyko; jedyna pułapka to traktowanie wklejania jak osobnego przepływu zamiast wariantu wejścia S-01.
+- **Risk:** Drugie wejście do istniejącej pętli generowania — niskie ryzyko; jedyna pułapka to traktowanie wklejania jak osobnego przepływu zamiast drugiego wariantu wejścia obok S-01a.
 - **Status:** proposed
 
 ### S-03: Przeglądanie własnych notatek i materiałów
@@ -119,12 +156,12 @@ Fundamenty poniżej zakładają obecność tych warstw i ich NIE odtwarzają.
 - **Outcome:** użytkownik widzi listę swoich zapisanych notatek i materiałów źródłowych i może otworzyć wybrany; nie widzi cudzych danych.
 - **Change ID:** browse-notes-and-sources
 - **PRD refs:** FR-007, NFR (prywatność)
-- **Prerequisites:** S-01, F-02
+- **Prerequisites:** S-01c, F-02
 - **Parallel with:** S-02, S-04, S-05, S-06
 - **Blockers:** —
 - **Unknowns:**
   - Czy materiał źródłowy ma być osobną listą najwyższego poziomu, czy dostępny głównie obok swojej notatki? — Owner: użytkownik. Block: no. (PRD zostawia to „do rozstrzygnięcia w designie" przy FR-007; nie blokuje planowania.)
-- **Risk:** Sekwencjonowany po S-01, bo bez zapisanych notatek nie ma czego przeglądać; ryzyko to rozrost widoku w stronę wyszukiwania/filtrów spoza MVP.
+- **Risk:** Sekwencjonowany po S-01c, bo bez zapisanych notatek nie ma czego przeglądać; ryzyko to rozrost widoku w stronę wyszukiwania/filtrów spoza MVP.
 - **Status:** proposed
 
 ### S-04: Edycja materiału źródłowego
@@ -132,7 +169,7 @@ Fundamenty poniżej zakładają obecność tych warstw i ich NIE odtwarzają.
 - **Outcome:** użytkownik edytuje wcześniej zapisany materiał źródłowy.
 - **Change ID:** edit-source-material
 - **PRD refs:** FR-009
-- **Prerequisites:** S-01
+- **Prerequisites:** S-01a (wystarczy zapisany materiał źródłowy — nie czeka na resztę gwiazdy)
 - **Parallel with:** S-02, S-03, S-05, S-06
 - **Blockers:** —
 - **Unknowns:**
@@ -145,7 +182,7 @@ Fundamenty poniżej zakładają obecność tych warstw i ich NIE odtwarzają.
 - **Outcome:** użytkownik usuwa jedną ze swoich notatek; materiał źródłowy pozostaje nietknięty.
 - **Change ID:** delete-note
 - **PRD refs:** FR-010
-- **Prerequisites:** S-01
+- **Prerequisites:** S-01c (bez zapisanych notatek nie ma czego usuwać)
 - **Parallel with:** S-02, S-03, S-04, S-06
 - **Blockers:** —
 - **Unknowns:** —
@@ -157,7 +194,7 @@ Fundamenty poniżej zakładają obecność tych warstw i ich NIE odtwarzają.
 - **Outcome:** użytkownik usuwa materiał źródłowy.
 - **Change ID:** delete-source-material
 - **PRD refs:** FR-011
-- **Prerequisites:** S-01
+- **Prerequisites:** S-01a (wystarczy zapisany materiał źródłowy — nie czeka na resztę gwiazdy)
 - **Parallel with:** S-02, S-03, S-04, S-05
 - **Blockers:** —
 - **Unknowns:**
@@ -171,11 +208,13 @@ Fundamenty poniżej zakładają obecność tych warstw i ich NIE odtwarzają.
 | ---------- | -------------------------- | ------------------------------------------------------- | --------------------- | -------------------------------------- |
 | F-01       | persistence-baseline       | Trwała warstwa danych per użytkownik (DB + EF + migracje)| yes                   | Run `/10x-plan persistence-baseline`   |
 | F-02       | email-password-auth        | Uwierzytelnianie e-mail + hasło + ochrona tras          | no                    | Czeka na F-01                          |
-| S-01       | markdown-import-generation | Import MD → generowanie AI → przegląd → zapis (gwiazda)  | no                    | Czeka na F-01, F-02                     |
-| S-02       | paste-text-generation      | Wklejenie tekstu jako źródła i generowanie notatki       | no                    | Czeka na S-01                          |
-| S-03       | browse-notes-and-sources   | Przeglądanie własnych notatek i materiałów              | no                    | Czeka na S-01, F-02                     |
+| S-01a      | markdown-import            | Import pliku Markdown jako materiał źródłowy (gwiazda 1/3)| yes                   | Run `/10x-plan markdown-import`        |
+| S-01b      | ai-note-generation         | Generowanie notatki AI obok materiału (gwiazda 2/3)      | no                    | Czeka na S-01a; wybór dostawcy AI domyka research w planie |
+| S-01c      | note-review-save           | Przegląd, edycja i zapis notatki (gwiazda 3/3)           | no                    | Czeka na S-01b                          |
+| S-02       | paste-text-generation      | Wklejenie tekstu jako źródła i generowanie notatki       | no                    | Czeka na S-01c                         |
+| S-03       | browse-notes-and-sources   | Przeglądanie własnych notatek i materiałów              | no                    | Czeka na S-01c, F-02                    |
 | S-04       | edit-source-material       | Edycja materiału źródłowego                             | no                    | Zablokowane — Open Question 1           |
-| S-05       | delete-note                | Usunięcie notatki                                       | no                    | Czeka na S-01                          |
+| S-05       | delete-note                | Usunięcie notatki                                       | no                    | Czeka na S-01c                         |
 | S-06       | delete-source-material     | Usunięcie materiału źródłowego                          | no                    | Zablokowane — Open Question 2           |
 
 ## Open Roadmap Questions
@@ -194,4 +233,8 @@ Fundamenty poniżej zakładają obecność tych warstw i ich NIE odtwarzają.
 
 (Empty on first generation. `/10x-archive` appends here — and flips the item's `Status` to `done` — when a change whose `Change ID` matches a roadmap item is archived. Do NOT pre-populate.)
 
+- **F-01: (foundation) baza jest połączona, EF Core i migracje działają, a rekordy da się przypisać i odpytać w zakresie jednego użytkownika.** — Shipped; issue [#6](https://github.com/mati-ck/10xDevs3/issues/6) closed. Status flipped by hand 2026-08-13 — `context/changes/persistence-baseline/` is at `impl_reviewed` and not yet archived, so `/10x-archive` has not written this entry itself. Lesson: —.
 - **F-02: (foundation) użytkownik może się zarejestrować, zalogować i wylogować; aplikacja rozpoznaje zalogowanego użytkownika i chroni trasy tak, że niezalogowany nie widzi żadnych danych. Płaski model, bez ról.** — Archived 2026-08-02 → `context/archive/2026-07-27-email-password-auth/`. Lesson: —.
+- **S-01a: użytkownik wgrywa plik `.md` i widzi go zapisanego na swoim koncie — materiał przetrwa wylogowanie i nie jest widoczny dla nikogo innego. Bez generowania.** — Archived 2026-08-17 → `context/archive/2026-08-17-markdown-import/`. Lesson: —.
+- **S-01b: jednym kliknięciem użytkownik generuje notatkę z zapisanego materiału i widzi ją obok źródła, z ciągłą, widoczną informacją zwrotną w trakcie. Notatka jest na tym etapie ulotna (nie trafia jeszcze na konto), materiał źródłowy pozostaje niezmieniony.** — Archived 2026-08-17 → `context/archive/2026-08-17-ai-note-generation/`. Lesson: —.
+- **S-01c: użytkownik poprawia wygenerowaną notatkę i zapisuje ją — zapis wiąże notatkę z kontem i liczy się jako akceptacja; porzucenie bez zapisu nie pozostawia jej na koncie; materiał źródłowy zostaje nietknięty. Ten kawałek domyka gwiazdę.** — Archived 2026-08-17 → `context/archive/2026-08-17-note-review-save/`. Lesson: „An advertised limit must be one every layer beneath it can carry" (`lessons.md`).

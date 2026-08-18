@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using _10xnotes.Data;
@@ -11,9 +12,11 @@ using _10xnotes.Data;
 namespace _10xnotes.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260817174948_AddGenerationQuota")]
+    partial class AddGenerationQuota
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -77,131 +80,6 @@ namespace _10xnotes.Migrations
                         .HasDatabaseName("ix_generation_quotas_owner_id_usage_date");
 
                     b.ToTable("generation_quotas", (string)null);
-                });
-
-            modelBuilder.Entity("_10xnotes.Data.Entities.Note", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("content");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<string>("DraftContent")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("draft_content");
-
-                    b.Property<string>("Model")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("model");
-
-                    b.Property<Guid>("OwnerId")
-                        .IsConcurrencyToken()
-                        .HasColumnType("uuid")
-                        .HasColumnName("owner_id");
-
-                    b.Property<string>("PromptVersion")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("prompt_version");
-
-                    b.Property<Guid>("SourceMaterialId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("source_material_id");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("title");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.HasKey("Id")
-                        .HasName("pk_notes");
-
-                    b.HasIndex("SourceMaterialId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_notes_source_material_id");
-
-                    b.ToTable("notes", (string)null);
-                });
-
-            modelBuilder.Entity("_10xnotes.Data.Entities.NoteEvent", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<int>("DraftLength")
-                        .HasColumnType("integer")
-                        .HasColumnName("draft_length");
-
-                    b.Property<string>("Kind")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("kind");
-
-                    b.Property<string>("Model")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("model");
-
-                    b.Property<DateTimeOffset>("OccurredAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("occurred_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<Guid>("OwnerId")
-                        .IsConcurrencyToken()
-                        .HasColumnType("uuid")
-                        .HasColumnName("owner_id");
-
-                    b.Property<string>("PromptVersion")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("prompt_version");
-
-                    b.Property<int>("SavedLength")
-                        .HasColumnType("integer")
-                        .HasColumnName("saved_length");
-
-                    b.Property<Guid>("SourceMaterialId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("source_material_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_note_events");
-
-                    b.HasIndex("OwnerId", "OccurredAt")
-                        .HasDatabaseName("ix_note_events_owner_id_occurred_at");
-
-                    b.ToTable("note_events", (string)null);
                 });
 
             modelBuilder.Entity("_10xnotes.Data.Entities.Profile", b =>
@@ -281,16 +159,6 @@ namespace _10xnotes.Migrations
                         .HasDatabaseName("ix_source_materials_owner_id");
 
                     b.ToTable("source_materials", (string)null);
-                });
-
-            modelBuilder.Entity("_10xnotes.Data.Entities.Note", b =>
-                {
-                    b.HasOne("_10xnotes.Data.Entities.SourceMaterial", null)
-                        .WithMany()
-                        .HasForeignKey("SourceMaterialId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("fk_notes_source_materials_source_material_id");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,0 +1,555 @@
+@page "/materials/{Id:guid}"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using System.Diagnostics
+@using System.Globalization
+@using System.Text
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Options
+@using _10xnotes.Data
+@using _10xnotes.Data.Entities
+@using _10xnotes.Generation
+@using _10xnotes.Notes
+@using _10xnotes.Time
+@implements IAsyncDisposable
+@inject UserScopedDbContextFactory DbContextFactory
+@inject NoteGenerator NoteGenerator
+@inject GenerationQuotaService QuotaService
+@inject NoteService NoteService
+@inject NavigationManager Navigation
+@inject IOptions<AiOptions> AiOptions
+@inject TimeProvider TimeProvider
+@inject ILogger<Detail> Logger
+
+@* Interactive, unlike S-01a, when this page only read and needed no circuit. Generating streams
+   the note in as the model writes it, which the PRD requires for anything over two seconds, and
+   a stream needs a live connection to push into. Data still comes through
+   UserScopedDbContextFactory and NoteService — injecting IDbContextFactory<> here fails
+   DataAccessBoundaryTests and blocks the deploy. *@
+
+<PageTitle>@(material?.Title ?? "Materiał")</PageTitle>
+
+@if (material is null)
+{
+    <h1>Nie znaleziono materiału</h1>
+    <p>Ten materiał nie istnieje albo nie należy do Twojego konta.</p>
+    <a href="/materials/import">Zaimportuj nowy materiał</a>
+}
+else
+{
+    <h1>@material.Title</h1>
+
+    <p class="text-secondary">
+        @* ToDisplayTime, not ToLocalTime: "local" resolves against the container's clock, which
+           is UTC. The culture is named explicitly so the month renders in Polish rather than in
+           whatever the server happens to default to. *@
+        Zaimportowano @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)
+        z pliku <code>@material.OriginalFileName</code>.
+    </p>
+
+    @* Two columns so the note can be checked against the source without scrolling between them —
+       the PRD guardrail is that the material stays available beside the note. They stack on a
+       narrow window, source first, because the note is worthless without it. *@
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <h2 class="h5">Materiał źródłowy</h2>
+
+            @* Raw text, never rendered as Markdown or markup. The material is user-supplied and
+               the PRD guardrail is that the source stays available and unchanged — showing it
+               verbatim proves that literally, and keeps user content from ever reaching the DOM
+               as HTML. *@
+            <pre class="source-content border rounded p-3">@material.Content</pre>
+        </div>
+
+        <div class="col-lg-6">
+            <h2 class="h5">Notatka</h2>
+
+            @if (savedNote is not null)
+            {
+                @* Today the only route to a saved note besides the redirect after saving — the
+                   notes index is S-03. Shown before anything is generated so a user who is about
+                   to overwrite accepted work learns that it exists first. *@
+                <p class="text-secondary">
+                    Ten materiał ma już zapisaną notatkę:
+                    <a href="/notes/@savedNote.Id">@savedNote.Title</a>.
+                </p>
+            }
+
+            <button type="button" class="btn btn-primary mb-3"
+                    disabled="@(isGenerating || isSaving)" @onclick="OnGenerateClickedAsync">
+                @(isGenerating ? "Generuję…" : "Generuj notatkę")
+            </button>
+
+            @if (errorMessage is not null)
+            {
+                <div class="alert alert-danger" role="alert">@errorMessage</div>
+            }
+
+            @if (confirmation is not Confirmation.None)
+            {
+                @* In the page rather than window.confirm: a browser dialog blocks the circuit's
+                   event loop, cannot be styled, and cannot be written in Polish. *@
+                <div class="alert alert-warning" role="alert">
+                    <p>@ConfirmationQuestion</p>
+                    <button type="button" class="btn btn-warning btn-sm me-2"
+                            disabled="@isSaving" @onclick="ConfirmAsync">
+                        @ConfirmationAccept
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                            disabled="@isSaving" @onclick="() => confirmation = Confirmation.None">
+                        Anuluj
+                    </button>
+                </div>
+            }
+
+            @if (draft is not null)
+            {
+                @* The stream has finished and handed the buffer over exactly once. From here the
+                   note belongs to the editor and nothing streams into it. *@
+                <NoteEditor @bind-Title="editorTitle"
+                            @bind-Content="editorContent"
+                            SaveLabel="@(savedNote is null ? "Zapisz notatkę" : "Zastąp zapisaną notatkę")"
+                            IsBusy="@isSaving"
+                            ErrorMessage="@saveErrorMessage"
+                            OnSave="OnSaveClickedAsync" />
+            }
+            else if (note.Length > 0)
+            {
+                @* Read-only for the duration of the stream, and deliberately so: the buffer is
+                   repainted every ~100 ms from a background loop, so a live textarea would have
+                   the user's keystrokes and the model's tokens fighting over one field. This page
+                   already has a documented history of exactly that class of bug. *@
+                <pre class="note-content border rounded p-3">@note</pre>
+            }
+            else if (!isGenerating && errorMessage is null)
+            {
+                <p class="text-secondary">
+                    Kliknij „Generuj notatkę", a AI przygotuje streszczenie i konspekt tego materiału.
+                </p>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private static readonly CultureInfo PolishCulture = CultureInfo.GetCultureInfo("pl-PL");
+
+    /// <summary>
+    /// How often the growing note is pushed to the browser.
+    /// </summary>
+    /// <remarks>
+    /// Repainting per token would put hundreds of micro-diffs through the SignalR circuit for one
+    /// note. At ~10 frames a second the text still visibly grows — which is the point of streaming
+    /// — while the number of round trips stays in the dozens.
+    /// </remarks>
+    private static readonly TimeSpan RepaintInterval = TimeSpan.FromMilliseconds(100);
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private SourceMaterial? material;
+
+    /// <summary>The note already saved for this material, if any. Null means saving creates one.</summary>
+    private Note? savedNote;
+
+    private string note = string.Empty;
+    private string? errorMessage;
+    private bool isGenerating;
+
+    /// <summary>
+    /// The model's output as it arrived, captured once when the stream finished.
+    /// </summary>
+    /// <remarks>
+    /// Doubles as the flag for "the editor is live": non-null exactly when the panel has stopped
+    /// streaming and started being editable. Kept separately from <see cref="editorContent"/>
+    /// because it is what <c>Note.DraftContent</c> stores — the before-editing text the acceptance
+    /// measurement is graded against — and because comparing the two is how the page knows there
+    /// are unsaved changes to protect.
+    /// </remarks>
+    private string? draft;
+
+    private string editorTitle = string.Empty;
+    private string editorContent = string.Empty;
+
+    private bool isSaving;
+    private string? saveErrorMessage;
+
+    private Confirmation confirmation = Confirmation.None;
+
+    /// <summary>
+    /// Cancels the in-flight generation when the user leaves the page.
+    /// </summary>
+    /// <remarks>
+    /// Without this the <c>await foreach</c> keeps running after the component is gone, paying for
+    /// tokens nobody will read. Held in a field rather than scoped to the handler so
+    /// <see cref="DisposeAsync"/> can reach it.
+    /// </remarks>
+    private CancellationTokenSource? generationCts;
+
+    /// <summary>The two destructive actions that ask before proceeding.</summary>
+    private enum Confirmation
+    {
+        None,
+
+        /// <summary>Saving would replace a note the user already accepted.</summary>
+        ReplaceSavedNote,
+
+        /// <summary>Generating again would throw away edits that were never saved.</summary>
+        DiscardUnsavedEdits
+    }
+
+    private string ConfirmationQuestion => confirmation switch
+    {
+        Confirmation.ReplaceSavedNote =>
+            "Ten materiał ma już zapisaną notatkę. Zapisanie zastąpi ją bezpowrotnie. Kontynuować?",
+        _ =>
+            "Masz w edytorze niezapisane poprawki. Ponowne generowanie je skasuje. Kontynuować?"
+    };
+
+    private string ConfirmationAccept => confirmation switch
+    {
+        Confirmation.ReplaceSavedNote => "Zastąp notatkę",
+        _ => "Generuj mimo to"
+    };
+
+    /// <remarks>
+    /// Runs twice per page load now that the page is interactive: once while prerendering and
+    /// again when the circuit opens. That is two reads of one row, and it buys a first paint of
+    /// the material that does not wait for the circuit — worth it on a page whose whole point is
+    /// having the source in front of you.
+    /// </remarks>
+    protected override async Task OnInitializedAsync()
+    {
+        await using (var db = await DbContextFactory.CreateAsync())
+        {
+            // No owner filter written here: the global query filter already scopes this by the
+            // signed-in user, so another user's id simply finds nothing. The missing and the
+            // not-yours cases render identically on purpose — distinguishing them would let anyone
+            // probe which ids exist.
+            material = await db.SourceMaterials.FirstOrDefaultAsync(m => m.Id == Id);
+        }
+
+        if (material is not null)
+        {
+            // Read up front rather than at save time: the user has to learn that saving would
+            // replace accepted work *before* they spend a generation on it.
+            savedNote = await NoteService.GetByMaterialAsync(Id);
+        }
+    }
+
+    /// <summary>
+    /// Generates, unless doing so would silently discard edits the user has not saved.
+    /// </summary>
+    private async Task OnGenerateClickedAsync()
+    {
+        if (HasUnsavedEdits)
+        {
+            confirmation = Confirmation.DiscardUnsavedEdits;
+            return;
+        }
+
+        confirmation = Confirmation.None;
+        await GenerateAsync();
+    }
+
+    /// <summary>
+    /// Whether the editor holds something the model did not write and nobody has saved.
+    /// </summary>
+    /// <remarks>
+    /// Compared against the draft rather than tracked with a flag, so an edit the user reverted by
+    /// hand stops counting as unsaved. Only regeneration is guarded — leaving the page still loses
+    /// the work, which is a deliberate scope decision rather than an oversight.
+    /// </remarks>
+    private bool HasUnsavedEdits =>
+        draft is not null
+        && (!string.Equals(draft, editorContent, StringComparison.Ordinal)
+            // The title counts too. It is the field the editor fills in for the user, so it is
+            // also the one they are most likely to correct on its own — and comparing only the
+            // body would let "Generuj notatkę" discard a retyped title without asking.
+            || !string.Equals(editorTitle, NoteValidator.DeriveTitle(material?.Title), StringComparison.Ordinal));
+
+    private async Task ConfirmAsync()
+    {
+        var confirmed = confirmation;
+        confirmation = Confirmation.None;
+
+        switch (confirmed)
+        {
+            case Confirmation.DiscardUnsavedEdits:
+                await GenerateAsync();
+                break;
+
+            case Confirmation.ReplaceSavedNote:
+                await SaveAsync();
+                break;
+        }
+    }
+
+    private async Task GenerateAsync()
+    {
+        if (material is null || isGenerating)
+        {
+            return;
+        }
+
+        // Set before the first await, not after it. Blazor renders as soon as the handler yields,
+        // so leaving this until later hands the browser a render with the button still enabled —
+        // and a queued second click walks straight past the guard above.
+        isGenerating = true;
+
+        // Declared before the try, assigned inside it. The flag above is already set, so every
+        // path from here on has to reach the finally that resets it — otherwise a throw during
+        // setup would leave the Generate button disabled for the life of the circuit, on top of
+        // whatever else went wrong.
+        CancellationTokenSource? cts = null;
+
+        try
+        {
+            // Belt-and-braces rather than a live concern: the isGenerating guard above already
+            // makes a concurrent run impossible, and a finished run nulls the field in its own
+            // finally, so this is expected to find nothing. Kept because two streams writing one
+            // buffer is the single failure this page could not recover from.
+            await CancelGenerationAsync();
+
+            errorMessage = null;
+            note = string.Empty;
+
+            // The editor is torn down for the duration: the panel it lives in is about to stream
+            // again, and leaving a live editor over a growing buffer is the race this page is
+            // written to avoid.
+            draft = null;
+            saveErrorMessage = null;
+
+            // Owned by this invocation as well as published to the field. If a later run
+            // supersedes this one it overwrites the field, and without a local the source would
+            // be unreachable for both cancellation and disposal — the exact leak the field
+            // exists to prevent.
+            cts = new CancellationTokenSource();
+            generationCts = cts;
+            var token = cts.Token;
+
+            // Checked before the reservation, not after: a generation that cannot possibly reach
+            // the provider must not cost the user a slot, or a missing key silently eats their
+            // whole daily allowance and then tells them to come back tomorrow.
+            if (!NoteGenerator.IsConfigured)
+            {
+                errorMessage = MessageFor(GenerationFailure.Unavailable);
+                return;
+            }
+
+            if (!await QuotaService.TryReserveAsync(token))
+            {
+                errorMessage = MessageFor(GenerationFailure.QuotaExceeded);
+                return;
+            }
+
+            var buffer = new StringBuilder();
+            var lastRepaint = Stopwatch.GetTimestamp();
+
+            await foreach (var chunk in NoteGenerator.GenerateAsync(material, token))
+            {
+                if (chunk.Failure is { } failure)
+                {
+                    // The panel is cleared rather than left holding a partial note: whatever is on
+                    // screen must always be a note that finished, so a truncated draft can never be
+                    // mistaken for one — which matters all the more now that saving means accepting.
+                    note = string.Empty;
+                    errorMessage = MessageFor(failure);
+                    return;
+                }
+
+                buffer.Append(chunk.Text);
+
+                if (Stopwatch.GetElapsedTime(lastRepaint) >= RepaintInterval)
+                {
+                    note = buffer.ToString();
+                    lastRepaint = Stopwatch.GetTimestamp();
+                    StateHasChanged();
+                }
+            }
+
+            // The last fragments almost never land on a repaint boundary, so without this the
+            // note would be missing its tail until something else triggered a render.
+            note = buffer.ToString();
+
+            HandOverToEditor(note);
+
+            // The denominator of the acceptance rate, recorded only here — after a stream that
+            // completed. A failure, a timeout or a cancellation produces nothing anyone could
+            // accept, so counting it would depress the ratio for something that is not the
+            // model's output quality.
+            //
+            // Called after the hand-over and with no local try: NoteService guarantees this never
+            // throws, cancellation included, so it cannot reach the catch below that clears the
+            // panel. That guarantee lives there rather than here on purpose.
+            await NoteService.RecordGenerationAsync(
+                Id, draft ?? string.Empty, NotePrompt.Version, AiOptions.Value.Model, token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Only reachable when the quota read is cancelled — the generator turns cancellation
+            // into a chunk rather than letting it escape. Nothing to say: the user left.
+            note = string.Empty;
+        }
+        catch (Exception exception)
+        {
+            // Left unhandled this escapes the event handler and tears the circuit down, so the
+            // user gets a reconnect modal instead of a reason. Same posture as the import page,
+            // which catches the one failure it expects — this catch is deliberately wider because
+            // a generation touches the quota ledger and a provider, so it must always log: the
+            // user-facing message is identical for every cause, and without this the only record
+            // that anything went wrong would be the user's word for it.
+            Logger.LogError(exception, "Generating a note for material {MaterialId} failed.", Id);
+            errorMessage = MessageFor(GenerationFailure.Unavailable);
+            note = string.Empty;
+            draft = null;
+        }
+        finally
+        {
+            // Only when this run is still the current one. Clearing the field is what matters:
+            // the source is disposed just below, and cancelling an already-disposed source
+            // throws — so leaving the field pointing at it would turn navigating away into an
+            // exception from DisposeAsync.
+            //
+            // A throw before the source was created leaves cts null, and generationCts is null
+            // too on that path, so this still resets the flag rather than stranding the button.
+            if (ReferenceEquals(generationCts, cts))
+            {
+                generationCts = null;
+                isGenerating = false;
+            }
+
+            // Disposed here rather than by a `using`, because the source is now created inside
+            // the try: a `using` there would dispose it before this finally runs, and the field
+            // has to be cleared while it still points at a live source.
+            cts?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Moves the finished stream into the editor, once.
+    /// </summary>
+    /// <remarks>
+    /// The single moment ownership of the note changes hands. Before it the buffer belongs to the
+    /// stream and the panel is read-only; after it the text belongs to the user and the stream
+    /// never touches it again.
+    /// </remarks>
+    private void HandOverToEditor(string generated)
+    {
+        draft = generated;
+        editorContent = generated;
+
+        // The material's title as a starting point, exactly as the import page proposes one from
+        // the file name: never empty, never over the column width, always correctable.
+        editorTitle = NoteValidator.DeriveTitle(material?.Title);
+    }
+
+    /// <summary>
+    /// Saves, unless doing so would replace a note the user already accepted.
+    /// </summary>
+    private async Task OnSaveClickedAsync()
+    {
+        if (savedNote is not null)
+        {
+            confirmation = Confirmation.ReplaceSavedNote;
+            return;
+        }
+
+        await SaveAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (draft is null || isSaving)
+        {
+            return;
+        }
+
+        // Set before the first await, for the same reason isGenerating is: the browser gets a
+        // render the moment this handler yields.
+        isSaving = true;
+        saveErrorMessage = null;
+
+        try
+        {
+            var result = await NoteService.AcceptAsync(
+                Id, editorTitle, editorContent, draft, NotePrompt.Version, AiOptions.Value.Model);
+
+            if (!result.Succeeded)
+            {
+                saveErrorMessage = MessageFor(result.FailureReason);
+                return;
+            }
+
+            // The note gets its own address, which is also the only way back to it until the
+            // notes index arrives in S-03.
+            Navigation.NavigateTo($"/notes/{result.Note!.Id}");
+        }
+        catch (Exception exception)
+        {
+            // NoteService returns failures rather than throwing, so reaching this means something
+            // outside its contract broke. Unhandled it would tear the circuit down and cost the
+            // user the note they were trying to keep.
+            Logger.LogError(exception, "Saving the note for material {MaterialId} failed.", Id);
+            saveErrorMessage = "Nie udało się zapisać notatki. Spróbuj ponownie za chwilę.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task CancelGenerationAsync()
+    {
+        if (generationCts is null)
+        {
+            return;
+        }
+
+        // Not disposed here: the run that created it owns disposal through its own `using`.
+        // Disposing another run's source out from under it would turn its next cancellation
+        // check into an ObjectDisposedException.
+        await generationCts.CancelAsync();
+        generationCts = null;
+    }
+
+    public async ValueTask DisposeAsync() => await CancelGenerationAsync();
+
+    private static string MessageFor(GenerationFailure failure) => failure switch
+    {
+        GenerationFailure.QuotaExceeded =>
+            "Wykorzystałeś dzienny limit generowań. Spróbuj ponownie jutro.",
+        GenerationFailure.RateLimited =>
+            "Zbyt wiele żądań naraz. Odczekaj chwilę i spróbuj ponownie.",
+        GenerationFailure.TimedOut =>
+            "Generowanie trwało zbyt długo i zostało przerwane. Spróbuj ponownie.",
+        GenerationFailure.TooLong =>
+            "Ten materiał jest za długi dla modelu. Skróć go i spróbuj ponownie.",
+        GenerationFailure.Empty =>
+            "Model nie zwrócił żadnej treści. Spróbuj ponownie.",
+        GenerationFailure.Cancelled =>
+            "Generowanie zostało przerwane.",
+        // Unavailable and anything added to the enum later: neutral, never a claim about what the
+        // user did wrong, and never the provider's own English prose.
+        _ =>
+            "Nie udało się wygenerować notatki. Spróbuj ponownie za chwilę."
+    };
+
+    private static string MessageFor(NoteSaveFailure failure) => failure switch
+    {
+        NoteSaveFailure.TitleEmpty =>
+            "Podaj tytuł notatki.",
+        NoteSaveFailure.TitleTooLong =>
+            $"Tytuł może mieć najwyżej {NoteValidator.MaxTitleLength} znaków.",
+        NoteSaveFailure.ContentEmpty =>
+            "Notatka jest pusta — nie ma czego zapisać.",
+        NoteSaveFailure.ContentTooLong =>
+            $"Notatka może mieć najwyżej {NoteValidator.MaxContentLength / 1024} KB.",
+        NoteSaveFailure.NotFound =>
+            "Ten materiał już nie istnieje albo nie należy do Twojego konta.",
+        // Conflict and anything added to the enum later. The default branch exists so a new member
+        // cannot leave the user staring at an empty alert.
+        _ =>
+            "Nie udało się zapisać notatki. Spróbuj ponownie za chwilę."
+    };
+}

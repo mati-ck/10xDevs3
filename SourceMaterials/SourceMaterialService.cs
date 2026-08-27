@@ -55,6 +55,7 @@ public sealed class SourceMaterialService(UserScopedDbContextFactory dbContextFa
             select new SourceMaterialListItem(
                 material.Id,
                 material.Title,
+                material.Kind,
                 material.OriginalFileName,
                 material.CreatedAt,
                 note == null ? null : (Guid?)note.Id);

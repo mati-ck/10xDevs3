@@ -1,6 +1,7 @@
 @page "/materials"
 @attribute [Authorize]
 @using System.Globalization
+@using _10xnotes.Data.Entities
 @using _10xnotes.SourceMaterials
 @using _10xnotes.Time
 @inject SourceMaterialService SourceMaterialService
@@ -29,8 +30,23 @@ else
                 <a href="/materials/@material.Id" class="fw-semibold">@material.Title</a>
 
                 <div class="text-secondary small">
-                    Zaimportowano @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)
-                    z pliku <code>@material.OriginalFileName</code>
+                    @* Branched on Kind, exactly as Components/Pages/Materials/Detail.razor is, and for
+                       the same reason: provenance is a fact the row states, not something read off an
+                       absent file name — a future bug in the import path would otherwise render as a
+                       paste. Same two verbs as the detail page, so the two views cannot disagree about
+                       what a pasted material is called; the date is in both branches, because it is
+                       the one thing every material has. *@
+                    @if (material.Kind == SourceMaterialKind.Paste)
+                    {
+                        <text>Wklejono @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)</text>
+                    }
+                    else
+                    {
+                        <text>
+                            Zaimportowano @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)
+                            z pliku <code>@material.OriginalFileName</code>
+                        </text>
+                    }
 
                     @if (material.NoteId is { } noteId)
                     {

@@ -7,9 +7,10 @@ using Microsoft.EntityFrameworkCore;
 namespace _10xNotes.Tests;
 
 /// <summary>
-/// Proves the three things the materials list has to get right: it shows only its owner's rows,
-/// it is ordered and stays ordered, and it reports whether a material already has a note without
-/// ever reading across accounts to answer.
+/// Proves the four things the materials list has to get right: it shows only its owner's rows,
+/// it is ordered and stays ordered, it reports whether a material already has a note without ever
+/// reading across accounts to answer, and it carries each row's provenance so the page can say
+/// where the material came from without guessing.
 /// <para>
 /// SQLite in-memory, like <see cref="NoteServiceTests"/> — the query filters and the LEFT JOIN
 /// translate identically. The Postgres-only parts (the auth.users foreign key, NO ACTION, RLS)
@@ -103,6 +104,43 @@ public sealed class SourceMaterialServiceTests : IDisposable
         Assert.Single(await CreateService(UserA).ListAsync());
     }
 
+    // -- Provenance ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task A_pasted_material_is_listed_with_its_provenance_and_no_file_name()
+    {
+        // The bug this guards against is a rendered one: the row used to print "z pliku" followed
+        // by an empty <code> for every paste, because it had no Kind to branch on. Kind reaching
+        // the projection is what lets the page tell the two cases apart.
+        SeedPaste(UserA, "Wklejony fragment");
+
+        var row = Assert.Single(await CreateService(UserA).ListAsync());
+
+        Assert.Equal(SourceMaterialKind.Paste, row.Kind);
+        Assert.Null(row.OriginalFileName);
+        Assert.Equal("Wklejony fragment", row.Title);
+    }
+
+    [Fact]
+    public async Task An_imported_file_and_a_paste_keep_their_own_provenance_in_one_list()
+    {
+        // Both kinds in a single call, for the reason the note/no-note case is: on a uniform data
+        // set a projection that dropped Kind, or read it off the file name, still looks correct.
+        SeedMaterial(UserA, "Z pliku", Afternoon);
+        SeedPaste(UserA, "Wklejka", Afternoon.AddHours(-1));
+
+        var listed = await CreateService(UserA).ListAsync();
+
+        var fromFile = listed.Single(m => m.Title == "Z pliku");
+        var pasted = listed.Single(m => m.Title == "Wklejka");
+
+        Assert.Equal(SourceMaterialKind.MarkdownFile, fromFile.Kind);
+        Assert.Equal("Z pliku.md", fromFile.OriginalFileName);
+
+        Assert.Equal(SourceMaterialKind.Paste, pasted.Kind);
+        Assert.Null(pasted.OriginalFileName);
+    }
+
     // -- Ordering ----------------------------------------------------------------------------
 
     [Fact]
@@ -162,7 +200,36 @@ public sealed class SourceMaterialServiceTests : IDisposable
             Id = id,
             Title = title,
             Content = "Treść materiału źródłowego.",
+            // Stated rather than left to the enum's zero value: the point of these fixtures is
+            // that a row's provenance is a fact somebody wrote down.
+            Kind = SourceMaterialKind.MarkdownFile,
             OriginalFileName = $"{title}.md",
+            CreatedAt = createdAt ?? Afternoon
+        });
+
+        context.SaveChanges();
+
+        return id;
+    }
+
+    /// <summary>
+    /// Inserts a pasted material for <paramref name="ownerId"/> and returns its id — the shape
+    /// <c>Import.razor</c> saves from the paste tab: <see cref="SourceMaterialKind.Paste"/> and no
+    /// file name at all.
+    /// </summary>
+    private Guid SeedPaste(Guid ownerId, string title, DateTimeOffset? createdAt = null)
+    {
+        var id = Guid.NewGuid();
+
+        using var context = CreateContext(ownerId);
+
+        context.SourceMaterials.Add(new SourceMaterial
+        {
+            Id = id,
+            Title = title,
+            Content = "Wklejona treść.",
+            Kind = SourceMaterialKind.Paste,
+            OriginalFileName = null,
             CreatedAt = createdAt ?? Afternoon
         });
 

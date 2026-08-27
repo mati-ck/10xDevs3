@@ -39,7 +39,12 @@ Kryteria automatyczne (1.1-1.4, 2.1-2.5, 3.1-3.3) uruchomione i zielone. Kryteri
   - Tradeoff: Kupuje czystość modelu kosztem złamania reguły deployu — rollback przestaje być operacją jednym kliknięciem i wymaga ręcznego `UPDATE public.source_materials SET original_file_name = '' WHERE original_file_name IS NULL;` przed wycofaniem.
   - Confidence: MEDIUM — działa, ale opiera się na tym, że ktoś pod presją incydentu przeczyta procedurę.
   - Blind spot: Nie wiadomo, czy Coolify daje miejsce na hook przed rollbackiem.
-- **Decision**: FIXED — Fix A, następnie rozszerzony. Wklejka zapisuje `string.Empty`, a skoro nic już nie zapisuje `null`, zdejmowanie `NOT NULL` przestało cokolwiek kupować: migracja została przepisana tak, że dotyka wyłącznie `kind`, a `original_file_name` zachowuje `NOT NULL`. Kompatybilność rollbacku wynika teraz ze schematu, a nie z dyscypliny zapisu. Migracja nie była wcześniej nigdzie zaaplikowana, więc przepisanie jej było bezpieczne.
+- **Decision**: FIXED — Fix A, następnie rozszerzony, z jedną korektą po drodze.
+  1. Wklejka zapisuje `string.Empty` zamiast `null` (`af5b636`).
+  2. Skoro nic już nie zapisuje `null`, zdejmowanie `NOT NULL` przestało cokolwiek kupować. Pierwsza próba przepisała `AddSourceMaterialKind` w miejscu (`d1d298f`), **na błędnym założeniu, że migracja nie została nigdzie zaaplikowana**. Została — baza miała ją w `__EFMigrationsHistory`, `original_file_name` było już nullowalne i istniał jeden wiersz wklejki z `NULL`. `has-pending-model-changes` tego nie wykryło, bo porównuje model ze snapshotem, a nie ze schematem.
+  3. Korekta: `AddSourceMaterialKind` przywrócony do treści, która faktycznie poszła na bazę, a ograniczenie wraca osobną migracją `RestoreOriginalFileNameNotNull` (`20260827145532`) — backfill `NULL` → `''`, potem `SET NOT NULL`, bez trwałego `DEFAULT`. Zweryfikowane na bazie po zastosowaniu: `is_nullable = NO`, zero `NULL`-i, RLS nietknięte.
+  
+  Wniosek na przyszłość: przed jakąkolwiek edycją istniejącej migracji sprawdź `__EFMigrationsHistory` w bazie, a nie `has-pending-model-changes`.
 
 ### F2 — Zbyt wąski catch gubi wklejony materiał przy wygasłej sesji
 

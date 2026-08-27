@@ -12,8 +12,8 @@ using _10xnotes.Data;
 namespace _10xnotes.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260827112147_AddSourceMaterialKind")]
-    partial class AddSourceMaterialKind
+    [Migration("20260827145532_RestoreOriginalFileNameNotNull")]
+    partial class RestoreOriginalFileNameNotNull
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -267,6 +267,7 @@ namespace _10xnotes.Migrations
                         .HasColumnName("kind");
 
                     b.Property<string>("OriginalFileName")
+                        .IsRequired()
                         .HasMaxLength(260)
                         .HasColumnType("character varying(260)")
                         .HasColumnName("original_file_name");

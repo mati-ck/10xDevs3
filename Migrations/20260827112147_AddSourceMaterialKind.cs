@@ -20,15 +20,15 @@ namespace _10xnotes.Migrations
     /// old code simply never selects it.
     /// </para>
     /// <para>
-    /// <c>original_file_name</c> is deliberately left NOT NULL. An earlier draft dropped the
-    /// constraint so a paste could store null, which read as the more honest model — but
-    /// <c>Kind</c> already states that a row has no file, so the column would have carried the
-    /// same fact a second time at a real cost: the pre-change model maps it as <c>IsRequired()</c>
-    /// over a non-nullable string, and EF throws on materialising a null into it (verified:
-    /// <c>InvalidOperationException: The data is NULL at ordinal N</c>). A rollback reverts code
-    /// and not schema, so the first paste would have broken the material page for the version
-    /// rolled back to. A paste stores an empty string instead, and this migration touches only
-    /// <c>kind</c> — which is why <c>Down</c> has nothing to backfill.
+    /// <c>original_file_name</c> needs more care than "the old code never writes null", because
+    /// that only covers writes. The pre-change model maps the column as <c>IsRequired()</c> over a
+    /// non-nullable string, and EF throws on materialising a null into it — verified:
+    /// <c>InvalidOperationException: The data is NULL at ordinal N</c>. Dropping NOT NULL is
+    /// therefore safe only as long as nothing actually stores a null, which is why the paste path
+    /// writes an empty string (see <c>Import.razor</c>). If a null ever reaches this column, a
+    /// rollback stops being a one-click operation and needs
+    /// <c>UPDATE public.source_materials SET original_file_name = '' WHERE original_file_name IS NULL;</c>
+    /// first — the same statement <c>Down</c> already runs.
     /// </para>
     /// <para>
     /// RLS is deliberately untouched: <c>source_materials</c> has had it enabled since
@@ -56,6 +56,11 @@ namespace _10xnotes.Migrations
 
                 ALTER TABLE public.source_materials
                   ALTER COLUMN kind SET NOT NULL;
+
+                -- The other half: a paste has no file behind it, so the name has to be allowed to
+                -- be absent. No backfill needed in this direction.
+                ALTER TABLE public.source_materials
+                  ALTER COLUMN original_file_name DROP NOT NULL;
                 """);
         }
 
@@ -63,8 +68,16 @@ namespace _10xnotes.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql("""
-                -- Nothing to undo but the column: original_file_name was never touched, so there
-                -- are no rows this migration made possible and no backfill to run before dropping.
+                -- Rows created by the paste path carry a null file name, which is data this very
+                -- migration made possible. Restoring NOT NULL without filling them first would
+                -- make the rollback fail on exactly the rows the feature produced.
+                UPDATE public.source_materials
+                  SET original_file_name = ''
+                  WHERE original_file_name IS NULL;
+
+                ALTER TABLE public.source_materials
+                  ALTER COLUMN original_file_name SET NOT NULL;
+
                 ALTER TABLE public.source_materials
                   DROP COLUMN kind;
                 """);

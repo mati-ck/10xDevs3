@@ -19,7 +19,7 @@ Na `/materials/import` widać przełącznik „Wklej tekst" / „Plik .md", domy
 | Decyzja | Wybór | Dlaczego | Źródło |
 | --- | --- | --- | --- |
 | Trasa | Jedna strona `/materials/import`, dwie zakładki | Roadmapa nazywa S-02 drugim wejściem, nie drugim przepływem; wspólny tytuł, zapis i przekierowanie zostają w jednym komponencie | Plan |
-| Proweniencja | Kolumna `kind`; `original_file_name` zostaje `NOT NULL` | Mówi, czym wiersz jest, zamiast wnioskować to z pustego stringa; wzorzec `NoteEvent.Kind`. Nullowalność wycofana w przeglądzie implementacji (F1) — niosłaby ten sam fakt drugi raz i psuła rollback | Plan + review |
+| Proweniencja | Kolumna `kind`; `original_file_name` wraca do `NOT NULL` drugą migracją | Mówi, czym wiersz jest, zamiast wnioskować to z pustego stringa; wzorzec `NoteEvent.Kind`. Nullowalność wycofana w przeglądzie implementacji (F1) — niosłaby ten sam fakt drugi raz i psuła rollback | Plan + review |
 | Limit wklejki | 128 K **znaków** (import: 128 KB **bajtów**) | Kto może zaimportować dokument jako plik, ma móc wkleić jego treść — asymetria czytałaby się jak błąd | Plan |
 | Granica SignalR | `max(notatka, wklejka) × 3 + framing` = 458 752 B | Wklejka staje się największą rzeczą przechodzącą przez hub; przekroczenie zrywa obwód, a nie zwraca błąd. Mnożnik to 3, nie 6: hub negocjuje `blazorpack` (surowy UTF-8), nie JSON — skorygowane w przeglądzie implementacji (F3) | Plan (z `lessons.md`) |
 | Walidator | Osobny `PasteValidator` + wspólny `Truncate` | Reguły importu dotyczą bajtów i nazwy pliku; wciśnięcie obu w jedną sygnaturę zrobiłoby z każdej gałęzi warunek | Plan |

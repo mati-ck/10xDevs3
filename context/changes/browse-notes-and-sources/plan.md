@@ -295,11 +295,11 @@ Brak migracji i brak zmian w schemacie. Żadna nowa tabela nie powstaje, więc r
 
 #### Automated
 
-- [x] 2.1 Build jest czysty: `dotnet build`
-- [x] 2.2 Cała suite przechodzi: `dotnet test`
-- [x] 2.3 `Components/Pages/Home.razor` nie istnieje
-- [x] 2.4 Żadna z nowych stron nie deklaruje `@rendermode`
-- [x] 2.5 Żadna z nowych stron nie wstrzykuje kontekstu ani fabryki kontekstu
+- [x] 2.1 Build jest czysty: `dotnet build` — 2fb17cd
+- [x] 2.2 Cała suite przechodzi: `dotnet test` — 2fb17cd
+- [x] 2.3 `Components/Pages/Home.razor` nie istnieje — 2fb17cd
+- [x] 2.4 Żadna z nowych stron nie deklaruje `@rendermode` — 2fb17cd
+- [x] 2.5 Żadna z nowych stron nie wstrzykuje kontekstu ani fabryki kontekstu — 2fb17cd
 
 #### Manual
 

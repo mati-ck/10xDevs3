@@ -1,8 +1,9 @@
+using System.Text;
+using System.Text.Json;
 using _10xnotes.Hosting;
 using _10xnotes.Notes;
 using _10xnotes.SourceMaterials;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -19,12 +20,12 @@ namespace _10xNotes.Tests;
 /// a note that had never been saved. A limit the application advertises must be one its transport
 /// can carry, and that is an arithmetic property, so it belongs in a test rather than in a comment.
 /// <para>
-/// Every measurement here goes through the protocol the components hub actually negotiates —
-/// <c>blazorpack</c>, resolved from the same registration <c>Program.cs</c> builds — rather than
-/// through a stand-in. Measuring JSON instead would pin the arithmetic to escape expansion the
-/// real transport never performs, which is how a bound ends up twice the size it needs to be while
-/// the test still passes. If Blazor ever changes what it negotiates, <see cref="Blazorpack"/>
-/// fails loudly instead of quietly measuring the wrong thing.
+/// These measurements are a pessimistic proxy, not the real transport, and that is on purpose —
+/// see <see cref="WireBytes"/>. What this file can prove is arithmetic: that the bound the
+/// application configures is at least as large as the text it advertises. What it cannot prove is
+/// that the bound is large enough for the real event-argument path, because that only shows up in
+/// a browser. The one time this class was "improved" to measure the negotiated protocol, it
+/// certified a bound that broke the feature.
 /// </para>
 /// <para>
 /// Add a third large field to any page and it needs a case here too.
@@ -33,30 +34,20 @@ namespace _10xNotes.Tests;
 public sealed class HubWireLimitTests
 {
     /// <summary>
-    /// The protocol the components hub negotiates, resolved the way the application registers it.
+    /// A deliberately pessimistic stand-in for what this text costs on the wire.
     /// </summary>
-    private static IHubProtocol Blazorpack()
-    {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddRazorComponents().AddInteractiveServerComponents();
-
-        var protocols = services.BuildServiceProvider().GetServices<IHubProtocol>().ToList();
-
-        return protocols.SingleOrDefault(p => p.Name == "blazorpack")
-            ?? throw new InvalidOperationException(
-                "The components hub no longer registers a 'blazorpack' protocol; registered: "
-                + string.Join(", ", protocols.Select(p => p.Name))
-                + ". HubWireLimits.WorstCaseBytesPerChar is derived from blazorpack's raw-UTF-8 "
-                + "string encoding — re-derive it for whatever replaced it before deleting this.");
-    }
-
-    /// <summary>
-    /// Bytes this text costs on the wire as the single argument of a hub invocation — the shape
-    /// every large field on these pages travels in.
-    /// </summary>
+    /// <remarks>
+    /// JSON escaping, not the negotiated protocol. An earlier version of this file measured
+    /// <c>IHubProtocol.GetMessageBytes</c> on the registered <c>blazorpack</c> protocol, on the
+    /// reasoning that measuring the real transport must be more truthful than measuring a proxy.
+    /// It was not: blazorpack's raw-UTF-8 count is *smaller* than what the path actually costs, so
+    /// the test happily passed a bound that tore the circuit down in a browser. See the remarks on
+    /// <c>HubWireLimits.WorstCaseBytesPerChar</c> for the measurement. This proxy is kept because
+    /// it produces a bound that empirically works, and it is documented as a proxy so nobody
+    /// "corrects" it a second time.
+    /// </remarks>
     private static int WireBytes(string text) =>
-        Blazorpack().GetMessageBytes(new InvocationMessage("Save", [text])).Length;
+        Encoding.UTF8.GetByteCount(JsonSerializer.Serialize(text));
 
     /// <summary>
     /// The worst case a note can be by the time it reaches the hub: every UTF-16 code unit a

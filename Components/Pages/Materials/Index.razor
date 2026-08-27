@@ -58,13 +58,17 @@ else
                         </text>
                     }
 
+                    @* The leading space lives inside <text> on purpose: Razor drops whitespace at
+                       the boundary of a <text> block, so without it the separator renders flush
+                       against the date — "14:24· Otwórz notatkę". The note list has no <text> here
+                       and so does not need it. *@
                     @if (material.NoteId is { } noteId)
                     {
-                        <text>· <a href="/notes/@noteId">Otwórz notatkę</a></text>
+                        <text> · <a href="/notes/@noteId">Otwórz notatkę</a></text>
                     }
                     else
                     {
-                        <text>· Brak notatki</text>
+                        <text> · Brak notatki</text>
                     }
                 </div>
             </li>

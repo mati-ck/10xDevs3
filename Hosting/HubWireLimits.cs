@@ -32,21 +32,28 @@ public static class HubWireLimits
     /// Worst-case bytes on the wire per UTF-16 code unit of user text.
     /// </summary>
     /// <remarks>
-    /// Both text limits count UTF-16 code units, not bytes, and one unit can cost more than one
-    /// byte by the time it reaches the hub: three bytes for a non-Latin BMP character encoded as
-    /// UTF-8. Astral characters cost four bytes but arrive as a surrogate *pair*, so they are two
-    /// bytes per code unit — three is the ceiling.
+    /// Both text limits count UTF-16 code units, not bytes, and one unit can cost far more than
+    /// one byte by the time it reaches the hub: three bytes for a non-Latin BMP character encoded
+    /// as UTF-8, and six for a character escaped as <c>\uXXXX</c>. Six is the ceiling of both.
     /// <para>
-    /// It is deliberately not six. Six would be the ceiling if the payload were JSON, where a
-    /// control character escapes to <c>\uXXXX</c> — but the components hub negotiates
-    /// <c>blazorpack</c> (<c>BlazorPackHubProtocol</c>, MessagePack), which writes strings as raw
-    /// UTF-8 with no escape expansion. Pinning this to the protocol rather than to a guess is what
-    /// keeps the bound from being twice what it needs to be; each circuit may buffer a frame this
-    /// large. <c>NoteWireLimitTests</c> measures through the registered protocol, so if Blazor
-    /// ever changes what it negotiates, the test fails rather than the users.
+    /// Six has been challenged once and the challenge was wrong, so the reasoning is recorded here
+    /// rather than left to be re-derived. The argument was that the components hub negotiates
+    /// <c>blazorpack</c> (MessagePack, raw UTF-8), which would make three the true ceiling and this
+    /// bound twice what it needs to be. Lowering it to three was measured in a browser on
+    /// 2026-08-27: a paste of 131 072 <c>ż</c> characters — the advertised limit, 262 144 bytes of
+    /// UTF-8, comfortably inside the 458 752 that three would have produced — did **not** reach the
+    /// server. The circuit was torn down and silently resumed, the value never arrived, and the
+    /// user got no message at all. At six the identical paste arrives and the reconnect modal never
+    /// moves. Whatever the event-argument payload costs on this path, it is not the raw UTF-8
+    /// length of the string, and measuring <c>IHubProtocol.GetMessageBytes</c> does not capture it.
+    /// </para>
+    /// <para>
+    /// So: do not lower this number on the strength of an argument about the protocol. The only
+    /// evidence that counts is a paste at <c>PasteValidator.MaxContentLength</c> reaching the
+    /// server in a real browser, and no test in this project can produce it.
     /// </para>
     /// </remarks>
-    private const int WorstCaseBytesPerChar = 3;
+    private const int WorstCaseBytesPerChar = 6;
 
     /// <summary>
     /// Room for everything travelling beside the text: the title, the hub protocol's own framing,

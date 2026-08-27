@@ -167,6 +167,73 @@ public sealed class NoteServiceTests : IDisposable
         Assert.Null(await CreateService(UserA).GetByMaterialAsync(material));
     }
 
+    // -- Listing --------------------------------------------------------------------------
+
+    [Fact]
+    public async Task The_list_shows_only_the_signed_in_users_notes()
+    {
+        // The executable form of the PRD privacy guardrail for this list. It passes because of
+        // the global query filter — ListAsync writes no owner filter of its own, deliberately.
+        var mine = SeedMaterial(UserA);
+        var theirs = SeedMaterial(UserB);
+
+        await CreateService(UserA).AcceptAsync(mine, "Moja", Edited, Draft, PromptVersion, Model);
+        await CreateService(UserB).AcceptAsync(theirs, "Cudza", Edited, Draft, PromptVersion, Model);
+
+        var listed = await CreateService(UserA).ListAsync();
+
+        var row = Assert.Single(listed);
+        Assert.Equal("Moja", row.Title);
+        Assert.Equal(mine, row.SourceMaterialId);
+    }
+
+    [Fact]
+    public async Task The_list_puts_the_most_recently_saved_note_first()
+    {
+        var clock = new FixedClock(Afternoon);
+        var service = CreateService(UserA, clock);
+        var older = SeedMaterial(UserA);
+        var newer = SeedMaterial(UserA);
+
+        await service.AcceptAsync(older, "Starsza", Edited, Draft, PromptVersion, Model);
+        clock.Now = Afternoon.AddHours(3);
+        await service.AcceptAsync(newer, "Nowsza", Edited, Draft, PromptVersion, Model);
+
+        var listed = await service.ListAsync();
+
+        Assert.Equal(new[] { "Nowsza", "Starsza" }, listed.Select(n => n.Title));
+    }
+
+    [Fact]
+    public async Task Notes_saved_in_the_same_instant_come_back_in_a_stable_order()
+    {
+        // The clock never moves, so both notes carry the same UpdatedAt and Id is the only thing
+        // left to decide. Without the tie-break the order of these two rows is undefined and can
+        // change between refreshes.
+        var service = CreateService(UserA);
+        var first = SeedMaterial(UserA);
+        var second = SeedMaterial(UserA);
+
+        await service.AcceptAsync(first, "Pierwsza", Edited, Draft, PromptVersion, Model);
+        await service.AcceptAsync(second, "Druga", Edited, Draft, PromptVersion, Model);
+
+        var listed = await service.ListAsync();
+
+        Assert.Equal(2, listed.Count);
+        Assert.Equal(
+            listed.Select(n => n.Id.ToString()).Order(StringComparer.OrdinalIgnoreCase),
+            listed.Select(n => n.Id.ToString()));
+    }
+
+    [Fact]
+    public async Task The_list_of_a_user_with_no_notes_is_empty_rather_than_null()
+    {
+        var listed = await CreateService(UserA).ListAsync();
+
+        Assert.NotNull(listed);
+        Assert.Empty(listed);
+    }
+
     // -- Re-saving ------------------------------------------------------------------------
 
     [Fact]
@@ -391,7 +458,7 @@ public sealed class NoteServiceTests : IDisposable
     /// than bypassing it.
     /// </summary>
     private UserScopedDbContextFactory CreateFactory(Guid? userId) =>
-        new(new SqliteContextFactory(_connection), new StubCurrentUserAccessor(userId));
+        new(new SqliteTestContext.Factory(_connection), new StubCurrentUserAccessor(userId));
 
     /// <summary>
     /// Inserts a material for <paramref name="ownerId"/> and returns its id.
@@ -420,23 +487,11 @@ public sealed class NoteServiceTests : IDisposable
         return id;
     }
 
-    private AppDbContext CreateContext(Guid? userId)
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(_connection)
-            .Options;
-
-        return new AppDbContext(options) { CurrentUserId = userId ?? Guid.Empty };
-    }
+    // Built through SqliteTestContext, not by hand: it applies the tick converter that lets
+    // SQLite order by a timestamp at all, and the schema and every reader must agree on it.
+    private AppDbContext CreateContext(Guid? userId) => SqliteTestContext.Create(_connection, userId);
 
     public void Dispose() => _connection.Dispose();
-
-    /// <summary>Hands out contexts on the shared in-memory connection, with no user applied.</summary>
-    private sealed class SqliteContextFactory(SqliteConnection connection) : IDbContextFactory<AppDbContext>
-    {
-        public AppDbContext CreateDbContext() =>
-            new(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection).Options);
-    }
 
     /// <summary>A clock the test moves by hand, so "three hours later" does not require waiting.</summary>
     private sealed class FixedClock(DateTimeOffset now) : TimeProvider

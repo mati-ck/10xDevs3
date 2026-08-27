@@ -44,6 +44,33 @@ public sealed class NoteService(
         return await db.Notes.FirstOrDefaultAsync(n => n.SourceMaterialId == materialId, cancellationToken);
     }
 
+    /// <summary>
+    /// Every note the signed-in user has saved, newest save first, as list rows rather than
+    /// entities.
+    /// </summary>
+    /// <remarks>
+    /// Projects into <see cref="NoteListItem"/> before materialising, so the SQL never selects
+    /// <c>content</c> or <c>draft_content</c> — 64 KB each, and the list shows neither.
+    /// <para>
+    /// No owner filter is written here, exactly as everywhere else in this class: the global
+    /// query filter is what makes the list private, and it is what the isolation test proves.
+    /// The query is deliberately unbounded — see the plan's Performance Considerations.
+    /// </para>
+    /// </remarks>
+    public async Task<IReadOnlyList<NoteListItem>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbContextFactory.CreateAsync(cancellationToken);
+
+        return await db.Notes
+            // Id breaks the tie: updated_at defaults to now() in Postgres, and two notes stamped
+            // in the same millisecond would otherwise come back in an order that can change
+            // between refreshes.
+            .OrderByDescending(n => n.UpdatedAt)
+            .ThenBy(n => n.Id)
+            .Select(n => new NoteListItem(n.Id, n.Title, n.UpdatedAt, n.SourceMaterialId))
+            .ToListAsync(cancellationToken);
+    }
+
     /// <summary>The note behind <c>/notes/{id}</c>, or <c>null</c> when it is missing or not theirs.</summary>
     public async Task<Note?> GetAsync(Guid noteId, CancellationToken cancellationToken = default)
     {

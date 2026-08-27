@@ -285,11 +285,11 @@ Brak migracji i brak zmian w schemacie. Żadna nowa tabela nie powstaje, więc r
 
 #### Automated
 
-- [ ] 1.1 Build jest czysty: `dotnet build`
-- [ ] 1.2 Cała suite przechodzi: `dotnet test`
-- [ ] 1.3 `DataAccessBoundaryTests` przechodzi, czyli nowy serwis nie bierze `DbContext` ani `IDbContextFactory<>`
-- [ ] 1.4 Nowe przypadki z §6 przechodzą, łącznie z izolacją właściciela na obu listach i wariantami `NoteId`
-- [ ] 1.5 W repo nie powstał żaden nowy plik w `Migrations/`
+- [x] 1.1 Build jest czysty: `dotnet build`
+- [x] 1.2 Cała suite przechodzi: `dotnet test`
+- [x] 1.3 `DataAccessBoundaryTests` przechodzi, czyli nowy serwis nie bierze `DbContext` ani `IDbContextFactory<>`
+- [x] 1.4 Nowe przypadki z §6 przechodzą, łącznie z izolacją właściciela na obu listach i wariantami `NoteId`
+- [x] 1.5 W repo nie powstał żaden nowy plik w `Migrations/`
 
 ### Phase 2: Strony list i wejście do treści
 

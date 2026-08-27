@@ -338,10 +338,10 @@ Jedna migracja, zgodna wstecz w obie strony. Wersja aplikacji sprzed zmiany dzia
 
 #### Automated
 
-- [x] 1.1 Projekt się kompiluje: `dotnet build`
-- [x] 1.2 Zestaw testów przechodzi: `dotnet test`
-- [x] 1.3 `dotnet ef migrations has-pending-model-changes` nie zgłasza zmian
-- [x] 1.4 `DataAccessBoundaryTests` przechodzi
+- [x] 1.1 Projekt się kompiluje: `dotnet build` — 7f709af
+- [x] 1.2 Zestaw testów przechodzi: `dotnet test` — 7f709af
+- [x] 1.3 `dotnet ef migrations has-pending-model-changes` nie zgłasza zmian — 7f709af
+- [x] 1.4 `DataAccessBoundaryTests` przechodzi — 7f709af
 
 #### Manual
 
@@ -353,15 +353,15 @@ Jedna migracja, zgodna wstecz w obie strony. Wersja aplikacji sprzed zmiany dzia
 
 #### Automated
 
-- [ ] 2.1 Projekt się kompiluje: `dotnet build`
-- [ ] 2.2 Cały zestaw przechodzi: `dotnet test`
-- [ ] 2.3 `PasteValidatorTests` pokrywa obie przyczyny odrzucenia i wszystkie gałęzie `DeriveTitle`
-- [ ] 2.4 `NoteWireLimitTests` przechodzi dla wklejki na pełnym limicie i nadal wykazuje niewystarczalność domyślnej wartości SignalR
-- [ ] 2.5 `MarkdownImportValidatorTests` i `NoteValidatorTests` przechodzą bez zmian po przeniesieniu `Truncate`
+- [x] 2.1 Projekt się kompiluje: `dotnet build`
+- [x] 2.2 Cały zestaw przechodzi: `dotnet test`
+- [x] 2.3 `PasteValidatorTests` pokrywa obie przyczyny odrzucenia i wszystkie gałęzie `DeriveTitle`
+- [x] 2.4 `NoteWireLimitTests` przechodzi dla wklejki na pełnym limicie i nadal wykazuje niewystarczalność domyślnej wartości SignalR
+- [x] 2.5 `MarkdownImportValidatorTests` i `NoteValidatorTests` przechodzą bez zmian po przeniesieniu `Truncate`
 
 #### Manual
 
-- [ ] 2.6 Wyliczona wartość `MaximumReceiveMessageSize` to 851 968
+- [x] 2.6 Wyliczona wartość `MaximumReceiveMessageSize` to 851 968
 - [ ] 2.7 Aplikacja startuje i zapis notatki 64 KB nadal działa
 
 ### Phase 3: Przełącznik wejścia na `/materials/import`

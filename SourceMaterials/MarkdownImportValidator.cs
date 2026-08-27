@@ -67,33 +67,7 @@ public static class MarkdownImportValidator
             return FallbackTitle;
         }
 
-        return Truncate(title, MaxTitleLength).TrimEnd();
-    }
-
-    /// <summary>
-    /// Cuts to at most <paramref name="maxLength"/> UTF-16 units without splitting a character.
-    /// </summary>
-    /// <remarks>
-    /// A plain <c>value[..maxLength]</c> slices by code unit, so a cut landing inside a surrogate
-    /// pair — any emoji, which filenames carry routinely — leaves a lone surrogate behind. That is
-    /// not a valid string: it either encodes to U+FFFD or throws on the way to Postgres. Polish
-    /// diacritics are all BMP, so the naive version looks correct in every realistic test.
-    /// </remarks>
-    private static string Truncate(string value, int maxLength)
-    {
-        if (value.Length <= maxLength)
-        {
-            return value;
-        }
-
-        var cut = maxLength;
-
-        if (char.IsHighSurrogate(value[cut - 1]))
-        {
-            cut--;
-        }
-
-        return value[..cut];
+        return TextLimits.Truncate(title, MaxTitleLength).TrimEnd();
     }
 
     /// <summary>
@@ -114,7 +88,7 @@ public static class MarkdownImportValidator
 
         var name = fileName[(fileName.LastIndexOfAny(['/', '\\']) + 1)..].Trim();
 
-        return Truncate(name, MaxFileNameLength);
+        return TextLimits.Truncate(name, MaxFileNameLength);
     }
 
     /// <summary>

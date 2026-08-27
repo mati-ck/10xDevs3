@@ -3,7 +3,7 @@ project: "10xNotes"
 version: 1
 status: draft
 created: 2026-07-02
-updated: 2026-08-17
+updated: 2026-08-18
 prd_version: 1
 main_goal: speed
 top_blocker: capacity
@@ -36,8 +36,8 @@ Sam przepływ pozostaje niepodzielny jako **cel**, ale jest dostarczany w trzech
 | S-01a | markdown-import            | zaimportować plik Markdown i mieć go zapisanym na koncie          | F-01, F-02    | FR-004                          | done     |
 | S-01b | ai-note-generation         | wygenerować notatkę AI obok materiału (jeszcze bez zapisu)        | S-01a         | US-01 (część), FR-005           | done     |
 | S-01c | note-review-save           | poprawić wygenerowaną notatkę i zapisać ją (zapis = akceptacja)   | S-01b         | US-01 (domknięcie), FR-006, FR-008 | done     |
-| S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01c         | FR-003                          | proposed |
-| S-03  | browse-notes-and-sources   | przeglądać własne notatki i materiały źródłowe                    | S-01c, F-02   | FR-007                          | proposed |
+| S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01c         | FR-003                          | planning |
+| S-03  | browse-notes-and-sources   | przeglądać własne notatki i materiały źródłowe                    | S-01c, F-02   | FR-007                          | planning |
 | S-04  | edit-source-material       | edytować zapisany materiał źródłowy                               | S-01a         | FR-009                          | blocked  |
 | S-05  | delete-note                | usunąć własną notatkę                                             | S-01c         | FR-010                          | proposed |
 | S-06  | delete-source-material     | usunąć materiał źródłowy                                          | S-01a         | FR-011                          | blocked  |
@@ -149,7 +149,7 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Drugie wejście do istniejącej pętli generowania — niskie ryzyko; jedyna pułapka to traktowanie wklejania jak osobnego przepływu zamiast drugiego wariantu wejścia obok S-01a.
-- **Status:** proposed
+- **Status:** planning
 
 ### S-03: Przeglądanie własnych notatek i materiałów
 
@@ -162,7 +162,7 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 - **Unknowns:**
   - Czy materiał źródłowy ma być osobną listą najwyższego poziomu, czy dostępny głównie obok swojej notatki? — Owner: użytkownik. Block: no. (PRD zostawia to „do rozstrzygnięcia w designie" przy FR-007; nie blokuje planowania.)
 - **Risk:** Sekwencjonowany po S-01c, bo bez zapisanych notatek nie ma czego przeglądać; ryzyko to rozrost widoku w stronę wyszukiwania/filtrów spoza MVP.
-- **Status:** proposed
+- **Status:** planning
 
 ### S-04: Edycja materiału źródłowego
 

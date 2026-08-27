@@ -3,6 +3,7 @@ using _10xnotes.Auth;
 using _10xnotes.Components;
 using _10xnotes.Data;
 using _10xnotes.Generation;
+using _10xnotes.Hosting;
 using _10xnotes.Notes;
 using _10xnotes.Time;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -20,14 +21,15 @@ using OpenAI;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// The hub bound is raised off SignalR's 32 KB default because the note editor sends a whole note
-// as one invocation, and the app advertises a 64 KB note limit. Left at the default, a note over
-// the wire bound aborts the circuit rather than returning an error — the user sees a reconnect
-// modal and loses work that was never saved. Do not remove this call; see NoteWireLimits.
+// The hub bound is raised off SignalR's 32 KB default because two pages send a whole user-typed
+// value as one invocation: the note editor (64 K characters) and the add-material page's paste box
+// (128 K characters). Left at the default, either one over the wire bound aborts the circuit rather
+// than returning an error — the user sees a reconnect modal and loses work that was never saved.
+// Do not remove this call, and do not re-derive the number from one limit; see HubWireLimits.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddHubOptions(options =>
-        options.MaximumReceiveMessageSize = NoteWireLimits.MaximumReceiveMessageSize);
+        options.MaximumReceiveMessageSize = HubWireLimits.MaximumReceiveMessageSize);
 
 // Contexts are created per operation by UserScopedDbContextFactory, not held per circuit —
 // a Blazor Server scope lives as long as the circuit, which would freeze the user's identity.

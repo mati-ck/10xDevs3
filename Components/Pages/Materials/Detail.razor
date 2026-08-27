@@ -33,19 +33,31 @@
 {
     <h1>Nie znaleziono materiału</h1>
     <p>Ten materiał nie istnieje albo nie należy do Twojego konta.</p>
-    <a href="/materials/import">Zaimportuj nowy materiał</a>
+    <a href="/materials/import">Dodaj nowy materiał</a>
 }
 else
 {
     <h1>@material.Title</h1>
 
-    <p class="text-secondary">
-        @* ToDisplayTime, not ToLocalTime: "local" resolves against the container's clock, which
-           is UTC. The culture is named explicitly so the month renders in Polish rather than in
-           whatever the server happens to default to. *@
-        Zaimportowano @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)
-        z pliku <code>@material.OriginalFileName</code>.
-    </p>
+    @* ToDisplayTime, not ToLocalTime: "local" resolves against the container's clock, which is
+       UTC. The culture is named explicitly so the month renders in Polish rather than in whatever
+       the server happens to default to. *@
+    @* Branched on Kind, not on OriginalFileName being null: provenance is a fact the row states,
+       and reading it off an absent file name would make a future bug in the import path look
+       like a paste. The date is in both branches — it is the one thing every material has. *@
+    @if (material.Kind == SourceMaterialKind.Paste)
+    {
+        <p class="text-secondary">
+            Wklejono @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture).
+        </p>
+    }
+    else
+    {
+        <p class="text-secondary">
+            Zaimportowano @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)
+            z pliku <code>@material.OriginalFileName</code>.
+        </p>
+    }
 
     @* Two columns so the note can be checked against the source without scrolling between them —
        the PRD guardrail is that the material stays available beside the note. They stack on a

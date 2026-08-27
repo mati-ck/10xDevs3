@@ -64,7 +64,19 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(m => m.Id).HasDefaultValueSql("gen_random_uuid()");
             entity.Property(m => m.Title).IsRequired().HasMaxLength(200);
             entity.Property(m => m.Content).IsRequired();
-            entity.Property(m => m.OriginalFileName).IsRequired().HasMaxLength(260);
+
+            // Text rather than an int, for the same reason NoteEvent.Kind is — see the comment
+            // there. Required: every row states its provenance, including the ones that predate
+            // the column and were backfilled to 'MarkdownFile'.
+            entity.Property(m => m.Kind)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasConversion<string>();
+
+            // Optional, unlike Title: a pasted material has no file behind it, so there is no
+            // name to store. Kind is what says which case a row is in — do not infer it from
+            // this being null.
+            entity.Property(m => m.OriginalFileName).HasMaxLength(260);
             entity.Property(m => m.CreatedAt).HasDefaultValueSql("now()");
 
             // Not unique, unlike the one on Profile: a user owns many materials. It exists

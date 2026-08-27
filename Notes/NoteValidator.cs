@@ -1,3 +1,5 @@
+using _10xnotes.SourceMaterials;
+
 namespace _10xnotes.Notes;
 
 /// <summary>
@@ -42,7 +44,7 @@ public static class NoteValidator
             return FallbackTitle;
         }
 
-        return Truncate(title, MaxTitleLength).TrimEnd();
+        return TextLimits.Truncate(title, MaxTitleLength).TrimEnd();
     }
 
     /// <summary>
@@ -82,31 +84,5 @@ public static class NoteValidator
         }
 
         return NoteValidationResult.Success(trimmedTitle, body);
-    }
-
-    /// <summary>
-    /// Cuts to at most <paramref name="maxLength"/> UTF-16 units without splitting a character.
-    /// </summary>
-    /// <remarks>
-    /// The same trap <c>MarkdownImportValidator</c> documents: a plain <c>value[..maxLength]</c>
-    /// slices by code unit, so a cut landing inside a surrogate pair leaves a lone surrogate that
-    /// is not a valid string. Polish diacritics are all BMP, so the naive version looks correct
-    /// in every realistic test and fails on the first emoji in a material title.
-    /// </remarks>
-    private static string Truncate(string value, int maxLength)
-    {
-        if (value.Length <= maxLength)
-        {
-            return value;
-        }
-
-        var cut = maxLength;
-
-        if (char.IsHighSurrogate(value[cut - 1]))
-        {
-            cut--;
-        }
-
-        return value[..cut];
     }
 }

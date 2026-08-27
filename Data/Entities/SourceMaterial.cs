@@ -1,7 +1,8 @@
 namespace _10xnotes.Data.Entities;
 
 /// <summary>
-/// A Markdown document the user imported, kept as the source of truth a note is generated from.
+/// Text the user supplied — an imported Markdown file or a paste — kept as the source of
+/// truth a note is generated from.
 /// </summary>
 /// <remarks>
 /// The first domain entity in the project. It follows the ownership convention
@@ -38,10 +39,21 @@ public sealed class SourceMaterial : IOwnedByUser
     public string Content { get; set; } = string.Empty;
 
     /// <summary>
+    /// Where this material came from. Read it rather than inferring provenance from
+    /// <see cref="OriginalFileName"/> being absent.
+    /// </summary>
+    public SourceMaterialKind Kind { get; set; }
+
+    /// <summary>
     /// The file name as uploaded. Kept alongside <see cref="Title"/> so editing the title
     /// never costs the user the provenance of where the material came from.
+    /// <para>
+    /// <c>null</c> means "this material did not come from a file" — a paste — not "the name
+    /// could not be read". <see cref="Kind"/> is what states that; this property only carries
+    /// the name when there is one.
+    /// </para>
     /// </summary>
-    public string OriginalFileName { get; set; } = string.Empty;
+    public string? OriginalFileName { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
 }

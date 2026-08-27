@@ -368,9 +368,9 @@ Jedna migracja, zgodna wstecz w obie strony. Wersja aplikacji sprzed zmiany dzia
 
 #### Automated
 
-- [x] 3.1 Projekt się kompiluje: `dotnet build`
-- [x] 3.2 Cały zestaw przechodzi: `dotnet test`
-- [x] 3.3 `DataAccessBoundaryTests` przechodzi
+- [x] 3.1 Projekt się kompiluje: `dotnet build` — 70537e4
+- [x] 3.2 Cały zestaw przechodzi: `dotnet test` — 70537e4
+- [x] 3.3 `DataAccessBoundaryTests` przechodzi — 70537e4
 
 #### Manual
 

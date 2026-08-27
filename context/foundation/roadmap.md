@@ -37,7 +37,7 @@ Sam przepływ pozostaje niepodzielny jako **cel**, ale jest dostarczany w trzech
 | S-01b | ai-note-generation         | wygenerować notatkę AI obok materiału (jeszcze bez zapisu)        | S-01a         | US-01 (część), FR-005           | done     |
 | S-01c | note-review-save           | poprawić wygenerowaną notatkę i zapisać ją (zapis = akceptacja)   | S-01b         | US-01 (domknięcie), FR-006, FR-008 | done     |
 | S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01c         | FR-003                          | in-progress |
-| S-03  | browse-notes-and-sources   | przeglądać własne notatki i materiały źródłowe                    | S-01c, F-02   | FR-007                          | planning |
+| S-03  | browse-notes-and-sources   | przeglądać własne notatki i materiały źródłowe                    | S-01c, F-02   | FR-007                          | in-progress |
 | S-04  | edit-source-material       | edytować zapisany materiał źródłowy                               | S-01a         | FR-009                          | blocked  |
 | S-05  | delete-note                | usunąć własną notatkę                                             | S-01c         | FR-010                          | proposed |
 | S-06  | delete-source-material     | usunąć materiał źródłowy                                          | S-01a         | FR-011                          | blocked  |
@@ -162,7 +162,7 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 - **Unknowns:**
   - Czy materiał źródłowy ma być osobną listą najwyższego poziomu, czy dostępny głównie obok swojej notatki? — Owner: użytkownik. Block: no. (PRD zostawia to „do rozstrzygnięcia w designie" przy FR-007; nie blokuje planowania.)
 - **Risk:** Sekwencjonowany po S-01c, bo bez zapisanych notatek nie ma czego przeglądać; ryzyko to rozrost widoku w stronę wyszukiwania/filtrów spoza MVP.
-- **Status:** planning
+- **Status:** in-progress
 
 ### S-04: Edycja materiału źródłowego
 

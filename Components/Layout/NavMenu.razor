@@ -12,7 +12,16 @@
             <Authorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                        <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                        <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Moje notatki
+                    </NavLink>
+                </div>
+
+                @* Match.All, not the default prefix match: "materials" is a prefix of both
+                   /materials/import and /materials/{id}, so prefix matching would light this
+                   entry up together with the import one. *@
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="materials" Match="NavLinkMatch.All">
+                        <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Moje materiały
                     </NavLink>
                 </div>
 

@@ -1,0 +1,76 @@
+@page "/materials"
+@attribute [Authorize]
+@using System.Globalization
+@using _10xnotes.Data.Entities
+@using _10xnotes.SourceMaterials
+@using _10xnotes.Time
+@inject SourceMaterialService SourceMaterialService
+@inject TimeProvider TimeProvider
+
+@* Static SSR, for the same reasons as the notes list — see Components/Pages/Notes/Index.razor. *@
+
+<PageTitle>Moje materiały</PageTitle>
+
+<h1>Moje materiały</h1>
+
+@if (materials.Count == 0)
+{
+    <p class="text-secondary">Nie masz jeszcze żadnego materiału.</p>
+
+    <a href="/materials/import">Zaimportuj materiał</a>
+}
+else
+{
+    <ul class="list-group">
+        @foreach (var material in materials)
+        {
+            <li class="list-group-item">
+                @* Plain interpolation, never MarkupString: both the title and the file name come
+                   from the user. *@
+                <a href="/materials/@material.Id" class="fw-semibold">@material.Title</a>
+
+                <div class="text-secondary small">
+                    @* Branched on Kind, exactly as Components/Pages/Materials/Detail.razor is, and for
+                       the same reason: provenance is a fact the row states, not something read off an
+                       absent file name — a future bug in the import path would otherwise render as a
+                       paste. Same two verbs as the detail page, so the two views cannot disagree about
+                       what a pasted material is called; the date is in both branches, because it is
+                       the one thing every material has. *@
+                    @if (material.Kind == SourceMaterialKind.Paste)
+                    {
+                        <text>Wklejono @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)</text>
+                    }
+                    else
+                    {
+                        <text>
+                            Zaimportowano @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)
+                            z pliku <code>@material.OriginalFileName</code>
+                        </text>
+                    }
+
+                    @if (material.NoteId is { } noteId)
+                    {
+                        <text>· <a href="/notes/@noteId">Otwórz notatkę</a></text>
+                    }
+                    else
+                    {
+                        <text>· Brak notatki</text>
+                    }
+                </div>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private static readonly CultureInfo PolishCulture = CultureInfo.GetCultureInfo("pl-PL");
+
+    private IReadOnlyList<SourceMaterialListItem> materials = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Owner-scoped on both sides of the join by the global query filter — see
+        // SourceMaterialService.ListAsync.
+        materials = await SourceMaterialService.ListAsync();
+    }
+}

@@ -1,0 +1,61 @@
+@page "/"
+@attribute [Authorize]
+@using System.Globalization
+@using _10xnotes.Notes
+@using _10xnotes.Time
+@inject NoteService NoteService
+@inject TimeProvider TimeProvider
+
+@* Static SSR — this page deliberately declares no render mode at all, unlike both detail
+   pages. Nothing here is interactive: no button, no field, no stream, just a read and a list of links. An interactive
+   render mode would also run OnInitializedAsync twice (once prerendering, once when the circuit
+   opens), which means querying the same list from the database twice.
+
+   Data comes through NoteService. Injecting a DbContext or an IDbContextFactory<> here fails
+   DataAccessBoundaryTests and blocks the deploy — the test scans Razor components too. *@
+
+<PageTitle>Moje notatki</PageTitle>
+
+<h1>Moje notatki</h1>
+
+@if (notes.Count == 0)
+{
+    @* The link answers both cases at once — no materials yet, or materials with nothing
+       generated from them — so the page never has to guess which one this is. *@
+    <p class="text-secondary">
+        Nie masz jeszcze żadnej zapisanej notatki. Wybierz materiał i wygeneruj z niego notatkę.
+    </p>
+
+    <a href="/materials">Przejdź do moich materiałów</a>
+}
+else
+{
+    <ul class="list-group">
+        @foreach (var note in notes)
+        {
+            <li class="list-group-item">
+                @* Plain interpolation, never MarkupString: the title comes from the user. *@
+                <a href="/notes/@note.Id" class="fw-semibold">@note.Title</a>
+
+                <div class="text-secondary small">
+                    @* ToDisplayTime, not ToLocalTime: "local" on the server is the container's
+                       UTC. The culture is named so the month renders in Polish. *@
+                    Zapisano @TimeProvider.ToDisplayTime(note.UpdatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)
+                    · <a href="/materials/@note.SourceMaterialId">Materiał źródłowy</a>
+                </div>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private static readonly CultureInfo PolishCulture = CultureInfo.GetCultureInfo("pl-PL");
+
+    private IReadOnlyList<NoteListItem> notes = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Owner-scoped by the global query filter, so this can only ever be the caller's own.
+        notes = await NoteService.ListAsync();
+    }
+}

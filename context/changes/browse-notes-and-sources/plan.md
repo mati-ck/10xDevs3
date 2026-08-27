@@ -285,21 +285,21 @@ Brak migracji i brak zmian w schemacie. Żadna nowa tabela nie powstaje, więc r
 
 #### Automated
 
-- [x] 1.1 Build jest czysty: `dotnet build`
-- [x] 1.2 Cała suite przechodzi: `dotnet test`
-- [x] 1.3 `DataAccessBoundaryTests` przechodzi, czyli nowy serwis nie bierze `DbContext` ani `IDbContextFactory<>`
-- [x] 1.4 Nowe przypadki z §6 przechodzą, łącznie z izolacją właściciela na obu listach i wariantami `NoteId`
-- [x] 1.5 W repo nie powstał żaden nowy plik w `Migrations/`
+- [x] 1.1 Build jest czysty: `dotnet build` — 15e624a
+- [x] 1.2 Cała suite przechodzi: `dotnet test` — 15e624a
+- [x] 1.3 `DataAccessBoundaryTests` przechodzi, czyli nowy serwis nie bierze `DbContext` ani `IDbContextFactory<>` — 15e624a
+- [x] 1.4 Nowe przypadki z §6 przechodzą, łącznie z izolacją właściciela na obu listach i wariantami `NoteId` — 15e624a
+- [x] 1.5 W repo nie powstał żaden nowy plik w `Migrations/` — 15e624a
 
 ### Phase 2: Strony list i wejście do treści
 
 #### Automated
 
-- [ ] 2.1 Build jest czysty: `dotnet build`
-- [ ] 2.2 Cała suite przechodzi: `dotnet test`
-- [ ] 2.3 `Components/Pages/Home.razor` nie istnieje
-- [ ] 2.4 Żadna z nowych stron nie deklaruje `@rendermode`
-- [ ] 2.5 Żadna z nowych stron nie wstrzykuje kontekstu ani fabryki kontekstu
+- [x] 2.1 Build jest czysty: `dotnet build`
+- [x] 2.2 Cała suite przechodzi: `dotnet test`
+- [x] 2.3 `Components/Pages/Home.razor` nie istnieje
+- [x] 2.4 Żadna z nowych stron nie deklaruje `@rendermode`
+- [x] 2.5 Żadna z nowych stron nie wstrzykuje kontekstu ani fabryki kontekstu
 
 #### Manual
 

@@ -105,7 +105,9 @@ Dwie testowalne metody listujące i dwa typy projekcji. Żadnego UI, żadnej mig
 
 **Intent**: To samo dla materiału, plus jedna informacja, której sam materiał nie ma: czy istnieje dla niego zapisana notatka i pod jakim id ją otworzyć.
 
-**Contract**: `public sealed record SourceMaterialListItem(Guid Id, string Title, string OriginalFileName, DateTimeOffset CreatedAt, Guid? NoteId);` w namespace `_10xnotes.SourceMaterials`. `NoteId` jest `null`, gdy notatki nie ma — to jedyny nośnik „ma notatkę / nie ma notatki". Tytuł notatki **nie** jest niesiony (patrz Key Discoveries).
+**Contract**: `public sealed record SourceMaterialListItem(Guid Id, string Title, SourceMaterialKind Kind, string? OriginalFileName, DateTimeOffset CreatedAt, Guid? NoteId);` w namespace `_10xnotes.SourceMaterials`.
+
+> **Poprawka z przeglądu implementacji (F3).** Kontrakt pierwotnie nie miał `Kind` i miał nienullowalną nazwę pliku. S-02 wylądował równolegle i zmienił encję, więc bez tej korekty oba plasterki nie kompilują się razem. Wprowadzone w `e2ed95a`. `NoteId` jest `null`, gdy notatki nie ma — to jedyny nośnik „ma notatkę / nie ma notatki". Tytuł notatki **nie** jest niesiony (patrz Key Discoveries).
 
 #### 4. Serwis materiałów
 
@@ -184,7 +186,7 @@ Tytuły notatek pochodzą od użytkownika, więc renderują się jako tekst prze
 
 **Contract**: `@page "/materials"`, `@attribute [Authorize]`, **bez `@rendermode`**. Wstrzykuje `SourceMaterialService` i `TimeProvider`. Struktura jak w §1.
 
-`<PageTitle>` i `<h1>`: „Moje materiały". Wiersz: tytuł jako link do `/materials/{Id}`, pod nim „Zaimportowano \<data\> z pliku `<code>@item.OriginalFileName</code>`" tym samym formatem daty co strona szczegółów materiału, oraz — gdy `NoteId` nie jest `null` — link „Otwórz notatkę" do `/notes/{NoteId}`; w przeciwnym razie neutralna informacja, że notatki jeszcze nie ma.
+`<PageTitle>` i `<h1>`: „Moje materiały". Wiersz: tytuł jako link do `/materials/{Id}`, pod nim zdanie o pochodzeniu **rozgałęzione po `Kind`** — „Wklejono \<data\>" dla wklejki, „Zaimportowano \<data\> z pliku `<code>@item.OriginalFileName</code>`" dla pliku — tym samym formatem daty i tymi samymi czasownikami co strona szczegółów materiału, oraz — gdy `NoteId` nie jest `null` — link „Otwórz notatkę" do `/notes/{NoteId}`; w przeciwnym razie neutralna informacja, że notatki jeszcze nie ma.
 
 Stan pusty: „Nie masz jeszcze żadnego materiału." plus link do `/materials/import`.
 
@@ -258,7 +260,7 @@ Brak — projekt nie ma harnessu integracyjnego, a jedyne rzeczy specyficzne dla
 
 ## Performance Considerations
 
-Obie listy to jedno zapytanie na wejście na stronę, bez `N+1`: obecność notatki przychodzi jednym złączeniem, nie zapytaniem per wiersz. Projekcja jest tym, co utrzymuje transfer w kilobajtach — bez niej lista dwudziestu materiałów przeciąga do pamięci ich pełną treść. Oba zapytania filtrują po `owner_id`, dla którego obie tabele mają indeks.
+Obie listy to jedno zapytanie na wejście na stronę, bez `N+1`: obecność notatki przychodzi jednym złączeniem, nie zapytaniem per wiersz. Projekcja jest tym, co utrzymuje transfer w kilobajtach — bez niej lista dwudziestu materiałów przeciąga do pamięci ich pełną treść. Oba zapytania filtrują po `owner_id`. **Indeks po `owner_id` ma tylko `source_materials`** (założony w S-01a wprost pod to zapytanie); `notes` go nie ma — jedyne indeksy tej tabeli to `ix_notes_source_material_id` (unikalny) i nic poza nim. Oba zapytania skanują więc `notes` w poprzek kont, potem sortują. Bez znaczenia przy `data_volume: small`, ale to jest liczba do sprawdzenia, zanim ktoś uzna paginację za przedwczesną: przy progu opisanym niżej dokładamy `(owner_id, updated_at)` na `notes`, wzorem istniejącego `ix_note_events_owner_id_occurred_at`.
 
 Zapytania są **nieograniczone** — świadomie, wobec `data_volume: small` w PRD i produktu jednoosobowego. Cena jest realna i nazwana wprost: konto z tysiącami materiałów wyrenderuje jedną bardzo długą stronę i przeczyta wszystkie wiersze. Progiem, po którym to przestaje być akceptowalne, jest moment, w którym którakolwiek lista przestaje mieścić się na ekranie w rozsądnym przewijaniu; wtedy wraca decyzja o paginacji albo `Virtualize` (klasa jest już zaimportowana w `_Imports.razor:9`). Static SSR łagodzi to o tyle, że nie ma tu obwodu, przez który ta lista musiałaby iść diffem.
 
@@ -312,3 +314,17 @@ Brak migracji i brak zmian w schemacie. Żadna nowa tabela nie powstaje, więc r
 - [ ] 2.12 Drugie konto nie widzi na listach ani jednego wiersza pierwszego konta
 - [ ] 2.13 Wylogowany na `/` ląduje na `/login?ReturnUrl=%2F` i po zalogowaniu wraca na `/`
 - [ ] 2.14 Polskie znaki w tytule i nazwie pliku wyświetlają się poprawnie w obu listach
+
+
+## Addendum — ustalenia z przeglądu implementacji (2026-08-27)
+
+Pełny raport: `context/changes/browse-notes-and-sources/reviews/impl-review.md`.
+
+- **F1** — rejestracja dostawcy stanu uwierzytelnienia wyciągnięta z `Program.cs` do `Auth/AuthenticationStateRegistration.cs`, żeby niezmiennik dało się asertować. Pilnuje go `AuthenticationStateWiringTests`.
+- **F2** — akapit Performance Considerations poprawiony: `notes` nie ma indeksu po `owner_id`.
+- **F3** — kontrakt `SourceMaterialListItem` zaktualizowany o `Kind`; wiersz materiału rozgałęzia się po `Kind`, tymi samymi czasownikami co strona szczegółów.
+- **F4** — oba odczyty list opakowane w `try`/`catch` z polskim komunikatem; `/` jest teraz stroną startową, więc awaria bazy nie może kończyć się szablonową stroną błędu.
+- **F5** — do `SqliteTestContext` dopisane trzy miejsca, w których harness jest bardziej pobłażliwy niż produkcja: precyzja, kolejność `NULL`-i, niezerowe offsety.
+- **F6** — nazwane, że cztery istniejące klasy testowe nadal budują opcje ręcznie i trzymają znaczniki czasu jako TEXT.
+- **F7** — link do `/materials/import` na liście materiałów ujednolicony na czasownik „Dodaj".
+- **F8** — `ProjectionGuardTests` czyta SQL faktycznie wyemitowany przez oba serwisy; sprawdzone, że test potrafi upaść.

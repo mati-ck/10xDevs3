@@ -1,10 +1,12 @@
 @page "/"
 @attribute [Authorize]
+@using System.Data.Common
 @using System.Globalization
 @using _10xnotes.Notes
 @using _10xnotes.Time
 @inject NoteService NoteService
 @inject TimeProvider TimeProvider
+@inject ILogger<Index> Logger
 
 @* Static SSR — this page deliberately declares no render mode at all, unlike both detail
    pages. Nothing here is interactive: no button, no field, no stream, just a read and a list of links. An interactive
@@ -18,7 +20,17 @@
 
 <h1>Moje notatki</h1>
 
-@if (notes.Count == 0)
+@if (loadFailed)
+{
+    @* This page is where a user lands after signing in, so a transient database failure here is
+       the product's front door. Unhandled it would unwind to UseExceptionHandler("/Error") and
+       render the stock, English Error page in a Polish app — same posture the detail pages take
+       for saves, applied to the read that now greets everyone. *@
+    <p class="text-danger">
+        Nie udało się wczytać notatek. Odśwież stronę za chwilę.
+    </p>
+}
+else if (notes.Count == 0)
 {
     @* The link answers both cases at once — no materials yet, or materials with nothing
        generated from them — so the page never has to guess which one this is. *@
@@ -53,9 +65,22 @@ else
 
     private IReadOnlyList<NoteListItem> notes = [];
 
+    private bool loadFailed;
+
     protected override async Task OnInitializedAsync()
     {
-        // Owner-scoped by the global query filter, so this can only ever be the caller's own.
-        notes = await NoteService.ListAsync();
+        try
+        {
+            // Owner-scoped by the global query filter, so this can only ever be the caller's own.
+            notes = await NoteService.ListAsync();
+        }
+        catch (Exception ex) when (ex is DbException or InvalidOperationException)
+        {
+            // InvalidOperationException covers the lapsed-session case: AppDbContext throws it
+            // when there is no current user, and on static SSR that surfaces as a failed read
+            // rather than a failed write.
+            Logger.LogError(ex, "Failed to load the note list.");
+            loadFailed = true;
+        }
     }
 }

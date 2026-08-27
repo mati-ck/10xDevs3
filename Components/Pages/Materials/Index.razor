@@ -1,11 +1,13 @@
 @page "/materials"
 @attribute [Authorize]
+@using System.Data.Common
 @using System.Globalization
 @using _10xnotes.Data.Entities
 @using _10xnotes.SourceMaterials
 @using _10xnotes.Time
 @inject SourceMaterialService SourceMaterialService
 @inject TimeProvider TimeProvider
+@inject ILogger<Index> Logger
 
 @* Static SSR, for the same reasons as the notes list — see Components/Pages/Notes/Index.razor. *@
 
@@ -13,11 +15,19 @@
 
 <h1>Moje materiały</h1>
 
-@if (materials.Count == 0)
+@if (loadFailed)
+{
+    @* Same posture as the note list: a transient read failure says so in Polish rather than
+       unwinding to the stock Error page. *@
+    <p class="text-danger">
+        Nie udało się wczytać materiałów. Odśwież stronę za chwilę.
+    </p>
+}
+else if (materials.Count == 0)
 {
     <p class="text-secondary">Nie masz jeszcze żadnego materiału.</p>
 
-    <a href="/materials/import">Zaimportuj materiał</a>
+    <a href="/materials/import">Dodaj materiał</a>
 }
 else
 {
@@ -67,10 +77,20 @@ else
 
     private IReadOnlyList<SourceMaterialListItem> materials = [];
 
+    private bool loadFailed;
+
     protected override async Task OnInitializedAsync()
     {
-        // Owner-scoped on both sides of the join by the global query filter — see
-        // SourceMaterialService.ListAsync.
-        materials = await SourceMaterialService.ListAsync();
+        try
+        {
+            // Owner-scoped on both sides of the join by the global query filter — see
+            // SourceMaterialService.ListAsync.
+            materials = await SourceMaterialService.ListAsync();
+        }
+        catch (Exception ex) when (ex is DbException or InvalidOperationException)
+        {
+            Logger.LogError(ex, "Failed to load the source material list.");
+            loadFailed = true;
+        }
     }
 }

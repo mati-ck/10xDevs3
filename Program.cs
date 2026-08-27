@@ -116,17 +116,9 @@ builder.Services.AddCascadingAuthenticationState();
 // Replaces the default ServerAuthenticationStateProvider, which seeds the principal once when a
 // circuit opens and never re-checks it.
 //
-// Registered as the concrete type once, with both names resolving *that* — so they cannot drift
-// onto separate instances. The static-SSR path pushes the principal in through
-// IHostEnvironmentAuthenticationStateProvider while components read AuthenticationStateProvider;
-// two instances would leave every circuit anonymous while looking correctly wired. Resolving the
-// concrete type rather than casting the interface keeps that guarantee even if something later
-// registers a different AuthenticationStateProvider.
-builder.Services.AddScoped<SessionCapAuthenticationStateProvider>();
-builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
-    sp.GetRequiredService<SessionCapAuthenticationStateProvider>());
-builder.Services.AddScoped<IHostEnvironmentAuthenticationStateProvider>(sp =>
-    sp.GetRequiredService<SessionCapAuthenticationStateProvider>());
+// Both names must resolve to one instance; AddSessionCapAuthenticationState is where that is
+// arranged and AuthenticationStateWiringTests is what keeps it true.
+builder.Services.AddSessionCapAuthenticationState();
 
 builder.Services.Configure<SupabaseAuthOptions>(
     builder.Configuration.GetSection(SupabaseAuthOptions.SectionName));

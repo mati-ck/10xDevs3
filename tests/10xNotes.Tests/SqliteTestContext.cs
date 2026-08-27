@@ -3,6 +3,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Microsoft.Extensions.Logging;
 
 namespace _10xNotes.Tests;
 
@@ -26,14 +27,53 @@ namespace _10xNotes.Tests;
 /// one that runs <c>EnsureCreated</c> — the converter decides the column type, so a schema created
 /// without it would be read with it.
 /// </para>
+/// <para>
+/// What these tests therefore prove is that the LINQ expresses the intended order, not that Npgsql
+/// translates it; nothing in this repo proves the latter, and the plan accepted that. Three places
+/// where ticks and <c>timestamptz</c> would disagree, none of them reachable today:
+/// <list type="bullet">
+/// <item>Precision — a tick is 100 ns and <c>timestamptz</c> is 1 µs, so rows 100-900 ns apart sort
+/// strictly here and tie in Postgres. Every case here uses hour-scale gaps or exact equality, and
+/// the <c>Id</c> tie-break keeps even a collapsed pair deterministic.</item>
+/// <item>Nulls — the converter handles <c>DateTimeOffset?</c>, but no entity has a nullable
+/// timestamp, so that branch is dead. If one is added and ordered by, Postgres puts nulls first on
+/// <c>DESC</c> and SQLite puts them last; nothing here would flag the inversion.</item>
+/// <item>Offsets — this converter accepts any <c>Offset</c>, while Npgsql *throws* when writing a
+/// non-zero one to <c>timestamptz</c>. The UTC-only rule above is enforced by production, not by
+/// this harness, so a future non-UTC write path would be green here and fail there.</item>
+/// </list>
+/// </para>
+/// <para>
+/// Not every SQLite test in this project comes through here: <c>CurrentUserAccessorTests</c>,
+/// <c>GenerationQuotaTests</c>, <c>GenerationQuotaConcurrencyTests</c> and <c>OwnerScopingTests</c>
+/// still build their own options, and so store timestamps as TEXT rather than as ticks. Nothing is
+/// broken by that — each owns its connection, so no schema meets the wrong converter — but adding
+/// an ordering assertion to any of them will hit the translation failure described above. Fold it
+/// over rather than solving it a second time.
+/// </para>
 /// </remarks>
 internal static class SqliteTestContext
 {
-    public static DbContextOptions<AppDbContext> OptionsFor(SqliteConnection connection) =>
-        new DbContextOptionsBuilder<AppDbContext>()
+    /// <param name="log">
+    /// Receives the provider's log lines when supplied. Only <c>ProjectionGuardTests</c> uses it,
+    /// to read back the SQL a service actually emitted rather than trusting the LINQ to have
+    /// stayed a projection.
+    /// </param>
+    public static DbContextOptions<AppDbContext> OptionsFor(
+        SqliteConnection connection,
+        Action<string>? log = null)
+    {
+        var builder = new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlite(connection)
-            .ReplaceService<IModelCustomizer, TicksForDateTimeOffsetCustomizer>()
-            .Options;
+            .ReplaceService<IModelCustomizer, TicksForDateTimeOffsetCustomizer>();
+
+        if (log is not null)
+        {
+            builder = builder.LogTo(log, [DbLoggerCategory.Database.Command.Name], LogLevel.Information);
+        }
+
+        return builder.Options;
+    }
 
     /// <summary>Creates a context on <paramref name="connection"/> scoped to <paramref name="userId"/>.</summary>
     /// <remarks>
@@ -47,9 +87,10 @@ internal static class SqliteTestContext
     /// Hands out contexts on a shared in-memory connection with no user applied — the shape
     /// <c>UserScopedDbContextFactory</c> expects underneath itself.
     /// </summary>
-    public sealed class Factory(SqliteConnection connection) : IDbContextFactory<AppDbContext>
+    public sealed class Factory(SqliteConnection connection, Action<string>? log = null)
+        : IDbContextFactory<AppDbContext>
     {
-        public AppDbContext CreateDbContext() => new(OptionsFor(connection));
+        public AppDbContext CreateDbContext() => new(OptionsFor(connection, log));
     }
 
     private sealed class TicksForDateTimeOffsetCustomizer(ModelCustomizerDependencies dependencies)

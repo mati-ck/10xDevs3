@@ -48,12 +48,16 @@ public sealed class SourceMaterial : IOwnedByUser
     /// The file name as uploaded. Kept alongside <see cref="Title"/> so editing the title
     /// never costs the user the provenance of where the material came from.
     /// <para>
-    /// <c>null</c> means "this material did not come from a file" — a paste — not "the name
-    /// could not be read". <see cref="Kind"/> is what states that; this property only carries
-    /// the name when there is one.
+    /// Empty for a paste, and required rather than nullable — deliberately. Nullability looked
+    /// like the honest model ("no file behind this row"), but <see cref="Kind"/> already states
+    /// that, so the column would have carried the same fact twice while costing rollback safety:
+    /// the application version before <c>Kind</c> existed maps this as required, and EF throws
+    /// when it materialises a null into a required property. A Coolify rollback reverts code and
+    /// not schema, so a null here would have broken the material page for the version rolled back
+    /// to. Read <see cref="Kind"/> for provenance; never infer it from this being empty.
     /// </para>
     /// </summary>
-    public string? OriginalFileName { get; set; }
+    public string OriginalFileName { get; set; } = string.Empty;
 
     public DateTimeOffset CreatedAt { get; set; }
 }

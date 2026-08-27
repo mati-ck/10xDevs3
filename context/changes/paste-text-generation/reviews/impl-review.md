@@ -39,7 +39,7 @@ Kryteria automatyczne (1.1-1.4, 2.1-2.5, 3.1-3.3) uruchomione i zielone. Kryteri
   - Tradeoff: Kupuje czystość modelu kosztem złamania reguły deployu — rollback przestaje być operacją jednym kliknięciem i wymaga ręcznego `UPDATE public.source_materials SET original_file_name = '' WHERE original_file_name IS NULL;` przed wycofaniem.
   - Confidence: MEDIUM — działa, ale opiera się na tym, że ktoś pod presją incydentu przeczyta procedurę.
   - Blind spot: Nie wiadomo, czy Coolify daje miejsce na hook przed rollbackiem.
-- **Decision**: FIXED via Fix A
+- **Decision**: FIXED — Fix A, następnie rozszerzony. Wklejka zapisuje `string.Empty`, a skoro nic już nie zapisuje `null`, zdejmowanie `NOT NULL` przestało cokolwiek kupować: migracja została przepisana tak, że dotyka wyłącznie `kind`, a `original_file_name` zachowuje `NOT NULL`. Kompatybilność rollbacku wynika teraz ze schematu, a nie z dyscypliny zapisu. Migracja nie była wcześniej nigdzie zaaplikowana, więc przepisanie jej było bezpieczne.
 
 ### F2 — Zbyt wąski catch gubi wklejony materiał przy wygasłej sesji
 

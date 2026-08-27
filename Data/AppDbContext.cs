@@ -73,10 +73,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasMaxLength(20)
                 .HasConversion<string>();
 
-            // Optional, unlike Title: a pasted material has no file behind it, so there is no
-            // name to store. Kind is what says which case a row is in — do not infer it from
-            // this being null.
-            entity.Property(m => m.OriginalFileName).HasMaxLength(260);
+            // Required, and empty for a paste. Kind is what says which case a row is in — do not
+            // infer it from this being empty. Keeping NOT NULL is what keeps the schema readable
+            // by the application version that predates Kind, which is the rollback contract.
+            entity.Property(m => m.OriginalFileName).IsRequired().HasMaxLength(260);
             entity.Property(m => m.CreatedAt).HasDefaultValueSql("now()");
 
             // Not unique, unlike the one on Profile: a user owns many materials. It exists

@@ -19,7 +19,7 @@ Na `/materials/import` widać przełącznik „Wklej tekst" / „Plik .md", domy
 | Decyzja | Wybór | Dlaczego | Źródło |
 | --- | --- | --- | --- |
 | Trasa | Jedna strona `/materials/import`, dwie zakładki | Roadmapa nazywa S-02 drugim wejściem, nie drugim przepływem; wspólny tytuł, zapis i przekierowanie zostają w jednym komponencie | Plan |
-| Proweniencja | Kolumna `kind` + `original_file_name` nullable | Mówi, czym wiersz jest, zamiast wnioskować to z pustego stringa; wzorzec `NoteEvent.Kind` | Plan |
+| Proweniencja | Kolumna `kind`; `original_file_name` zostaje `NOT NULL` | Mówi, czym wiersz jest, zamiast wnioskować to z pustego stringa; wzorzec `NoteEvent.Kind`. Nullowalność wycofana w przeglądzie implementacji (F1) — niosłaby ten sam fakt drugi raz i psuła rollback | Plan + review |
 | Limit wklejki | 128 K **znaków** (import: 128 KB **bajtów**) | Kto może zaimportować dokument jako plik, ma móc wkleić jego treść — asymetria czytałaby się jak błąd | Plan |
 | Granica SignalR | `max(notatka, wklejka) × 3 + framing` = 458 752 B | Wklejka staje się największą rzeczą przechodzącą przez hub; przekroczenie zrywa obwód, a nie zwraca błąd. Mnożnik to 3, nie 6: hub negocjuje `blazorpack` (surowy UTF-8), nie JSON — skorygowane w przeglądzie implementacji (F3) | Plan (z `lessons.md`) |
 | Walidator | Osobny `PasteValidator` + wspólny `Truncate` | Reguły importu dotyczą bajtów i nazwy pliku; wciśnięcie obu w jedną sygnaturę zrobiłoby z każdej gałęzi warunek | Plan |
@@ -30,7 +30,7 @@ Na `/materials/import` widać przełącznik „Wklej tekst" / „Plik .md", domy
 
 ## Scope
 
-**In scope:** kolumna `kind` i migracja z backfillem; `original_file_name` nullable; `PasteValidator` + `PasteResult`; wspólny `TextLimits.Truncate`; przeliczona granica huba; zakładka wklejania na `/materials/import`; rozgałęziona kopia na stronie szczegółów; testy walidatora i granicy.
+**In scope:** kolumna `kind` i migracja z backfillem; `PasteValidator` + `PasteResult`; wspólny `TextLimits.Truncate`; przeliczona granica huba; zakładka wklejania na `/materials/import`; rozgałęziona kopia na stronie szczegółów; testy walidatora i granicy.
 
 **Out of scope:** lista notatek i materiałów (S-03); edycja materiału (S-04, zablokowane OQ1); usuwanie (S-05/S-06); zmiany w prompcie, modelu lub `NotePrompt.Version`; normalizacja CRLF i ścinanie BOM; zmiana limitu importu lub notatki; nowa trasa (adres `/materials/import` zostaje).
 
@@ -48,7 +48,7 @@ Rozgałęzienie kończy się na wierszu. Wszystko poniżej — prompt, streaming
 
 | Faza | Co dostarcza | Główne ryzyko |
 | --- | --- | --- |
-| 1. Proweniencja materiału bez pliku | `kind` + nullable `original_file_name` + migracja z backfillem, rozgałęziona kopia | Migracja dotyka tabeli z danymi użytkowników; `Down` musi wypełnić `original_file_name`, zanim przywróci `NOT NULL` |
+| 1. Proweniencja materiału bez pliku | `kind` + migracja z backfillem, rozgałęziona kopia | Migracja dotyka tabeli z danymi użytkowników; backfill `kind` musi poprzedzić `SET NOT NULL` |
 | 2. Reguły wklejania i granica transportu | `PasteValidator`, wspólny `Truncate`, przeliczony `MaximumReceiveMessageSize`, testy | Przeoczenie granicy huba daje zerwany obwód i utratę wklejki — awaria, której komponent nie przechwyci |
 | 3. Przełącznik wejścia | Zakładki na `/materials/import`, podpowiedź tytułu, polska kopia | Regresja na działającej ścieżce importu; podpowiedź tytułu nadpisująca to, co użytkownik wpisał |
 
@@ -60,7 +60,7 @@ Rozgałęzienie kończy się na wierszu. Wszystko poniżej — prompt, streaming
 - Granica huba rośnie z 448 KB do 832 KB — to sufit na ramkę, nie stała alokacja, ale realnie zwiększa pamięć, jaką jedna ramka może zająć na obwód. Akceptowalne za `[Authorize]` przy `qps: low` z PRD.
 - Wklejka 128 K znaków ASCII niesie do prompta ~2× więcej tokenów niż plik na swoim 128 KB limicie bajtów. `NoteGenerator` klasyfikuje odpowiedź „za długi kontekst" jako `TooLong` i pokazuje polski komunikat, więc najgorszy przypadek jest obsłużony — ale to komunikat o błędzie, nie sukces.
 - Ta sama liczba (`128 * 1024`) w dwóch różnych jednostkach jest zaproszeniem do „naprawienia" jej na zgodność. Obrona to XML-doc przy obu stałych; nic tego nie wymusza automatycznie.
-- Poprawność `kind` i nullowalności nie ma testu automatycznego (świadoma decyzja o zakresie) — wyłapie je dopiero weryfikacja ręczna fazy 1.
+- Poprawność `kind` nie ma testu automatycznego (świadoma decyzja o zakresie) — wyłapie ją dopiero weryfikacja ręczna fazy 1.
 
 ## Success Criteria (Summary)
 

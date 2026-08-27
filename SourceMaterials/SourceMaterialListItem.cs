@@ -26,13 +26,13 @@ namespace _10xnotes.SourceMaterials;
 /// <param name="Id">The material's key, and the target of <c>/materials/{id}</c>.</param>
 /// <param name="Title">The title the user gave the material at import.</param>
 /// <param name="Kind">Where the material came from — read this, never infer it from <paramref name="OriginalFileName"/>.</param>
-/// <param name="OriginalFileName">The file name a material came from, or <c>null</c> for a paste.</param>
+/// <param name="OriginalFileName">The file name a material came from; empty for a paste.</param>
 /// <param name="CreatedAt">When the material was added — what the list sorts by.</param>
 /// <param name="NoteId">The saved note for this material, or <c>null</c> when there is none.</param>
 public sealed record SourceMaterialListItem(
     Guid Id,
     string Title,
     SourceMaterialKind Kind,
-    string? OriginalFileName,
+    string OriginalFileName,
     DateTimeOffset CreatedAt,
     Guid? NoteId);

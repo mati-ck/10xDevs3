@@ -117,7 +117,7 @@ public sealed class SourceMaterialServiceTests : IDisposable
         var row = Assert.Single(await CreateService(UserA).ListAsync());
 
         Assert.Equal(SourceMaterialKind.Paste, row.Kind);
-        Assert.Null(row.OriginalFileName);
+        Assert.Equal(string.Empty, row.OriginalFileName);
         Assert.Equal("Wklejony fragment", row.Title);
     }
 
@@ -138,7 +138,7 @@ public sealed class SourceMaterialServiceTests : IDisposable
         Assert.Equal("Z pliku.md", fromFile.OriginalFileName);
 
         Assert.Equal(SourceMaterialKind.Paste, pasted.Kind);
-        Assert.Null(pasted.OriginalFileName);
+        Assert.Equal(string.Empty, pasted.OriginalFileName);
     }
 
     // -- Ordering ----------------------------------------------------------------------------
@@ -229,7 +229,10 @@ public sealed class SourceMaterialServiceTests : IDisposable
             Title = title,
             Content = "Wklejona treść.",
             Kind = SourceMaterialKind.Paste,
-            OriginalFileName = null,
+
+            // Empty, not null — the column is NOT NULL, and that is the rollback contract, not an
+            // accident. See the remarks on SourceMaterial.OriginalFileName.
+            OriginalFileName = string.Empty,
             CreatedAt = createdAt ?? Afternoon
         });
 

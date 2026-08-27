@@ -90,7 +90,9 @@ Model i baza uczą się opisywać materiał, który nie pochodzi z pliku. Nikt j
 
 **Intent**: Dodać `Kind` i dopuścić brak nazwy pliku dla wklejki. Komentarz przy `OriginalFileName` musi powiedzieć, że `null` znaczy „nie z pliku", a nie „nie udało się odczytać nazwy".
 
-**Contract**: `public SourceMaterialKind Kind { get; set; }` oraz `OriginalFileName` zmienia typ na `string?` z domyślnym `null` (dziś: `string` = `string.Empty`).
+**Contract**: `public SourceMaterialKind Kind { get; set; }`. `OriginalFileName` **zostaje** `string` = `string.Empty` i **zostaje** `NOT NULL`.
+
+> **Poprawka z przeglądu implementacji (F1).** Plan zmieniał typ na `string?` i zdejmował `NOT NULL`. Wycofane: `Kind` już mówi, że wiersz nie ma pliku, więc nullowalność niosłaby ten sam fakt drugi raz — kosztem rollbacku. Model sprzed plasterka mapuje kolumnę jako `IsRequired()`, a EF rzuca przy materializacji `null` (zweryfikowane: `InvalidOperationException: The data is NULL at ordinal N`). Rollback cofa kod, nie schemat, więc pierwsza wklejka zepsułaby stronę materiału wersji, do której się cofamy. Wklejka zapisuje pusty string, a migracja dotyka wyłącznie `kind`.
 
 #### 3. Konfiguracja EF
 
@@ -252,7 +254,7 @@ Strona importu dostaje drugie wejście. Obie zakładki dzielą pole tytułu, obs
 - `<textarea>` z `maxlength="@PasteValidator.MaxContentLength"`, wiązana przez `@onchange` (nie `@oninput`) — każde naciśnięcie klawisza przy 128 K znaków byłoby round-tripem po SignalR; `NoteEditor.razor:38-40` niesie to samo uzasadnienie. Licznik znaków jak w `NoteEditor.razor:50-52`.
 - Podpowiedź tytułu: przy zmianie treści wklejki wywołaj `PasteValidator.DeriveTitle` i wypełnij `Input.Title` **tylko** wtedy, gdy pole jest puste albo wciąż trzyma poprzednio podpowiedzianą wartość — dokładnie ten sam kontrakt, który `autoFilledTitle` realizuje dla nazwy pliku (`Import.razor:65-75`). Pole `autoFilledTitle` obsługuje obie zakładki.
 - Przy zapisie z zakładki wklejki: `Kind = SourceMaterialKind.Paste`, `OriginalFileName = string.Empty`. Przy zapisie z pliku: `Kind = SourceMaterialKind.MarkdownFile` i dotychczasowa wartość.
-  > **Poprawka z przeglądu implementacji (F1).** Plan pierwotnie mówił `null`. Zapis `null` łamie kompatybilność rollbacku: model sprzed plasterka mapuje kolumnę jako `IsRequired()`, a EF rzuca przy materializacji `null` do takiej właściwości (zweryfikowane: `InvalidOperationException: The data is NULL at ordinal N`). Kolumna pozostaje nullowalna, ale nic nie zapisuje `null` — proweniencję niesie `Kind`.
+  > **Poprawka z przeglądu implementacji (F1).** Plan pierwotnie mówił `null`. Kolumna zostaje `NOT NULL`, a wklejka zapisuje pusty string — proweniencję niesie `Kind`.
 - Nowe `MessageFor(PasteFailure)` obok istniejącego `MessageFor(MarkdownImportFailure)`: `Empty` → wariant „Nie ma z czego zrobić notatki", `TooLong` → komunikat podający limit **w znakach** (nie w KB — jednostka musi zgadzać się z licznikiem obok pola).
 - Przełączenie zakładki czyści `errorMessage`, ale **nie czyści** wpisanej treści ani wybranego pliku: użytkownik, który zajrzał na drugą zakładkę, nie powinien tracić tego, co już wkleił.
 
@@ -297,7 +299,7 @@ Strona importu dostaje drugie wejście. Obie zakładki dzielą pole tytułu, obs
 
 ### Integration Tests:
 
-Brak nowych. Ścieżka bazodanowa (`UserScopedDbContextFactory` → `AppDbContext` → `source_materials`) jest już pokryta przez `OwnerScopingTests` i nie zmienia się — wklejka wstawia wiersz tą samą drogą co import. Poprawność `kind` i nullowalności weryfikowana ręcznie, zgodnie z decyzją o zakresie testów.
+Brak nowych. Ścieżka bazodanowa (`UserScopedDbContextFactory` → `AppDbContext` → `source_materials`) jest już pokryta przez `OwnerScopingTests` i nie zmienia się — wklejka wstawia wiersz tą samą drogą co import. Poprawność `kind` weryfikowana ręcznie, zgodnie z decyzją o zakresie testów. Nullowalność zniknęła z zakresu — kolumna zostaje `NOT NULL`.
 
 ### Manual Testing Steps:
 
@@ -321,7 +323,7 @@ Wklejka 128 K znaków trafia do prompta w całości, tak jak zaimportowany plik.
 
 Jedna migracja, zgodna wstecz w obie strony. Wersja aplikacji sprzed zmiany działa na schemacie po migracji: `kind` ma wartość we wszystkich wierszach, a stary kod po prostu jej nie czyta. To jest wymóg — rollback w Coolify nie cofa migracji (`CLAUDE.md`).
 
-> **Poprawka z przeglądu implementacji (F1).** Pierwotne uzasadnienie pokrywało wyłącznie **zapis** — że stary kod nigdy nie wstawia `null`. Odczyt jest tym, co się wywraca: stary model ma `IsRequired()` nad nienullowalnym `string`, a EF rzuca `InvalidOperationException: The data is NULL at ordinal N` przy materializacji `null`. Dlatego kolumna jest nullowalna, ale ścieżka wklejki zapisuje pusty string — dopóki żaden `null` tam nie trafi, rollback pozostaje operacją jednym kliknięciem.
+> **Poprawka z przeglądu implementacji (F1).** Pierwotny plan zdejmował `NOT NULL` z `original_file_name` i uzasadniał zgodność tym, że stary kod nigdy nie wstawia `null`. Uzasadnienie pokrywało wyłącznie **zapis**; wywraca się odczyt — stary model ma `IsRequired()` nad nienullowalnym `string`, a EF rzuca `InvalidOperationException: The data is NULL at ordinal N`. Zamiast obchodzić to dyscypliną zapisu, ograniczenie **zostaje**: migracja dodaje tylko `kind`, `Down` nie ma czego backfillować, a zgodność w obie strony wynika ze schematu, nie z tego, że nikt nie napisze `null`.
 
 `Down` musi wypełnić `original_file_name` pustym stringiem dla wierszy z wklejek, zanim przywróci `NOT NULL` — inaczej wycofanie migracji wywróci się na danych, które sama umożliwiła.
 
@@ -392,7 +394,7 @@ Jedna migracja, zgodna wstecz w obie strony. Wersja aplikacji sprzed zmiany dzia
 
 Pełny raport: `context/changes/paste-text-generation/reviews/impl-review.md`.
 
-- **F1** — ścieżka wklejki zapisuje `string.Empty` zamiast `null`; deklaracja kompatybilności w migracji poprawiona.
+- **F1** — `original_file_name` **zostaje `NOT NULL`**: migracja dodaje wyłącznie `kind`, wklejka zapisuje pusty string, a `Down` nie ma czego backfillować. Pierwsza poprawka zostawiała kolumnę nullowalną i polegała na tym, że nikt nie zapisze `null`; ta usuwa problem u źródła i przywraca rollback jednym kliknięciem.
 - **F2** — `Import.razor` łapie też `InvalidOperationException`, bo `AppDbContext.StampOwners` rzuca właśnie ten typ przy wygasłej sesji, a wklejka nie istnieje nigdzie poza obwodem.
 - **F3** — `WorstCaseBytesPerChar` obniżone z 6 do 3: komponenty negocjują `blazorpack` (MessagePack, surowy UTF-8), a nie JSON. Granica huba to teraz 458 752 B zamiast 851 968 B, a testy mierzą przez realny `IHubProtocol`.
 - **F4** — licznik i komunikat o limicie formatują liczbę przez `PolishCulture`; manualny krok 2 przeformułowany na to, co kod robi.

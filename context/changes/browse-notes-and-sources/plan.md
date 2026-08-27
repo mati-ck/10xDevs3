@@ -105,7 +105,7 @@ Dwie testowalne metody listujące i dwa typy projekcji. Żadnego UI, żadnej mig
 
 **Intent**: To samo dla materiału, plus jedna informacja, której sam materiał nie ma: czy istnieje dla niego zapisana notatka i pod jakim id ją otworzyć.
 
-**Contract**: `public sealed record SourceMaterialListItem(Guid Id, string Title, SourceMaterialKind Kind, string? OriginalFileName, DateTimeOffset CreatedAt, Guid? NoteId);` w namespace `_10xnotes.SourceMaterials`.
+**Contract**: `public sealed record SourceMaterialListItem(Guid Id, string Title, SourceMaterialKind Kind, string OriginalFileName, DateTimeOffset CreatedAt, Guid? NoteId);` w namespace `_10xnotes.SourceMaterials`.
 
 > **Poprawka z przeglądu implementacji (F3).** Kontrakt pierwotnie nie miał `Kind` i miał nienullowalną nazwę pliku. S-02 wylądował równolegle i zmienił encję, więc bez tej korekty oba plasterki nie kompilują się razem. Wprowadzone w `e2ed95a`. `NoteId` jest `null`, gdy notatki nie ma — to jedyny nośnik „ma notatkę / nie ma notatki". Tytuł notatki **nie** jest niesiony (patrz Key Discoveries).
 

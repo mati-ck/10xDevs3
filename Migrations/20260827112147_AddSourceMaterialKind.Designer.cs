@@ -267,6 +267,7 @@ namespace _10xnotes.Migrations
                         .HasColumnName("kind");
 
                     b.Property<string>("OriginalFileName")
+                        .IsRequired()
                         .HasMaxLength(260)
                         .HasColumnType("character varying(260)")
                         .HasColumnName("original_file_name");

@@ -1,3 +1,4 @@
+using _10xnotes.Text;
 namespace _10xnotes.SourceMaterials;
 
 /// <summary>
@@ -29,6 +30,18 @@ public static class PasteValidator
     /// <para>
     /// It is also the larger of the two limits crossing the SignalR boundary, which is why
     /// <c>HubWireLimits</c> derives the transport bound from it.
+    /// </para>
+    /// <para>
+    /// The last layer beneath this number is the model's context window, and it is the one layer
+    /// with no check of its own. <c>MarkdownImportValidator.MaxFileSizeBytes</c> justifies its
+    /// value by keeping an imported document comfortably inside that window; counted in characters
+    /// this limit carries two to three times the bytes at the same nominal number, and the whole
+    /// material goes into the prompt. It degrades rather than breaks — <c>NoteGenerator</c> maps
+    /// the provider's 413 and context-length 400s to <c>GenerationFailure.TooLong</c> — but
+    /// <c>GenerationQuotaService</c> reserves the daily slot *before* the provider call, so an
+    /// over-long material costs the user a generation for nothing. The default model has ample
+    /// context; if <c>Ai__Model</c> is ever pointed at a smaller one, this number is what has to
+    /// be re-checked against it.
     /// </para>
     /// </remarks>
     public const int MaxContentLength = 128 * 1024;

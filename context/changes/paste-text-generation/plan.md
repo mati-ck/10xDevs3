@@ -58,7 +58,9 @@ Kolejność jest odwrotna do naturalnej pokusy („najpierw pokaż pole tekstowe
 
 ## Critical Implementation Details
 
-**Granica transportu.** Textarea z wklejką przechodzi przez SignalR jako jedno wywołanie huba, więc podniesienie limitu tekstu do 128 K znaków bez podniesienia `MaximumReceiveMessageSize` daje awarię o najgorszym kształcie: obwód jest zrywany, użytkownik dostaje modal ponownego łączenia i traci wklejony materiał, a komponent nie może tego przechwycić. Nowa wartość to `max(65536, 131072) * 6 + 65536` = **851 968 B**. Podniesienie granicy zwiększa też ilość pamięci, jaką jedna ramka może zająć na obwód — akceptowalne, bo trasa jest za `[Authorize]`, ale to realna zmiana zasięgu skutków.
+**Granica transportu.** Textarea z wklejką przechodzi przez SignalR jako jedno wywołanie huba, więc podniesienie limitu tekstu do 128 K znaków bez podniesienia `MaximumReceiveMessageSize` daje awarię o najgorszym kształcie: obwód jest zrywany, użytkownik dostaje modal ponownego łączenia i traci wklejony materiał, a komponent nie może tego przechwycić. Nowa wartość to `max(65536, 131072) * 3 + 65536` = **458 752 B**. Podniesienie granicy zwiększa też ilość pamięci, jaką jedna ramka może zająć na obwód — akceptowalne, bo trasa jest za `[Authorize]`, ale to realna zmiana zasięgu skutków.
+
+> **Poprawka z przeglądu implementacji (F3).** Plan zakładał mnożnik 6, uzasadniony escapowaniem `\uXXXX` w JSON. Komponenty Blazora negocjują jednak `blazorpack` (MessagePack), który pisze stringi jako surowy UTF-8 — sufit to 3 bajty na jednostkę UTF-16. Wynik jest o tyle wdzięczny, że granica **nie zmienia się wcale**: 458 752 B to dokładnie tyle, ile wynosiła przed tym plasterkiem. Wklejka przy 3 bajtach na znak potrzebuje tego samego, co notatka przy 6.
 
 **Jednostki.** `MarkdownImportValidator.MaxFileSizeBytes` liczy **bajty**, `PasteValidator.MaxContentLength` liczy **jednostki kodu UTF-16**. Obie wartości to `128 * 1024`, ale nie znaczą tego samego: plik 128 KB z polskim tekstem to ~64 K znaków. To świadoma decyzja (użytkownik ma móc wkleić treść dokumentu, który mógłby zaimportować), a nie przeoczenie — musi być udokumentowana w kodzie, bo inaczej ktoś „naprawi" ją na zgodność.
 
@@ -186,7 +188,7 @@ Sprawdzenie długości jest po stronie serwera niezależnie od `maxlength` w prz
 
 **Intent**: Klasa przestaje dotyczyć wyłącznie notatek — od tej fazy ogranicza dwie rzeczy, a wklejka jest większą z nich. Nazwa i miejsce mają to odzwierciedlać, żeby następna osoba nie wyprowadziła granicy tylko z limitu notatki (czyli nie powtórzyła tego samego błędu trzeci raz).
 
-**Contract**: `MaximumReceiveMessageSize = Math.Max(NoteValidator.MaxContentLength, PasteValidator.MaxContentLength) * WorstCaseBytesPerChar + FramingHeadroom`. `WorstCaseBytesPerChar = 6` i `FramingHeadroom = 64 * 1024` bez zmian. Wartość rośnie z 458 752 do **851 968**. `Math.Max` nie jest wyrażeniem stałym, więc pole przestaje być `const` i staje się `static readonly int` — `Program.cs` używa go w wywołaniu metody, więc to zadziała bez dalszych zmian.
+**Contract**: `MaximumReceiveMessageSize = Math.Max(NoteValidator.MaxContentLength, PasteValidator.MaxContentLength) * WorstCaseBytesPerChar + FramingHeadroom`. `FramingHeadroom = 64 * 1024` bez zmian; `WorstCaseBytesPerChar` to **3**, nie 6 (patrz poprawka F3 wyżej). Wartość pozostaje **458 752**. `Math.Max` nie jest wyrażeniem stałym, więc pole przestaje być `const` i staje się `static readonly int` — `Program.cs` używa go w wywołaniu metody, więc to zadziała bez dalszych zmian.
 
 #### 5. Wpięcie granicy
 
@@ -224,7 +226,7 @@ Sprawdzenie długości jest po stronie serwera niezależnie od `maxlength` w prz
 
 #### Manual Verification:
 
-- Wyliczona wartość `MaximumReceiveMessageSize` to 851 968 (weryfikacja przez debugger lub tymczasowy log przy starcie)
+- Wyliczona wartość `MaximumReceiveMessageSize` to 458 752 (weryfikacja przez debugger lub tymczasowy log przy starcie)
 - Aplikacja startuje i istniejąca ścieżka zapisu notatki 64 KB nadal działa (regresja granicy huba)
 
 **Implementation Note**: Po tej fazie i przejściu weryfikacji automatycznej — zatrzymaj się i poczekaj na potwierdzenie testów ręcznych przed fazą 3.
@@ -249,7 +251,8 @@ Strona importu dostaje drugie wejście. Obie zakładki dzielą pole tytułu, obs
 - Stan zakładki jako prywatne pole enumowe; przełącznik w stylu `btn-group` z `NoteEditor.razor:17-26`, domyślnie **„Wklej tekst"** (niższy próg wejścia, zgodnie z uzasadnieniem FR-003 w PRD).
 - `<textarea>` z `maxlength="@PasteValidator.MaxContentLength"`, wiązana przez `@onchange` (nie `@oninput`) — każde naciśnięcie klawisza przy 128 K znaków byłoby round-tripem po SignalR; `NoteEditor.razor:38-40` niesie to samo uzasadnienie. Licznik znaków jak w `NoteEditor.razor:50-52`.
 - Podpowiedź tytułu: przy zmianie treści wklejki wywołaj `PasteValidator.DeriveTitle` i wypełnij `Input.Title` **tylko** wtedy, gdy pole jest puste albo wciąż trzyma poprzednio podpowiedzianą wartość — dokładnie ten sam kontrakt, który `autoFilledTitle` realizuje dla nazwy pliku (`Import.razor:65-75`). Pole `autoFilledTitle` obsługuje obie zakładki.
-- Przy zapisie z zakładki wklejki: `Kind = SourceMaterialKind.Paste`, `OriginalFileName = null`. Przy zapisie z pliku: `Kind = SourceMaterialKind.MarkdownFile` i dotychczasowa wartość.
+- Przy zapisie z zakładki wklejki: `Kind = SourceMaterialKind.Paste`, `OriginalFileName = string.Empty`. Przy zapisie z pliku: `Kind = SourceMaterialKind.MarkdownFile` i dotychczasowa wartość.
+  > **Poprawka z przeglądu implementacji (F1).** Plan pierwotnie mówił `null`. Zapis `null` łamie kompatybilność rollbacku: model sprzed plasterka mapuje kolumnę jako `IsRequired()`, a EF rzuca przy materializacji `null` do takiej właściwości (zweryfikowane: `InvalidOperationException: The data is NULL at ordinal N`). Kolumna pozostaje nullowalna, ale nic nie zapisuje `null` — proweniencję niesie `Kind`.
 - Nowe `MessageFor(PasteFailure)` obok istniejącego `MessageFor(MarkdownImportFailure)`: `Empty` → wariant „Nie ma z czego zrobić notatki", `TooLong` → komunikat podający limit **w znakach** (nie w KB — jednostka musi zgadzać się z licznikiem obok pola).
 - Przełączenie zakładki czyści `errorMessage`, ale **nie czyści** wpisanej treści ani wybranego pliku: użytkownik, który zajrzał na drugą zakładkę, nie powinien tracić tego, co już wkleił.
 
@@ -299,7 +302,7 @@ Brak nowych. Ścieżka bazodanowa (`UserScopedDbContextFactory` → `AppDbContex
 ### Manual Testing Steps:
 
 1. Zaloguj się, wejdź na `/materials/import` — domyślnie widoczna zakładka „Wklej tekst"
-2. Wklej kilka akapitów; sprawdź, że tytuł wypełnił się z pierwszej linii i że licznik znaków rośnie
+2. Wklej kilka akapitów; sprawdź, że tytuł wypełnił się z pierwszej linii, a licznik znaków zaktualizował się po opuszczeniu pola (`@onchange` jest na blur — licznik nie rośnie w trakcie pisania, i tak ma być: round-trip na każdy znak byłby gorszy)
 3. Popraw tytuł ręcznie, zmień treść — tytuł ma zostać nietknięty
 4. Zapisz; sprawdź przekierowanie i zdanie o pochodzeniu bez nazwy pliku
 5. Kliknij „Generuj notatkę", poczekaj na stream, popraw i zapisz — powinieneś wylądować na `/notes/{id}`
@@ -316,7 +319,9 @@ Wklejka 128 K znaków trafia do prompta w całości, tak jak zaimportowany plik.
 
 ## Migration Notes
 
-Jedna migracja, zgodna wstecz w obie strony. Wersja aplikacji sprzed zmiany działa na schemacie po migracji: `kind` ma wartość we wszystkich wierszach, a stary kod po prostu jej nie czyta; `original_file_name` staje się nullowalne, ale stary kod nigdy nie wstawia `null`. To jest wymóg — rollback w Coolify nie cofa migracji (`CLAUDE.md`).
+Jedna migracja, zgodna wstecz w obie strony. Wersja aplikacji sprzed zmiany działa na schemacie po migracji: `kind` ma wartość we wszystkich wierszach, a stary kod po prostu jej nie czyta. To jest wymóg — rollback w Coolify nie cofa migracji (`CLAUDE.md`).
+
+> **Poprawka z przeglądu implementacji (F1).** Pierwotne uzasadnienie pokrywało wyłącznie **zapis** — że stary kod nigdy nie wstawia `null`. Odczyt jest tym, co się wywraca: stary model ma `IsRequired()` nad nienullowalnym `string`, a EF rzuca `InvalidOperationException: The data is NULL at ordinal N` przy materializacji `null`. Dlatego kolumna jest nullowalna, ale ścieżka wklejki zapisuje pusty string — dopóki żaden `null` tam nie trafi, rollback pozostaje operacją jednym kliknięciem.
 
 `Down` musi wypełnić `original_file_name` pustym stringiem dla wierszy z wklejek, zanim przywróci `NOT NULL` — inaczej wycofanie migracji wywróci się na danych, które sama umożliwiła.
 
@@ -361,7 +366,7 @@ Jedna migracja, zgodna wstecz w obie strony. Wersja aplikacji sprzed zmiany dzia
 
 #### Manual
 
-- [x] 2.6 Wyliczona wartość `MaximumReceiveMessageSize` to 851 968 — fa9b9e9
+- [x] 2.6 Wyliczona wartość `MaximumReceiveMessageSize` to 458 752 — fa9b9e9, skorygowane w przeglądzie implementacji (F3)
 - [ ] 2.7 Aplikacja startuje i zapis notatki 64 KB nadal działa
 
 ### Phase 3: Przełącznik wejścia na `/materials/import`
@@ -381,3 +386,18 @@ Jedna migracja, zgodna wstecz w obie strony. Wersja aplikacji sprzed zmiany dzia
 - [ ] 3.8 Podpowiedź tytułu nie nadpisuje tytułu wpisanego ręcznie
 - [ ] 3.9 Zakładka „Plik .md" działa dokładnie jak przed zmianą
 - [ ] 3.10 Przełączenie zakładki nie gubi wklejonego tekstu
+
+
+## Addendum — ustalenia z przeglądu implementacji (2026-08-27)
+
+Pełny raport: `context/changes/paste-text-generation/reviews/impl-review.md`.
+
+- **F1** — ścieżka wklejki zapisuje `string.Empty` zamiast `null`; deklaracja kompatybilności w migracji poprawiona.
+- **F2** — `Import.razor` łapie też `InvalidOperationException`, bo `AppDbContext.StampOwners` rzuca właśnie ten typ przy wygasłej sesji, a wklejka nie istnieje nigdzie poza obwodem.
+- **F3** — `WorstCaseBytesPerChar` obniżone z 6 do 3: komponenty negocjują `blazorpack` (MessagePack, surowy UTF-8), a nie JSON. Granica huba to teraz 458 752 B zamiast 851 968 B, a testy mierzą przez realny `IHubProtocol`.
+- **F4** — licznik i komunikat o limicie formatują liczbę przez `PolishCulture`; manualny krok 2 przeformułowany na to, co kod robi.
+- **F5** — komentarz w `NoteEditor.razor` wskazuje na `HubWireLimits`; klasa testowa przemianowana na `HubWireLimitTests`.
+- **F6** — `TextLimits` przeniesione do neutralnego `Text/` (`_10xnotes.Text`).
+- **F7** — asercja porównująca domyślny limit SignalR z liczbą znaków zamieniona na porównanie dwóch liczb bajtów.
+- **F8** — zmiana kopii w `Components/Pages/Notes/Detail.razor` była poza kontraktem planu; przyjęta świadomie, bo link prowadzi do tej samej przemianowanej strony.
+- **F9** — przy `PasteValidator.MaxContentLength` dopisane, że ostatnią warstwą pod tym limitem jest okno kontekstu modelu.

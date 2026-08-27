@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Authorize]
 @using System.ComponentModel.DataAnnotations
+@using System.Globalization
 @using Microsoft.EntityFrameworkCore
 @using _10xnotes.Data
 @using _10xnotes.Data.Entities
@@ -71,7 +72,7 @@
         <div class="form-text">
             @* Characters, not kilobytes — the limit this counter counts up to is a character
                count, and showing KB here would promise a different unit than the one enforced. *@
-            @pasteContent.Length / @PasteValidator.MaxContentLength znaków
+            @pasteContent.Length.ToString("N0", PolishCulture) / @PasteValidator.MaxContentLength.ToString("N0", PolishCulture) znaków
         </div>
     </div>
 
@@ -100,6 +101,10 @@
 </EditForm>
 
 @code {
+    // Same culture the material and note pages format their dates with, so the character counter
+    // and the too-long message read as Polish numbers rather than as raw integers.
+    private static readonly CultureInfo PolishCulture = CultureInfo.GetCultureInfo("pl-PL");
+
     /// <summary>Which of the two entry points the user is filling in.</summary>
     private enum InputMode
     {
@@ -188,12 +193,17 @@
                 db.SourceMaterials.Add(material);
                 await db.SaveChangesAsync();
             }
-            catch (DbUpdateException)
+            catch (Exception ex) when (ex is DbUpdateException or InvalidOperationException)
             {
                 // Left unhandled this escapes the event handler and tears the circuit down, so a
                 // transient database blip costs the user their material and shows them a reconnect
                 // modal instead of a reason. Same posture the auth pages take when Supabase is
                 // unavailable.
+                //
+                // InvalidOperationException is here for a failure this page can actually produce:
+                // AppDbContext.StampOwners throws it when the session has lapsed by the time the
+                // user hits save. That is not a DbUpdateException, and letting it through would
+                // cost a paste — which, unlike a chosen file, exists nowhere but in this circuit.
                 errorMessage = "Nie udało się zapisać materiału. Spróbuj ponownie za chwilę.";
                 return;
             }
@@ -222,9 +232,15 @@
             Content = result.Content,
             Kind = SourceMaterialKind.Paste,
 
-            // Null rather than empty: there is no file behind this material, and Kind above is
-            // what says so. See the remarks on SourceMaterial.OriginalFileName.
-            OriginalFileName = null
+            // Empty rather than null, and the reason is rollback rather than modelling: the
+            // column is nullable now, but the application version from before this slice maps it
+            // as IsRequired(), and EF throws when it materialises a null into a required
+            // property ("The data is NULL at ordinal N"). A Coolify rollback reverts the code and
+            // not the migration, so a null written here would break the material page for the
+            // version we roll back to. Kind is what says there is no file; this string carries no
+            // meaning and must never become null. Pinned by
+            // PasteValidatorTests.A_pasted_material_never_stores_a_null_file_name.
+            OriginalFileName = string.Empty
         };
     }
 
@@ -315,7 +331,7 @@
         PasteFailure.Empty =>
             "Wklejony tekst jest pusty — nie ma z czego zrobić notatki.",
         PasteFailure.TooLong =>
-            $"Wklejony tekst jest za długi. Maksymalnie {PasteValidator.MaxContentLength} znaków.",
+            $"Wklejony tekst jest za długi. Maksymalnie {PasteValidator.MaxContentLength.ToString("N0", PolishCulture)} znaków.",
         _ =>
             "Nie udało się zapisać wklejonego tekstu. Spróbuj ponownie."
     };

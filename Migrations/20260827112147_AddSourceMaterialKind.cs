@@ -17,8 +17,18 @@ namespace _10xnotes.Migrations
     /// Backward-compatible in both directions, which is a requirement rather than a nicety — a
     /// Coolify rollback does not reverse migrations. The application version from before this
     /// change runs fine against the schema after it: <c>kind</c> has a value in every row and the
-    /// old code simply never selects it, and <c>original_file_name</c> becomes nullable while the
-    /// old code never writes null.
+    /// old code simply never selects it.
+    /// </para>
+    /// <para>
+    /// <c>original_file_name</c> needs more care than "the old code never writes null", because
+    /// that only covers writes. The pre-change model maps the column as <c>IsRequired()</c> over a
+    /// non-nullable string, and EF throws on materialising a null into it — verified:
+    /// <c>InvalidOperationException: The data is NULL at ordinal N</c>. Dropping NOT NULL is
+    /// therefore safe only as long as nothing actually stores a null, which is why the paste path
+    /// writes an empty string (see <c>Import.razor</c>). If a null ever reaches this column, a
+    /// rollback stops being a one-click operation and needs
+    /// <c>UPDATE public.source_materials SET original_file_name = '' WHERE original_file_name IS NULL;</c>
+    /// first — the same statement <c>Down</c> already runs.
     /// </para>
     /// <para>
     /// RLS is deliberately untouched: <c>source_materials</c> has had it enabled since

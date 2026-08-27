@@ -21,7 +21,7 @@ Na `/materials/import` widać przełącznik „Wklej tekst" / „Plik .md", domy
 | Trasa | Jedna strona `/materials/import`, dwie zakładki | Roadmapa nazywa S-02 drugim wejściem, nie drugim przepływem; wspólny tytuł, zapis i przekierowanie zostają w jednym komponencie | Plan |
 | Proweniencja | Kolumna `kind` + `original_file_name` nullable | Mówi, czym wiersz jest, zamiast wnioskować to z pustego stringa; wzorzec `NoteEvent.Kind` | Plan |
 | Limit wklejki | 128 K **znaków** (import: 128 KB **bajtów**) | Kto może zaimportować dokument jako plik, ma móc wkleić jego treść — asymetria czytałaby się jak błąd | Plan |
-| Granica SignalR | `max(notatka, wklejka) × 6 + framing` = 851 968 B | Wklejka staje się największą rzeczą przechodzącą przez hub; przekroczenie zrywa obwód, a nie zwraca błąd | Plan (z `lessons.md`) |
+| Granica SignalR | `max(notatka, wklejka) × 3 + framing` = 458 752 B | Wklejka staje się największą rzeczą przechodzącą przez hub; przekroczenie zrywa obwód, a nie zwraca błąd. Mnożnik to 3, nie 6: hub negocjuje `blazorpack` (surowy UTF-8), nie JSON — skorygowane w przeglądzie implementacji (F3) | Plan (z `lessons.md`) |
 | Walidator | Osobny `PasteValidator` + wspólny `Truncate` | Reguły importu dotyczą bajtów i nazwy pliku; wciśnięcie obu w jedną sygnaturę zrobiłoby z każdej gałęzi warunek | Plan |
 | Tytuł | Wymagany, podpowiadany z pierwszej linii | Ten sam kontrakt „my proponujemy, ty poprawiasz" co `DeriveTitle` przy imporcie | Plan |
 | Przypadki brzegowe | Tylko pusty/białe znaki → odrzucenie; brak ścinania BOM i normalizacji CRLF | BOM to artefakt pliku, nie schowka; rozjechanie wejść w drugą stronę byłoby gorsze niż brak obu | Plan |

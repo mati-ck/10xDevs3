@@ -1,3 +1,4 @@
+using _10xnotes.Text;
 using System.Text;
 
 namespace _10xnotes.SourceMaterials;

@@ -1,4 +1,4 @@
-using _10xnotes.SourceMaterials;
+using _10xnotes.Text;
 
 namespace _10xnotes.Notes;
 

@@ -32,12 +32,21 @@ public static class HubWireLimits
     /// Worst-case bytes on the wire per UTF-16 code unit of user text.
     /// </summary>
     /// <remarks>
-    /// Both text limits count UTF-16 code units, not bytes, and one unit can cost far more than
-    /// one byte by the time it reaches the hub: three bytes for a non-Latin BMP character encoded
-    /// as UTF-8, and six for a control character escaped as <c>\uXXXX</c> in the JSON payload. Six
-    /// is the ceiling of both.
+    /// Both text limits count UTF-16 code units, not bytes, and one unit can cost more than one
+    /// byte by the time it reaches the hub: three bytes for a non-Latin BMP character encoded as
+    /// UTF-8. Astral characters cost four bytes but arrive as a surrogate *pair*, so they are two
+    /// bytes per code unit — three is the ceiling.
+    /// <para>
+    /// It is deliberately not six. Six would be the ceiling if the payload were JSON, where a
+    /// control character escapes to <c>\uXXXX</c> — but the components hub negotiates
+    /// <c>blazorpack</c> (<c>BlazorPackHubProtocol</c>, MessagePack), which writes strings as raw
+    /// UTF-8 with no escape expansion. Pinning this to the protocol rather than to a guess is what
+    /// keeps the bound from being twice what it needs to be; each circuit may buffer a frame this
+    /// large. <c>NoteWireLimitTests</c> measures through the registered protocol, so if Blazor
+    /// ever changes what it negotiates, the test fails rather than the users.
+    /// </para>
     /// </remarks>
-    private const int WorstCaseBytesPerChar = 6;
+    private const int WorstCaseBytesPerChar = 3;
 
     /// <summary>
     /// Room for everything travelling beside the text: the title, the hub protocol's own framing,

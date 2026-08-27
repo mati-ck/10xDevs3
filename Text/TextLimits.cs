@@ -1,4 +1,4 @@
-namespace _10xnotes.SourceMaterials;
+namespace _10xnotes.Text;
 
 /// <summary>
 /// Length arithmetic shared by every rule set that clamps user text to a column width.

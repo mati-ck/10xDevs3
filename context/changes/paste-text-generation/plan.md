@@ -338,10 +338,10 @@ Jedna migracja, zgodna wstecz w obie strony. Wersja aplikacji sprzed zmiany dzia
 
 #### Automated
 
-- [ ] 1.1 Projekt się kompiluje: `dotnet build`
-- [ ] 1.2 Zestaw testów przechodzi: `dotnet test`
-- [ ] 1.3 `dotnet ef migrations has-pending-model-changes` nie zgłasza zmian
-- [ ] 1.4 `DataAccessBoundaryTests` przechodzi
+- [x] 1.1 Projekt się kompiluje: `dotnet build`
+- [x] 1.2 Zestaw testów przechodzi: `dotnet test`
+- [x] 1.3 `dotnet ef migrations has-pending-model-changes` nie zgłasza zmian
+- [x] 1.4 `DataAccessBoundaryTests` przechodzi
 
 #### Manual
 

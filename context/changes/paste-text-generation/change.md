@@ -1,9 +1,9 @@
 ---
 change_id: paste-text-generation
 title: Paste text generation
-status: planned
+status: implementing
 created: 2026-08-18
-updated: 2026-08-18
+updated: 2026-08-27
 archived_at: null
 ---
 

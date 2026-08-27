@@ -36,7 +36,7 @@ Sam przepływ pozostaje niepodzielny jako **cel**, ale jest dostarczany w trzech
 | S-01a | markdown-import            | zaimportować plik Markdown i mieć go zapisanym na koncie          | F-01, F-02    | FR-004                          | done     |
 | S-01b | ai-note-generation         | wygenerować notatkę AI obok materiału (jeszcze bez zapisu)        | S-01a         | US-01 (część), FR-005           | done     |
 | S-01c | note-review-save           | poprawić wygenerowaną notatkę i zapisać ją (zapis = akceptacja)   | S-01b         | US-01 (domknięcie), FR-006, FR-008 | done     |
-| S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01c         | FR-003                          | in-progress |
+| S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01c         | FR-003                          | done         |
 | S-03  | browse-notes-and-sources   | przeglądać własne notatki i materiały źródłowe                    | S-01c, F-02   | FR-007                          | in-progress |
 | S-04  | edit-source-material       | edytować zapisany materiał źródłowy                               | S-01a         | FR-009                          | blocked  |
 | S-05  | delete-note                | usunąć własną notatkę                                             | S-01c         | FR-010                          | proposed |
@@ -149,7 +149,7 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Drugie wejście do istniejącej pętli generowania — niskie ryzyko; jedyna pułapka to traktowanie wklejania jak osobnego przepływu zamiast drugiego wariantu wejścia obok S-01a.
-- **Status:** in-progress
+- **Status:** done
 
 ### S-03: Przeglądanie własnych notatek i materiałów
 
@@ -238,3 +238,4 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 - **S-01a: użytkownik wgrywa plik `.md` i widzi go zapisanego na swoim koncie — materiał przetrwa wylogowanie i nie jest widoczny dla nikogo innego. Bez generowania.** — Archived 2026-08-17 → `context/archive/2026-08-17-markdown-import/`. Lesson: —.
 - **S-01b: jednym kliknięciem użytkownik generuje notatkę z zapisanego materiału i widzi ją obok źródła, z ciągłą, widoczną informacją zwrotną w trakcie. Notatka jest na tym etapie ulotna (nie trafia jeszcze na konto), materiał źródłowy pozostaje niezmieniony.** — Archived 2026-08-17 → `context/archive/2026-08-17-ai-note-generation/`. Lesson: —.
 - **S-01c: użytkownik poprawia wygenerowaną notatkę i zapisuje ją — zapis wiąże notatkę z kontem i liczy się jako akceptacja; porzucenie bez zapisu nie pozostawia jej na koncie; materiał źródłowy zostaje nietknięty. Ten kawałek domyka gwiazdę.** — Archived 2026-08-17 → `context/archive/2026-08-17-note-review-save/`. Lesson: „An advertised limit must be one every layer beneath it can carry" (`lessons.md`).
+- **S-02: użytkownik wkleja surowy tekst jako materiał źródłowy i generuje z niego notatkę tą samą pętlą co w S-01a→S-01c.** — Archived 2026-08-27 → `context/archive/2026-08-18-paste-text-generation/`. Lesson: —.

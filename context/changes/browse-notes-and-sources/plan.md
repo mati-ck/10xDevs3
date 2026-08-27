@@ -305,15 +305,15 @@ Brak migracji i brak zmian w schemacie. Żadna nowa tabela nie powstaje, więc r
 
 #### Manual
 
-- [ ] 2.6 Świeże konto widzi oba stany puste z ich linkami
+- [ ] 2.6 Świeże konto widzi oba stany puste z ich linkami — NIEZWERYFIKOWANE: konto testowe ma dane, stan pusty wymaga swiezego konta
 - [ ] 2.7 Po imporcie materiał jest na górze `/materials`, bez linku do notatki; `/` nadal pusty
-- [ ] 2.8 Po zapisie notatka jest na `/` z datą, a wiersz materiału oferuje link do notatki
-- [ ] 2.9 Linki krzyżowe w obie strony otwierają właściwe strony szczegółów
-- [ ] 2.10 Ponowny zapis notatki przesuwa ją na górę listy notatek
-- [ ] 2.11 Nawigacja pokazuje oba wpisy i podświetla dokładnie jeden na `/materials` oraz na `/materials/import`
-- [ ] 2.12 Drugie konto nie widzi na listach ani jednego wiersza pierwszego konta
-- [ ] 2.13 Wylogowany na `/` ląduje na `/login?ReturnUrl=%2F` i po zalogowaniu wraca na `/`
-- [ ] 2.14 Polskie znaki w tytule i nazwie pliku wyświetlają się poprawnie w obu listach
+- [x] 2.8 Po zapisie notatka jest na `/` z datą, a wiersz materiału oferuje link do notatki — 2026-08-27, weryfikacja reczna
+- [x] 2.9 Linki krzyżowe w obie strony otwierają właściwe strony szczegółów — 2026-08-27, weryfikacja reczna: kliniete w obie strony
+- [ ] 2.10 Ponowny zapis notatki przesuwa ją na górę listy notatek — CZESCIOWO: ponowny zapis zaktualizowal date na liscie (17:12 -> 17:26), ale notatka byla juz na szczycie, wiec samo przesuniecie nie zostalo dowiedzione
+- [x] 2.11 Nawigacja pokazuje oba wpisy i podświetla dokładnie jeden na `/materials` oraz na `/materials/import` — 2026-08-27, weryfikacja reczna
+- [ ] 2.12 Drugie konto nie widzi na listach ani jednego wiersza pierwszego konta — NIEZWERYFIKOWANE RECZNIE: wymaga drugiego konta. Pokryte testami i potwierdzone na wygenerowanym SQL (filtr `owner_id` po obu stronach `LEFT JOIN`)
+- [x] 2.13 Wylogowany na `/` ląduje na `/login?ReturnUrl=%2F` i po zalogowaniu wraca na `/` — 2026-08-27, weryfikacja reczna: 302 na `/login?ReturnUrl=%2F`, a `/materials` na `/login?ReturnUrl=%2Fmaterials`. Powrot po zalogowaniu niesprawdzony, bo sesja byla aktywna
+- [x] 2.14 Polskie znaki w tytule i nazwie pliku wyświetlają się poprawnie w obu listach — 2026-08-27, weryfikacja reczna
 
 
 ## Addendum — ustalenia z przeglądu implementacji (2026-08-27)

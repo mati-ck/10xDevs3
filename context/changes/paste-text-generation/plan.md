@@ -352,9 +352,9 @@ Jedna migracja, zgodna wstecz w obie strony. Wersja aplikacji sprzed zmiany dzia
 
 #### Manual
 
-- [ ] 1.5 Migracja stosuje się na kopii bazy i wszystkie istniejące wiersze dostają `kind = 'MarkdownFile'`
-- [ ] 1.6 Wcześniej zaimportowany materiał wciąż pokazuje zdanie z nazwą pliku
-- [ ] 1.7 Advisor bezpieczeństwa Supabase nie zgłasza nowych ostrzeżeń dla `source_materials`
+- [x] 1.5 Migracja stosuje się na kopii bazy i wszystkie istniejące wiersze dostają `kind = 'MarkdownFile'` — 2026-08-27, weryfikacja reczna: 6 wierszy `MarkdownFile`, zero bez wartosci
+- [x] 1.6 Wcześniej zaimportowany materiał wciąż pokazuje zdanie z nazwą pliku — 2026-08-27, weryfikacja reczna
+- [x] 1.7 Advisor bezpieczeństwa Supabase nie zgłasza nowych ostrzeżeń dla `source_materials` — 2026-08-27, weryfikacja reczna: wylacznie `rls_enabled_no_policy` na poziomie INFO, czyli zamierzone deny-all
 
 ### Phase 2: Reguły wklejania i granica transportu
 
@@ -369,7 +369,7 @@ Jedna migracja, zgodna wstecz w obie strony. Wersja aplikacji sprzed zmiany dzia
 #### Manual
 
 - [x] 2.6 Wyliczona wartość `MaximumReceiveMessageSize` to 458 752 — fa9b9e9, skorygowane w przeglądzie implementacji (F3)
-- [ ] 2.7 Aplikacja startuje i zapis notatki 64 KB nadal działa
+- [x] 2.7 Aplikacja startuje i zapis notatki 64 KB nadal działa — 2026-08-27, weryfikacja reczna: notatka 65 536 znakow zapisana, modal ponownego laczenia nie drgnal
 
 ### Phase 3: Przełącznik wejścia na `/materials/import`
 
@@ -381,13 +381,13 @@ Jedna migracja, zgodna wstecz w obie strony. Wersja aplikacji sprzed zmiany dzia
 
 #### Manual
 
-- [ ] 3.4 Wklejenie tekstu, zapis i przekierowanie na `/materials/{id}` bez nazwy pliku w kopii
-- [ ] 3.5 „Generuj notatkę" na wklejonym materiale streamuje i zapisuje notatkę
-- [ ] 3.6 Pusta wklejka i wklejka z samych spacji dają polski komunikat, a nie zapis
-- [ ] 3.7 ~130 K znaków daje komunikat, a nie zerwany obwód
-- [ ] 3.8 Podpowiedź tytułu nie nadpisuje tytułu wpisanego ręcznie
-- [ ] 3.9 Zakładka „Plik .md" działa dokładnie jak przed zmianą
-- [ ] 3.10 Przełączenie zakładki nie gubi wklejonego tekstu
+- [x] 3.4 Wklejenie tekstu, zapis i przekierowanie na `/materials/{id}` bez nazwy pliku w kopii — 2026-08-27, weryfikacja reczna: w bazie `kind=Paste`, `original_file_name` to pusty string, nie `null`
+- [x] 3.5 „Generuj notatkę" na wklejonym materiale streamuje i zapisuje notatkę — 2026-08-27, weryfikacja reczna: 575 znakow, zapis przekierowal na `/notes/{id}`
+- [x] 3.6 Pusta wklejka i wklejka z samych spacji dają polski komunikat, a nie zapis — 2026-08-27, weryfikacja reczna
+- [x] 3.7 ~130 K znaków daje komunikat, a nie zerwany obwód — 2026-08-27, weryfikacja reczna. **Ten punkt wykryl regresje:** przy `WorstCaseBytesPerChar = 3` wklejka na limicie nie docierala do serwera, obwod byl zrywany i cicho wznawiany, a komunikatu nie bylo wcale. Po przywroceniu 6 limit+1 daje polski komunikat i modal nie drga
+- [x] 3.8 Podpowiedź tytułu nie nadpisuje tytułu wpisanego ręcznie — 2026-08-27, weryfikacja reczna
+- [x] 3.9 Zakładka „Plik .md" działa dokładnie jak przed zmianą — 2026-08-27, weryfikacja reczna: panel pliku, limit w KB, podpowiedz tytulu z nazwy pliku
+- [x] 3.10 Przełączenie zakładki nie gubi wklejonego tekstu — 2026-08-27, weryfikacja reczna: tekst i tytul przetrwaly przelaczenie w obie strony
 
 
 ## Addendum — ustalenia z przeglądu implementacji (2026-08-27)

@@ -5,7 +5,10 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Authentication.Cookies
 @using _10xnotes.Auth
+@using _10xnotes.Profiles
 @inject SupabaseAuthClient AuthClient
+@inject ProfileService Profiles
+@inject ILogger<Login> Logger
 @inject NavigationManager Navigation
 
 @* Static SSR on purpose — no @rendermode. HttpContext.SignInAsync needs a response that has
@@ -68,8 +71,42 @@
             return;
         }
 
-        await AuthCookie.SignInAsync(HttpContext, result.UserId, result.Email);
+        await AuthCookie.SignInAsync(
+            HttpContext,
+            result.UserId,
+            result.Email,
+            await ReadDisplayNameAsync(result.UserId));
+
         Navigation.NavigateTo(AuthCookie.SafeReturnUrl(ReturnUrl));
+    }
+
+    /// <summary>
+    /// The display name to stamp into the cookie, or null when there is none to stamp.
+    /// </summary>
+    /// <remarks>
+    /// Takes the id explicitly because nobody is signed in yet at this point in the POST — see
+    /// ProfileService.GetDisplayNameAtSignInAsync. The id is GoTrue's, from a response that has
+    /// just verified the password; it never comes from the form.
+    /// <para>
+    /// A failure here must not block the sign-in. The claim is a convenience and falling back to
+    /// the email is already the defined behavior, so a database that is down costs the user their
+    /// name in the nav rather than their session.
+    /// </para>
+    /// </remarks>
+    private async Task<string?> ReadDisplayNameAsync(Guid userId)
+    {
+        try
+        {
+            return await Profiles.GetDisplayNameAtSignInAsync(userId, HttpContext.RequestAborted);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(
+                exception,
+                "Reading the display name at sign-in failed; signing in without the claim.");
+
+            return null;
+        }
     }
 
     private sealed class LoginInput

@@ -1,0 +1,163 @@
+@page "/profile"
+@attribute [Authorize]
+@using System.ComponentModel.DataAnnotations
+@using System.Data.Common
+@using System.Security.Claims
+@using _10xnotes.Auth
+@using _10xnotes.Profiles
+@inject ProfileService Profiles
+@inject ILogger<Profile> Logger
+@inject NavigationManager Navigation
+
+@* Static SSR on purpose — no @rendermode. Saving a display name re-issues the auth cookie so the
+   nav picks it up, and AuthCookie.ReissueWithDisplayNameAsync needs a response that has not
+   started. An interactive circuit cannot provide one; the same constraint Login.razor and
+   Logout.razor already document.
+
+   Three independent sections, each its own EditForm with its own FormName and its own error
+   state, so a failure in one never blanks another. *@
+
+<PageTitle>Moje konto</PageTitle>
+
+<h1>Moje konto</h1>
+
+<section class="mb-5">
+    <h2 class="h5">Dane konta</h2>
+    <dl class="row mb-0">
+        <dt class="col-sm-3">Adres e-mail</dt>
+        <dd class="col-sm-9">@Email</dd>
+    </dl>
+    <div class="form-text">Adresu e-mail nie można zmienić.</div>
+</section>
+
+<section class="mb-5">
+    <h2 class="h5">Nazwa wyświetlana</h2>
+
+    @if (displayNameError is not null)
+    {
+        <div class="alert alert-danger" role="alert">@displayNameError</div>
+    }
+
+    <p class="text-body-secondary">
+        Nazwa pojawi się w menu zamiast adresu e-mail. Zostaw pole puste, aby wrócić do adresu.
+    </p>
+
+    <EditForm Model="DisplayNameInput" method="post" OnValidSubmit="SaveDisplayNameAsync" FormName="display-name">
+        <DataAnnotationsValidator />
+
+        <div class="mb-3">
+            <label for="display-name" class="form-label">Nazwa wyświetlana</label>
+            <InputText id="display-name" class="form-control" @bind-Value="DisplayNameInput!.DisplayName"
+                       autocomplete="nickname" maxlength="@DisplayNameValidator.MaxLength" />
+            <div class="form-text">Maksymalnie @DisplayNameValidator.MaxLength znaków.</div>
+            <ValidationMessage For="() => DisplayNameInput!.DisplayName" class="text-danger" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Zapisz nazwę</button>
+    </EditForm>
+</section>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    // Not initialized inline: a form post can overwrite the property with null (BL0008).
+    [SupplyParameterFromForm(FormName = "display-name")]
+    private DisplayNameForm? DisplayNameInput { get; set; }
+
+    private string? displayNameError;
+
+    private bool wasPosted;
+
+    private string Email =>
+        HttpContext.User.FindFirstValue(ClaimTypes.Email)
+        ?? HttpContext.User.Identity?.Name
+        ?? string.Empty;
+
+    /// <summary>
+    /// Gives every form a model synchronously, before anything is awaited.
+    /// </summary>
+    /// <remarks>
+    /// Load-bearing, and not merged into OnInitializedAsync. ComponentBase calls
+    /// StateHasChanged() and renders once *before* awaiting an OnInitializedAsync that has not
+    /// already completed, so a model assigned only after an await is null on that first render
+    /// and EditForm throws "requires either a Model parameter, or an EditContext parameter".
+    /// The same reason Materials/Index.razor initializes its list synchronously.
+    /// </remarks>
+    protected override void OnInitialized()
+    {
+        // A non-null value here means this render is a post of this form, so what the user typed
+        // must survive: re-reading the stored name would throw their input away and show the old
+        // value beside their error message.
+        wasPosted = DisplayNameInput is not null;
+        DisplayNameInput ??= new DisplayNameForm();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (wasPosted)
+        {
+            return;
+        }
+
+        try
+        {
+            DisplayNameInput!.DisplayName =
+                await Profiles.GetDisplayNameAsync(HttpContext.RequestAborted) ?? string.Empty;
+        }
+        catch (Exception exception) when (exception is DbException or InvalidOperationException)
+        {
+            // Same posture as the material list: a transient read failure says so in Polish
+            // rather than unwinding to the stock Error page. The box stays empty, so the copy
+            // has to warn that saving it would clear a name the user may still have stored.
+            Logger.LogError(exception, "Failed to load the profile for the account page.");
+            displayNameError =
+                "Nie udało się wczytać nazwy wyświetlanej. Odśwież stronę — zapisanie pustego "
+                + "pola teraz skasowałoby zapisaną nazwę.";
+        }
+    }
+
+    /// <summary>
+    /// Persist, then re-issue the cookie, then redirect.
+    /// </summary>
+    /// <remarks>
+    /// The order is load-bearing. Re-issuing first would leave the nav showing a name that was
+    /// never stored, which is worse than the write failing visibly. The redirect is what makes
+    /// the nav re-render from the new cookie — without it the response is rendered from the
+    /// principal this request started with, which still carries the old name.
+    /// </remarks>
+    private async Task SaveDisplayNameAsync()
+    {
+        displayNameError = null;
+
+        var result = await Profiles.SetDisplayNameAsync(
+            DisplayNameInput!.DisplayName,
+            HttpContext.RequestAborted);
+
+        if (!result.Succeeded)
+        {
+            displayNameError = result.FailureReason switch
+            {
+                ProfileUpdateFailure.NameTooLong =>
+                    $"Nazwa może mieć najwyżej {DisplayNameValidator.MaxLength} znaków.",
+                _ =>
+                    "Nie udało się zapisać nazwy. Spróbuj ponownie za chwilę."
+            };
+            return;
+        }
+
+        await AuthCookie.ReissueWithDisplayNameAsync(HttpContext, result.DisplayName);
+
+        Navigation.NavigateTo("/profile");
+    }
+
+    private sealed class DisplayNameForm
+    {
+        // Bound as a string rather than a string? because InputText binds "" for an empty box.
+        // DisplayNameValidator.Normalize is what turns that back into the null the column wants.
+        [StringLength(
+            DisplayNameValidator.MaxLength,
+            ErrorMessage = "Nazwa może mieć najwyżej {1} znaków.")]
+        public string DisplayName { get; set; } = string.Empty;
+    }
+}

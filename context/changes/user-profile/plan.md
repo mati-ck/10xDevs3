@@ -413,13 +413,13 @@ One behavioral note for a rollback: display-name claims written into cookies by 
 
 #### Automated
 
-- [x] 1.1 Solution builds: `dotnet build`
-- [x] 1.2 Test suite passes: `dotnet test`
-- [x] 1.3 A test pins `PasswordLimits.MaxBytes` to GoTrue's documented bcrypt bound
-- [x] 1.4 A test proves the rule measures UTF-8 bytes, not characters
-- [x] 1.5 `PasswordValidator` tests cover too-short, too-many-bytes, empty, and valid
-- [x] 1.6 `SupabaseAuthClientTests` covers `same_password` → `AuthFailureReason.SamePassword`
-- [x] 1.7 `SupabaseAuthClientTests` covers the token-grant returning an `AccessToken`, and signup tolerating none
+- [x] 1.1 Solution builds: `dotnet build` — 72b5342
+- [x] 1.2 Test suite passes: `dotnet test` — 72b5342
+- [x] 1.3 A test pins `PasswordLimits.MaxBytes` to GoTrue's documented bcrypt bound — 72b5342
+- [x] 1.4 A test proves the rule measures UTF-8 bytes, not characters — 72b5342
+- [x] 1.5 `PasswordValidator` tests cover too-short, too-many-bytes, empty, and valid — 72b5342
+- [x] 1.6 `SupabaseAuthClientTests` covers `same_password` → `AuthFailureReason.SamePassword` — 72b5342
+- [x] 1.7 `SupabaseAuthClientTests` covers the token-grant returning an `AccessToken`, and signup tolerating none — 72b5342
 
 #### Manual
 
@@ -430,11 +430,11 @@ One behavioral note for a rollback: display-name claims written into cookies by 
 
 #### Automated
 
-- [ ] 2.1 Solution builds: `dotnet build`
-- [ ] 2.2 Test suite passes: `dotnet test`
-- [ ] 2.3 `DataAccessBoundaryTests` still passes
-- [ ] 2.4 `DisplayNameValidator` tests cover trimming, whitespace/empty → null, the 200-char boundary, an emoji
-- [ ] 2.5 `ProfileService` tests cover read, set, clear, and cross-account isolation
+- [x] 2.1 Solution builds: `dotnet build`
+- [x] 2.2 Test suite passes: `dotnet test`
+- [x] 2.3 `DataAccessBoundaryTests` still passes
+- [x] 2.4 `DisplayNameValidator` tests cover trimming, whitespace/empty → null, the 200-char boundary, an emoji
+- [x] 2.5 `ProfileService` tests cover read, set, clear, and cross-account isolation
 
 #### Manual
 

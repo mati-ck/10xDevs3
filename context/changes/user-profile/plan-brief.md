@@ -1,12 +1,13 @@
-# Profil użytkownika — Plan Brief
+# Zarządzanie kontem (S-07) — Plan Brief
 
 > Full plan: `context/changes/user-profile/plan.md`
+> Roadmap: `context/foundation/roadmap.md` → S-07 (stream D) · Issue [#29](https://github.com/mati-ck/10xDevs3/issues/29)
 
 ## What & Why
 
 Add a `/profile` page giving the signed-in user three account capabilities that do not exist anywhere in the product today: set a display name, change their password, and delete their account. The display name lands on a `profiles` table F-01 built and nothing has ever used; the other two each need a path through Supabase Auth that the app deliberately closed when it decided the cookie would be its only session concept.
 
-This change is **outside the PRD and the roadmap** — no roadmap item carries `Change ID: user-profile`, and the PRD does not mention a profile. It is additive to the MVP, not a slice of it.
+Tracked as roadmap slice **S-07** in stream D ("Zarządzanie kontem"), against **FR-012, FR-013, FR-014**. Those requirements and the roadmap entry were both written on 2026-09-08, after this plan — the reverse of every other slice, where the PRD preceded the roadmap and the roadmap preceded the plan.
 
 ## Starting Point
 

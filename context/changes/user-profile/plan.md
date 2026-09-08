@@ -1,10 +1,12 @@
-# Profil użytkownika — Implementation Plan
+# Zarządzanie kontem (S-07) — Implementation Plan
 
 ## Overview
 
 Add a `/profile` page giving the signed-in user three account capabilities that do not exist today: setting a display name, changing their password, and deleting their account. The display name lands on the `profiles` table that F-01 created and nothing has ever used; the password change and the account deletion each need a path through Supabase Auth that the application deliberately closed off when it decided the cookie would be its only session concept.
 
 The change also fixes a pre-existing defect it would otherwise inherit: the register form advertises a longer password than GoTrue will accept.
+
+Tracked as roadmap slice **S-07** (stream D, "Zarządzanie kontem") against **FR-012, FR-013, FR-014**, which were added to the PRD (v2) in the same round. The plan came first and the roadmap entry and PRD requirements followed — the reverse of every other slice.
 
 ## Current State Analysis
 
@@ -391,7 +393,9 @@ One behavioral note for a rollback: display-name claims written into cookies by 
 
 ## References
 
-- Roadmap: no item — this change is outside the PRD and roadmap; see `context/changes/user-profile/change.md`
+- Roadmap: `context/foundation/roadmap.md` → S-07 (stream D, status `planning`)
+- PRD: FR-012, FR-013, FR-014 (`context/foundation/prd.md` v2, §Konto), plus Access Control
+- Issue: [#29](https://github.com/mati-ck/10xDevs3/issues/29)
 - Lessons applied: `context/foundation/lessons.md` — "An advertised limit must be one every layer beneath it can carry"
 - Limit-constant precedent: `Hosting/HubWireLimits.cs`
 - Service precedent: `Notes/NoteService.cs`, `SourceMaterials/SourceMaterialService.cs`

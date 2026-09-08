@@ -1,6 +1,6 @@
 ---
 change_id: user-profile
-title: Profil użytkownika — nazwa wyświetlana, zmiana hasła, usunięcie konta
+title: Zarządzanie kontem (S-07)
 status: planned
 created: 2026-09-08
 updated: 2026-09-08
@@ -8,7 +8,7 @@ updated: 2026-09-08
 
 ## Notes
 
-- **Nie pochodzi z roadmapy ani z PRD.** Żadna pozycja w `context/foundation/roadmap.md` nie ma `Change ID: user-profile`, a PRD nie wymienia profilu użytkownika. To zmiana spoza pierwotnego zakresu MVP — roadmapa nie jest przez nią modyfikowana.
+- **Slice S-07 w roadmapie**, strumień D („Zarządzanie kontem"), issue [#29](https://github.com/mati-ck/10xDevs3/issues/29). Kolejność powstawania była odwrotna niż u pozostałych plasterków: najpierw plan, potem pozycja w roadmapie i FR-012…FR-014 dopisane do PRD (v2) — wszystko 2026-09-08. Nie pochodzi więc z pierwotnej generacji roadmapy.
 - Zakres ustalony 2026-09-08: nazwa wyświetlana (podgląd + edycja), zmiana hasła, usunięcie konta. **Poza zakresem:** statystyki użycia (licznik generowań, liczba notatek) — świadomie odrzucone.
 - Tabela `profiles` istnieje od F-01 (`persistence-baseline`) i do dziś **nie jest używana przez żaden kod aplikacji** — poza testami. Wiersz dla każdego konta gwarantuje trigger `on_auth_user_created` (`Migrations/20260727200717_AddHandleNewUserTrigger.cs`), więc strona profilu nigdy nie musi obsługiwać przypadku „brak wiersza".
 - Zweryfikowane 2026-09-08 zapytaniem do bazy: rola `postgres`, na której działa aplikacja, ma uprawnienie `DELETE` na `auth.users`. Usunięcie konta nie wymaga zatem klucza `service_role` — kasowanie idzie po istniejącym połączeniu, a kaskady FK (`ON DELETE CASCADE` na wszystkich pięciu tabelach) robią resztę.

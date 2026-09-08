@@ -449,12 +449,12 @@ One behavioral note for a rollback: display-name claims written into cookies by 
 
 #### Automated
 
-- [x] 3.1 Solution builds: `dotnet build`
-- [x] 3.2 Test suite passes: `dotnet test`
-- [x] 3.3 A test proves the change hits `token?grant_type=password` then `user`, with the project key on both
-- [x] 3.4 A test proves the `PUT user` request carries the bearer token from the re-authentication
-- [x] 3.5 A test proves a failed re-authentication returns `InvalidCredentials` and issues no `PUT`
-- [x] 3.6 A test proves the request body carries only the new password
+- [x] 3.1 Solution builds: `dotnet build` — 7932c22
+- [x] 3.2 Test suite passes: `dotnet test` — 7932c22
+- [x] 3.3 A test proves the change hits `token?grant_type=password` then `user`, with the project key on both — 7932c22
+- [x] 3.4 A test proves the `PUT user` request carries the bearer token from the re-authentication — 7932c22
+- [x] 3.5 A test proves a failed re-authentication returns `InvalidCredentials` and issues no `PUT` — 7932c22
+- [x] 3.6 A test proves the request body carries only the new password — 7932c22
 
 #### Manual
 
@@ -469,12 +469,12 @@ One behavioral note for a rollback: display-name claims written into cookies by 
 
 #### Automated
 
-- [ ] 4.1 Solution builds: `dotnet build`
-- [ ] 4.2 Test suite passes: `dotnet test`
-- [ ] 4.3 `DataAccessBoundaryTests` still passes
-- [ ] 4.4 A test proves the emitted `DELETE` targets `auth.users` with the current user's id as a parameter
-- [ ] 4.5 A test proves the service refuses to execute when no user is signed in
-- [ ] 4.6 A test proves the signature exposes no way to supply a different user's id
+- [x] 4.1 Solution builds: `dotnet build`
+- [x] 4.2 Test suite passes: `dotnet test`
+- [x] 4.3 `DataAccessBoundaryTests` still passes
+- [x] 4.4 A test proves the emitted `DELETE` targets `auth.users` with the current user's id as a parameter
+- [x] 4.5 A test proves the service refuses to execute when no user is signed in
+- [x] 4.6 A test proves the signature exposes no way to supply a different user's id
 
 #### Manual
 

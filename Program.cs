@@ -160,6 +160,7 @@ builder.Services.AddScoped<GenerationQuotaService>();
 builder.Services.AddScoped<NoteService>();
 builder.Services.AddScoped<SourceMaterialService>();
 builder.Services.AddScoped<ProfileService>();
+builder.Services.AddScoped<AccountDeletionService>();
 
 // Migrations self-apply at boot, but a failure must degrade readiness rather than crash the
 // process — a crash-loop would fail the container HEALTHCHECK and get the app de-routed.

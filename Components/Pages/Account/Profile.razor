@@ -7,6 +7,7 @@
 @using _10xnotes.Profiles
 @inject ProfileService Profiles
 @inject SupabaseAuthClient AuthClient
+@inject AccountDeletionService AccountDeletion
 @inject ILogger<Profile> Logger
 @inject NavigationManager Navigation
 
@@ -94,6 +95,35 @@
     </EditForm>
 </section>
 
+<section class="mb-5 border border-danger rounded p-3">
+    <h2 class="h5 text-danger">Usunięcie konta</h2>
+
+    @if (deleteError is not null)
+    {
+        <div class="alert alert-danger" role="alert">@deleteError</div>
+    }
+
+    <p>
+        Usunięcie konta jest nieodwracalne. Znikną wszystkie Twoje notatki, materiały źródłowe
+        i samo konto. Nie da się tego cofnąć ani odzyskać danych.
+    </p>
+
+    <p>Potwierdź hasłem, że chcesz usunąć konto.</p>
+
+    <EditForm Model="DeleteInput" method="post" OnValidSubmit="DeleteAccountAsync" FormName="delete-account">
+        <DataAnnotationsValidator />
+
+        <div class="mb-3">
+            <label for="delete-password" class="form-label">Hasło</label>
+            <InputText id="delete-password" type="password" class="form-control"
+                       @bind-Value="DeleteInput!.Password" autocomplete="current-password" />
+            <ValidationMessage For="() => DeleteInput!.Password" class="text-danger" />
+        </div>
+
+        <button type="submit" class="btn btn-danger">Usuń konto na zawsze</button>
+    </EditForm>
+</section>
+
 @code {
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -105,11 +135,16 @@
     [SupplyParameterFromForm(FormName = "change-password")]
     private ChangePasswordForm? PasswordInput { get; set; }
 
+    [SupplyParameterFromForm(FormName = "delete-account")]
+    private DeleteAccountForm? DeleteInput { get; set; }
+
     private string? displayNameError;
 
     private string? passwordError;
 
     private bool passwordChanged;
+
+    private string? deleteError;
 
     private bool wasPosted;
 
@@ -136,6 +171,7 @@
         wasPosted = DisplayNameInput is not null;
         DisplayNameInput ??= new DisplayNameForm();
         PasswordInput ??= new ChangePasswordForm();
+        DeleteInput ??= new DeleteAccountForm();
     }
 
     protected override async Task OnInitializedAsync()
@@ -242,6 +278,60 @@
         passwordChanged = true;
     }
 
+    /// <summary>
+    /// Proves the password, deletes the account, signs out, and leaves.
+    /// </summary>
+    /// <remarks>
+    /// The order matters in both directions. The password is proved first, so a stolen cookie or
+    /// a walk-up cannot destroy an account on its own. The sign-out happens last but is not
+    /// optional: once auth.users is gone the cookie still authenticates a principal whose every
+    /// query returns nothing and whose every write throws — the "looks exactly like data loss"
+    /// state Program.cs already guards against for expired sessions. Leaving the cookie in place
+    /// would reintroduce it.
+    /// <para>
+    /// SignOutAsync needs a response that has not started, which is one of the two reasons this
+    /// page is static SSR.
+    /// </para>
+    /// <para>
+    /// The redirect carries no message, per the scope decision: there is no account left to
+    /// address, and a farewell banner on the login page would be read by the next visitor.
+    /// </para>
+    /// </remarks>
+    private async Task DeleteAccountAsync()
+    {
+        deleteError = null;
+
+        // SignInAsync against GoTrue rather than a bespoke check: it is the same proof the
+        // password change already relies on, and it costs nothing extra here.
+        var proof = await AuthClient.SignInAsync(
+            Email,
+            DeleteInput!.Password,
+            HttpContext.RequestAborted);
+
+        if (!proof.Succeeded)
+        {
+            deleteError = proof.FailureReason == AuthFailureReason.Unavailable
+                ? "Usługa jest chwilowo niedostępna. Spróbuj ponownie za chwilę."
+                : "Hasło jest nieprawidłowe. Konto nie zostało usunięte.";
+            return;
+        }
+
+        try
+        {
+            await AccountDeletion.DeleteCurrentAccountAsync(HttpContext.RequestAborted);
+        }
+        catch (Exception exception)
+        {
+            // Nothing was signed out, so the user keeps a working session over intact data.
+            Logger.LogError(exception, "Deleting the account failed.");
+            deleteError = "Nie udało się usunąć konta. Spróbuj ponownie za chwilę.";
+            return;
+        }
+
+        await AuthCookie.SignOutAsync(HttpContext);
+        Navigation.NavigateTo("/login");
+    }
+
     private sealed class DisplayNameForm
     {
         // Bound as a string rather than a string? because InputText binds "" for an empty box.
@@ -262,5 +352,13 @@
 
         [PasswordRequirement]
         public string NewPassword { get; set; } = string.Empty;
+    }
+
+    private sealed class DeleteAccountForm
+    {
+        // Required only, for the same reason the current password is on the change form: this is
+        // an existing password being proved, not a new one being set.
+        [Required(ErrorMessage = "Podaj hasło, aby potwierdzić usunięcie konta.")]
+        public string Password { get; set; } = string.Empty;
     }
 }

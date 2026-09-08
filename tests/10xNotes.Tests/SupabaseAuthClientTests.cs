@@ -66,6 +66,7 @@ public sealed class SupabaseAuthClientTests
     [InlineData("user_already_exists", AuthFailureReason.AlreadyRegistered)]
     [InlineData("email_exists", AuthFailureReason.AlreadyRegistered)]
     [InlineData("weak_password", AuthFailureReason.WeakPassword)]
+    [InlineData("same_password", AuthFailureReason.SamePassword)]
     [InlineData("email_not_confirmed", AuthFailureReason.EmailNotConfirmed)]
     // An unrecognised code must not be guessed at — anything unclassified is "Unavailable",
     // which the UI renders as a neutral message rather than a claim about the account.
@@ -177,6 +178,56 @@ public sealed class SupabaseAuthClientTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(UserId, result.UserId);
+    }
+
+    // -- The access token ------------------------------------------------------------------
+
+    /// <summary>
+    /// The one GoTrue token this application keeps, and only for the length of a single method:
+    /// <c>PUT /user</c> needs a bearer token and re-authenticating is the only way to obtain one.
+    /// Before this, <c>ParseSuccess</c> read past <c>access_token</c> and dropped it.
+    /// </summary>
+    [Fact]
+    public async Task The_password_grant_returns_its_access_token()
+    {
+        var handler = new StubHandler(Ok(
+            $$$"""{"access_token":"jwt-abc","refresh_token":"r","user":{"id":"{{{UserId}}}","email":"ala@example.com"}}"""));
+
+        var result = await CreateClient(handler).SignInAsync("ala@example.com", "haslo12345");
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("jwt-abc", result.AccessToken);
+    }
+
+    /// <summary>
+    /// Signup with email confirmation on returns a user and no session. That is a success, not a
+    /// fault — reading the token must not turn it into one.
+    /// </summary>
+    [Fact]
+    public async Task A_success_payload_without_a_token_is_still_a_success()
+    {
+        var handler = new StubHandler(Ok($$"""{"id":"{{UserId}}","email":"ala@example.com"}"""));
+
+        var result = await CreateClient(handler).SignUpAsync("ala@example.com", "haslo12345");
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(string.Empty, result.AccessToken);
+    }
+
+    /// <summary>
+    /// A record prints every property, and <c>ToString</c> is what a log statement or a debugger
+    /// reaches by accident. A bearer token in a log line is a credential in a log line.
+    /// </summary>
+    [Fact]
+    public async Task The_access_token_does_not_appear_in_the_results_string_form()
+    {
+        var handler = new StubHandler(Ok(
+            $$$"""{"access_token":"jwt-abc","user":{"id":"{{{UserId}}}","email":"ala@example.com"}}"""));
+
+        var result = await CreateClient(handler).SignInAsync("ala@example.com", "haslo12345");
+
+        Assert.Equal("jwt-abc", result.AccessToken);
+        Assert.DoesNotContain("jwt-abc", result.ToString());
     }
 
     [Fact]

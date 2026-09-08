@@ -413,13 +413,13 @@ One behavioral note for a rollback: display-name claims written into cookies by 
 
 #### Automated
 
-- [ ] 1.1 Solution builds: `dotnet build`
-- [ ] 1.2 Test suite passes: `dotnet test`
-- [ ] 1.3 A test pins `PasswordLimits.MaxBytes` to GoTrue's documented bcrypt bound
-- [ ] 1.4 A test proves the rule measures UTF-8 bytes, not characters
-- [ ] 1.5 `PasswordValidator` tests cover too-short, too-many-bytes, empty, and valid
-- [ ] 1.6 `SupabaseAuthClientTests` covers `same_password` → `AuthFailureReason.SamePassword`
-- [ ] 1.7 `SupabaseAuthClientTests` covers the token-grant returning an `AccessToken`, and signup tolerating none
+- [x] 1.1 Solution builds: `dotnet build`
+- [x] 1.2 Test suite passes: `dotnet test`
+- [x] 1.3 A test pins `PasswordLimits.MaxBytes` to GoTrue's documented bcrypt bound
+- [x] 1.4 A test proves the rule measures UTF-8 bytes, not characters
+- [x] 1.5 `PasswordValidator` tests cover too-short, too-many-bytes, empty, and valid
+- [x] 1.6 `SupabaseAuthClientTests` covers `same_password` → `AuthFailureReason.SamePassword`
+- [x] 1.7 `SupabaseAuthClientTests` covers the token-grant returning an `AccessToken`, and signup tolerating none
 
 #### Manual
 

@@ -72,6 +72,7 @@ public sealed class SupabaseAuthClient(HttpClient httpClient, ILogger<SupabaseAu
                 "invalid_credentials" or "invalid_grant" => AuthFailureReason.InvalidCredentials,
                 "user_already_exists" or "email_exists" => AuthFailureReason.AlreadyRegistered,
                 "weak_password" => AuthFailureReason.WeakPassword,
+                "same_password" => AuthFailureReason.SamePassword,
                 "email_not_confirmed" => AuthFailureReason.EmailNotConfirmed,
                 _ => AuthFailureReason.Unavailable
             };
@@ -84,10 +85,14 @@ public sealed class SupabaseAuthClient(HttpClient httpClient, ILogger<SupabaseAu
     }
 
     /// <summary>
-    /// Reads the user id and email out of a success payload. The token endpoint nests the user
-    /// under <c>user</c>; signup returns it at the root when no session is issued, so both
-    /// shapes are accepted.
+    /// Reads the user id and email out of a success payload, along with the access token when the
+    /// response carries one. The token endpoint nests the user under <c>user</c>; signup returns
+    /// it at the root when no session is issued, so both shapes are accepted.
     /// </summary>
+    /// <remarks>
+    /// The access token sits at the root beside <c>user</c>, never inside it. It is read but the
+    /// refresh token is still dropped: nothing in this application refreshes a GoTrue session.
+    /// </remarks>
     private AuthResult ParseSuccess(string body, string path)
     {
         try
@@ -103,7 +108,11 @@ public sealed class SupabaseAuthClient(HttpClient httpClient, ILogger<SupabaseAu
                     ? emailElement.GetString() ?? string.Empty
                     : string.Empty;
 
-                return AuthResult.Success(userId, email);
+                var accessToken = root.TryGetProperty("access_token", out var tokenElement)
+                    ? tokenElement.GetString() ?? string.Empty
+                    : string.Empty;
+
+                return AuthResult.Success(userId, email, accessToken);
             }
 
             logger.LogError("Supabase Auth {Path} succeeded but returned no usable user id.", path);

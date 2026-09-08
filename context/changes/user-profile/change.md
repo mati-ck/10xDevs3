@@ -1,7 +1,7 @@
 ---
 change_id: user-profile
 title: Zarządzanie kontem (S-07)
-status: planned
+status: implementing
 created: 2026-09-08
 updated: 2026-09-08
 ---

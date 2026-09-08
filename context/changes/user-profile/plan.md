@@ -469,12 +469,12 @@ One behavioral note for a rollback: display-name claims written into cookies by 
 
 #### Automated
 
-- [x] 4.1 Solution builds: `dotnet build`
-- [x] 4.2 Test suite passes: `dotnet test`
-- [x] 4.3 `DataAccessBoundaryTests` still passes
-- [x] 4.4 A test proves the emitted `DELETE` targets `auth.users` with the current user's id as a parameter
-- [x] 4.5 A test proves the service refuses to execute when no user is signed in
-- [x] 4.6 A test proves the signature exposes no way to supply a different user's id
+- [x] 4.1 Solution builds: `dotnet build` — 6f0cd33
+- [x] 4.2 Test suite passes: `dotnet test` — 6f0cd33
+- [x] 4.3 `DataAccessBoundaryTests` still passes — 6f0cd33
+- [x] 4.4 A test proves the emitted `DELETE` targets `auth.users` with the current user's id as a parameter — 6f0cd33
+- [x] 4.5 A test proves the service refuses to execute when no user is signed in — 6f0cd33
+- [x] 4.6 A test proves the signature exposes no way to supply a different user's id — 6f0cd33
 
 #### Manual
 

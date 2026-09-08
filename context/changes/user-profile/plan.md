@@ -423,8 +423,8 @@ One behavioral note for a rollback: display-name claims written into cookies by 
 
 #### Manual
 
-- [ ] 1.8 Registering with a valid password still works end-to-end
-- [ ] 1.9 Registering with a 100-character password shows a Polish validation message on the form
+- [x] 1.8 Registering with a valid password still works end-to-end — 72b5342
+- [x] 1.9 Registering with a 100-character password shows a Polish validation message on the form — b4d3db3
 
 ### Phase 2: Profile page & display name
 
@@ -438,12 +438,12 @@ One behavioral note for a rollback: display-name claims written into cookies by 
 
 #### Manual
 
-- [ ] 2.6 `/profile` renders for a signed-in user and shows the correct account email
-- [ ] 2.7 Setting a display name persists it and the nav shows it after the redirect
-- [ ] 2.8 Clearing the name reverts the nav to the email
-- [ ] 2.9 A 200-character name is accepted; a longer one is refused in Polish
-- [ ] 2.10 Signing out and back in still shows the display name
-- [ ] 2.11 `/profile` redirects an anonymous visitor to `/login`
+- [x] 2.6 `/profile` renders for a signed-in user and shows the correct account email — 1b7be6e
+- [x] 2.7 Setting a display name persists it and the nav shows it after the redirect — 1b7be6e
+- [x] 2.8 Clearing the name reverts the nav to the email — 1b7be6e
+- [x] 2.9 A 200-character name is accepted; a longer one is refused in Polish — 1b7be6e
+- [x] 2.10 Signing out and back in still shows the display name — 1b7be6e
+- [x] 2.11 `/profile` redirects an anonymous visitor to `/login` — 1b7be6e
 
 ### Phase 3: Change password
 
@@ -458,12 +458,12 @@ One behavioral note for a rollback: display-name claims written into cookies by 
 
 #### Manual
 
-- [ ] 3.7 Changing the password succeeds and the new password works on the next sign-in
-- [ ] 3.8 A wrong current password shows the Polish message and the password is unchanged
-- [ ] 3.9 Reusing the current password shows the `SamePassword` copy
-- [ ] 3.10 A too-short password and an over-byte-bound password are both refused in Polish
-- [ ] 3.11 The display-name form still works while the password form shows an error
-- [ ] 3.12 The user remains signed in after a successful change (accepted limitation)
+- [x] 3.7 Changing the password succeeds and the new password works on the next sign-in — 7932c22
+- [x] 3.8 A wrong current password shows the Polish message and the password is unchanged — 7932c22
+- [x] 3.9 Reusing the current password shows the `SamePassword` copy — 7932c22
+- [x] 3.10 A too-short password and an over-byte-bound password are both refused in Polish — 7932c22
+- [x] 3.11 The display-name form still works while the password form shows an error — 7932c22
+- [x] 3.12 The user remains signed in after a successful change (accepted limitation) — 7932c22
 
 ### Phase 4: Delete account
 
@@ -478,10 +478,10 @@ One behavioral note for a rollback: display-name claims written into cookies by 
 
 #### Manual
 
-- [ ] 4.7 Deleting with the correct password signs the user out and lands on `/login`
-- [ ] 4.8 Zero rows remain for that owner across all five tables and `auth.users`
-- [ ] 4.9 A second account's data is completely untouched
-- [ ] 4.10 A wrong password shows the Polish message and the account still exists
-- [ ] 4.11 Signing in with the deleted account's credentials fails
-- [ ] 4.12 A pre-existing tab with the deleted account's cookie no longer shows an authenticated shell
-- [ ] 4.13 The Supabase security advisor reports nothing new
+- [x] 4.7 Deleting with the correct password signs the user out and lands on `/login` — 6f0cd33
+- [x] 4.8 Zero rows remain for that owner across all five tables and `auth.users` — 6f0cd33
+- [x] 4.9 A second account's data is completely untouched — 6f0cd33
+- [x] 4.10 A wrong password shows the Polish message and the account still exists — 6f0cd33
+- [x] 4.11 Signing in with the deleted account's credentials fails — 6f0cd33
+- [x] 4.12 A pre-existing tab with the deleted account's cookie no longer shows an authenticated shell — 6f0cd33
+- [x] 4.13 The Supabase security advisor reports nothing new — 6f0cd33

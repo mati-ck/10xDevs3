@@ -5,6 +5,7 @@ using _10xnotes.Data;
 using _10xnotes.Generation;
 using _10xnotes.Hosting;
 using _10xnotes.Notes;
+using _10xnotes.Profiles;
 using _10xnotes.SourceMaterials;
 using _10xnotes.Time;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -158,6 +159,8 @@ builder.Services.AddScoped<NoteGenerator>();
 builder.Services.AddScoped<GenerationQuotaService>();
 builder.Services.AddScoped<NoteService>();
 builder.Services.AddScoped<SourceMaterialService>();
+builder.Services.AddScoped<ProfileService>();
+builder.Services.AddScoped<AccountDeletionService>();
 
 // Migrations self-apply at boot, but a failure must degrade readiness rather than crash the
 // process — a crash-loop would fail the container HEALTHCHECK and get the app de-routed.

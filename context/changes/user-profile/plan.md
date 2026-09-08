@@ -132,6 +132,8 @@ Establish the shared foundations Phases 2–4 consume: one byte-measured passwor
 
 **Contract**: The password field validates through `PasswordValidator`; the `form-text` hint states both bounds in Polish. Registration behavior for every currently-valid password is unchanged.
 
+> **Addendum (2026-09-08, during implementation).** The "states both bounds" half of this contract was deliberately dropped after review. The upper bound is measured in bytes, so no character number is both true and useful — 72 for a Latin password, 36 for a Polish one, 18 for emoji — and quoting bytes explains bcrypt rather than the password. The hint now states the minimum only, and the rare over-long case is answered by a message saying exactly how many characters to remove (`PasswordLimits.ExcessCharacters`). Enforcement stays byte-measured, so the defect this change set out to fix is fixed. See `change.md`.
+
 ### Success Criteria:
 
 #### Automated Verification:
@@ -413,75 +415,75 @@ One behavioral note for a rollback: display-name claims written into cookies by 
 
 #### Automated
 
-- [ ] 1.1 Solution builds: `dotnet build`
-- [ ] 1.2 Test suite passes: `dotnet test`
-- [ ] 1.3 A test pins `PasswordLimits.MaxBytes` to GoTrue's documented bcrypt bound
-- [ ] 1.4 A test proves the rule measures UTF-8 bytes, not characters
-- [ ] 1.5 `PasswordValidator` tests cover too-short, too-many-bytes, empty, and valid
-- [ ] 1.6 `SupabaseAuthClientTests` covers `same_password` → `AuthFailureReason.SamePassword`
-- [ ] 1.7 `SupabaseAuthClientTests` covers the token-grant returning an `AccessToken`, and signup tolerating none
+- [x] 1.1 Solution builds: `dotnet build` — 72b5342
+- [x] 1.2 Test suite passes: `dotnet test` — 72b5342
+- [x] 1.3 A test pins `PasswordLimits.MaxBytes` to GoTrue's documented bcrypt bound — 72b5342
+- [x] 1.4 A test proves the rule measures UTF-8 bytes, not characters — 72b5342
+- [x] 1.5 `PasswordValidator` tests cover too-short, too-many-bytes, empty, and valid — 72b5342
+- [x] 1.6 `SupabaseAuthClientTests` covers `same_password` → `AuthFailureReason.SamePassword` — 72b5342
+- [x] 1.7 `SupabaseAuthClientTests` covers the token-grant returning an `AccessToken`, and signup tolerating none — 72b5342
 
 #### Manual
 
-- [ ] 1.8 Registering with a valid password still works end-to-end
-- [ ] 1.9 Registering with a 100-character password shows a Polish validation message on the form
+- [x] 1.8 Registering with a valid password still works end-to-end — 72b5342
+- [x] 1.9 Registering with a 100-character password shows a Polish validation message on the form — b4d3db3
 
 ### Phase 2: Profile page & display name
 
 #### Automated
 
-- [ ] 2.1 Solution builds: `dotnet build`
-- [ ] 2.2 Test suite passes: `dotnet test`
-- [ ] 2.3 `DataAccessBoundaryTests` still passes
-- [ ] 2.4 `DisplayNameValidator` tests cover trimming, whitespace/empty → null, the 200-char boundary, an emoji
-- [ ] 2.5 `ProfileService` tests cover read, set, clear, and cross-account isolation
+- [x] 2.1 Solution builds: `dotnet build` — 1b7be6e
+- [x] 2.2 Test suite passes: `dotnet test` — 1b7be6e
+- [x] 2.3 `DataAccessBoundaryTests` still passes — 1b7be6e
+- [x] 2.4 `DisplayNameValidator` tests cover trimming, whitespace/empty → null, the 200-char boundary, an emoji — 1b7be6e
+- [x] 2.5 `ProfileService` tests cover read, set, clear, and cross-account isolation — 1b7be6e
 
 #### Manual
 
-- [ ] 2.6 `/profile` renders for a signed-in user and shows the correct account email
-- [ ] 2.7 Setting a display name persists it and the nav shows it after the redirect
-- [ ] 2.8 Clearing the name reverts the nav to the email
-- [ ] 2.9 A 200-character name is accepted; a longer one is refused in Polish
-- [ ] 2.10 Signing out and back in still shows the display name
-- [ ] 2.11 `/profile` redirects an anonymous visitor to `/login`
+- [x] 2.6 `/profile` renders for a signed-in user and shows the correct account email — 1b7be6e
+- [x] 2.7 Setting a display name persists it and the nav shows it after the redirect — 1b7be6e
+- [x] 2.8 Clearing the name reverts the nav to the email — 1b7be6e
+- [x] 2.9 A 200-character name is accepted; a longer one is refused in Polish — 1b7be6e
+- [x] 2.10 Signing out and back in still shows the display name — 1b7be6e
+- [x] 2.11 `/profile` redirects an anonymous visitor to `/login` — 1b7be6e
 
 ### Phase 3: Change password
 
 #### Automated
 
-- [ ] 3.1 Solution builds: `dotnet build`
-- [ ] 3.2 Test suite passes: `dotnet test`
-- [ ] 3.3 A test proves the change hits `token?grant_type=password` then `user`, with the project key on both
-- [ ] 3.4 A test proves the `PUT user` request carries the bearer token from the re-authentication
-- [ ] 3.5 A test proves a failed re-authentication returns `InvalidCredentials` and issues no `PUT`
-- [ ] 3.6 A test proves the request body carries only the new password
+- [x] 3.1 Solution builds: `dotnet build` — 7932c22
+- [x] 3.2 Test suite passes: `dotnet test` — 7932c22
+- [x] 3.3 A test proves the change hits `token?grant_type=password` then `user`, with the project key on both — 7932c22
+- [x] 3.4 A test proves the `PUT user` request carries the bearer token from the re-authentication — 7932c22
+- [x] 3.5 A test proves a failed re-authentication returns `InvalidCredentials` and issues no `PUT` — 7932c22
+- [x] 3.6 A test proves the request body carries only the new password — 7932c22
 
 #### Manual
 
-- [ ] 3.7 Changing the password succeeds and the new password works on the next sign-in
-- [ ] 3.8 A wrong current password shows the Polish message and the password is unchanged
-- [ ] 3.9 Reusing the current password shows the `SamePassword` copy
-- [ ] 3.10 A too-short password and an over-byte-bound password are both refused in Polish
-- [ ] 3.11 The display-name form still works while the password form shows an error
-- [ ] 3.12 The user remains signed in after a successful change (accepted limitation)
+- [x] 3.7 Changing the password succeeds and the new password works on the next sign-in — 7932c22
+- [x] 3.8 A wrong current password shows the Polish message and the password is unchanged — 7932c22
+- [x] 3.9 Reusing the current password shows the `SamePassword` copy — 7932c22
+- [x] 3.10 A too-short password and an over-byte-bound password are both refused in Polish — 7932c22
+- [x] 3.11 The display-name form still works while the password form shows an error — 7932c22
+- [x] 3.12 The user remains signed in after a successful change (accepted limitation) — 7932c22
 
 ### Phase 4: Delete account
 
 #### Automated
 
-- [ ] 4.1 Solution builds: `dotnet build`
-- [ ] 4.2 Test suite passes: `dotnet test`
-- [ ] 4.3 `DataAccessBoundaryTests` still passes
-- [ ] 4.4 A test proves the emitted `DELETE` targets `auth.users` with the current user's id as a parameter
-- [ ] 4.5 A test proves the service refuses to execute when no user is signed in
-- [ ] 4.6 A test proves the signature exposes no way to supply a different user's id
+- [x] 4.1 Solution builds: `dotnet build` — 6f0cd33
+- [x] 4.2 Test suite passes: `dotnet test` — 6f0cd33
+- [x] 4.3 `DataAccessBoundaryTests` still passes — 6f0cd33
+- [x] 4.4 A test proves the emitted `DELETE` targets `auth.users` with the current user's id as a parameter — 6f0cd33
+- [x] 4.5 A test proves the service refuses to execute when no user is signed in — 6f0cd33
+- [x] 4.6 A test proves the signature exposes no way to supply a different user's id — 6f0cd33
 
 #### Manual
 
-- [ ] 4.7 Deleting with the correct password signs the user out and lands on `/login`
-- [ ] 4.8 Zero rows remain for that owner across all five tables and `auth.users`
-- [ ] 4.9 A second account's data is completely untouched
-- [ ] 4.10 A wrong password shows the Polish message and the account still exists
-- [ ] 4.11 Signing in with the deleted account's credentials fails
-- [ ] 4.12 A pre-existing tab with the deleted account's cookie no longer shows an authenticated shell
-- [ ] 4.13 The Supabase security advisor reports nothing new
+- [x] 4.7 Deleting with the correct password signs the user out and lands on `/login` — 6f0cd33
+- [x] 4.8 Zero rows remain for that owner across all five tables and `auth.users` — 6f0cd33
+- [x] 4.9 A second account's data is completely untouched — 6f0cd33
+- [x] 4.10 A wrong password shows the Polish message and the account still exists — 6f0cd33
+- [x] 4.11 Signing in with the deleted account's credentials fails — 6f0cd33
+- [x] 4.12 A pre-existing tab with the deleted account's cookie no longer shows an authenticated shell — 6f0cd33
+- [x] 4.13 The Supabase security advisor reports nothing new — 6f0cd33

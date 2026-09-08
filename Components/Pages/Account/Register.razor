@@ -28,7 +28,7 @@
     <div class="mb-3">
         <label for="password" class="form-label">Hasło</label>
         <InputText id="password" type="password" class="form-control" @bind-Value="Input!.Password" autocomplete="new-password" />
-        <div class="form-text">Hasło musi mieć co najmniej 8 znaków.</div>
+        <div class="form-text">@PasswordRequirementAttribute.Hint</div>
         <ValidationMessage For="() => Input!.Password" class="text-danger" />
     </div>
 
@@ -62,10 +62,14 @@
                 AuthFailureReason.Unavailable =>
                     "Usługa rejestracji jest chwilowo niedostępna. Spróbuj ponownie za chwilę.",
                 AuthFailureReason.WeakPassword =>
-                    "Hasło jest zbyt słabe. Użyj co najmniej 8 znaków.",
+                    $"Hasło jest zbyt słabe. Użyj co najmniej {PasswordLimits.MinLength} znaków.",
                 _ =>
                     "Nie udało się utworzyć konta. Jeśli masz już konto, zaloguj się."
             };
+
+            // See Login.razor: the password must not be echoed back in the form's value
+            // attribute. The address stays.
+            Input.Password = string.Empty;
             return;
         }
 
@@ -80,8 +84,10 @@
         [EmailAddress(ErrorMessage = "Podaj poprawny adres e-mail.")]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Podaj hasło.")]
-        [StringLength(100, MinimumLength = 8, ErrorMessage = "Hasło musi mieć co najmniej 8 znaków.")]
+        // The bound is PasswordValidator's, not this form's: a StringLength(100) here once
+        // advertised 28 characters more than GoTrue accepts, and anything in between came back
+        // as "Nie udało się utworzyć konta" with nothing the user could act on.
+        [PasswordRequirement]
         public string Password { get; set; } = string.Empty;
     }
 }

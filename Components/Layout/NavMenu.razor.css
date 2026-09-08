@@ -58,6 +58,10 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-person-plus-fill' viewBox='0 0 16 16'%3E%3Cpath d='M1 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'/%3E%3Cpath fill-rule='evenodd' d='M13.5 5a.5.5 0 0 1 .5.5V7h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V8h-1.5a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5z'/%3E%3C/svg%3E");
 }
 
+.bi-person-fill-nav-menu {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-person-fill' viewBox='0 0 16 16'%3E%3Cpath d='M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'/%3E%3C/svg%3E");
+}
+
 .nav-item {
     font-size: 0.9rem;
     padding-bottom: 0.5rem;
@@ -93,8 +97,22 @@
     color: white;
 }
 
-/* The signed-in address is a label, not a link — it must not read as one, and a long address
-   must truncate rather than widen the sidebar. */
+/* Bootstrap's .nav sets flex-wrap: wrap, and this one is flex-column. A *wrapping* column
+   flex container sizes its line's cross axis — here the width — from its content, so items are
+   not stretched to the 250px sidebar and .nav-user below has no width to truncate against: its
+   ellipsis never appears, the line grows past the sidebar, and .nav-scrollable (overflow-y:
+   auto, which forces overflow-x: auto with it) answers with a horizontal scrollbar.
+
+   nowrap makes it a single line whose cross size is the container's own 250px, which is what
+   makes the truncation below work. Do not remove it as redundant — no email is long enough to
+   show the difference, which is why this went unnoticed until S-07 added a 200-character
+   display name. */
+.nav {
+    flex-wrap: nowrap;
+}
+
+/* The signed-in name is a label, not a link — it must not read as one, and a long one must
+   truncate rather than widen the sidebar. Depends on the nowrap above for its width. */
 .nav-user {
     color: #9a9a9a;
     padding-top: 1rem;

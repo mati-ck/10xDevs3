@@ -45,8 +45,11 @@ public sealed class PasswordRequirementAttribute : ValidationAttribute
         var message = result.FailureReason switch
         {
             PasswordValidationFailure.Missing => "Podaj hasło.",
+            // Deliberately not the same sentence as Hint, which sits directly above it on both
+            // forms: repeating the rule verbatim under itself reads as a rendering fault rather
+            // than as feedback. This reacts to what was typed, symmetric with the too-long case.
             PasswordValidationFailure.TooShort =>
-                $"Hasło musi mieć co najmniej {PasswordLimits.MinLength} znaków.",
+                $"Hasło jest za krótkie — użyj co najmniej {PasswordLimits.MinLength} znaków.",
             PasswordValidationFailure.TooManyBytes => TooLongMessage(value as string ?? string.Empty),
             _ => "Podaj poprawne hasło."
         };

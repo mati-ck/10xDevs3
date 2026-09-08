@@ -430,11 +430,11 @@ One behavioral note for a rollback: display-name claims written into cookies by 
 
 #### Automated
 
-- [x] 2.1 Solution builds: `dotnet build`
-- [x] 2.2 Test suite passes: `dotnet test`
-- [x] 2.3 `DataAccessBoundaryTests` still passes
-- [x] 2.4 `DisplayNameValidator` tests cover trimming, whitespace/empty → null, the 200-char boundary, an emoji
-- [x] 2.5 `ProfileService` tests cover read, set, clear, and cross-account isolation
+- [x] 2.1 Solution builds: `dotnet build` — 1b7be6e
+- [x] 2.2 Test suite passes: `dotnet test` — 1b7be6e
+- [x] 2.3 `DataAccessBoundaryTests` still passes — 1b7be6e
+- [x] 2.4 `DisplayNameValidator` tests cover trimming, whitespace/empty → null, the 200-char boundary, an emoji — 1b7be6e
+- [x] 2.5 `ProfileService` tests cover read, set, clear, and cross-account isolation — 1b7be6e
 
 #### Manual
 
@@ -449,12 +449,12 @@ One behavioral note for a rollback: display-name claims written into cookies by 
 
 #### Automated
 
-- [ ] 3.1 Solution builds: `dotnet build`
-- [ ] 3.2 Test suite passes: `dotnet test`
-- [ ] 3.3 A test proves the change hits `token?grant_type=password` then `user`, with the project key on both
-- [ ] 3.4 A test proves the `PUT user` request carries the bearer token from the re-authentication
-- [ ] 3.5 A test proves a failed re-authentication returns `InvalidCredentials` and issues no `PUT`
-- [ ] 3.6 A test proves the request body carries only the new password
+- [x] 3.1 Solution builds: `dotnet build`
+- [x] 3.2 Test suite passes: `dotnet test`
+- [x] 3.3 A test proves the change hits `token?grant_type=password` then `user`, with the project key on both
+- [x] 3.4 A test proves the `PUT user` request carries the bearer token from the re-authentication
+- [x] 3.5 A test proves a failed re-authentication returns `InvalidCredentials` and issues no `PUT`
+- [x] 3.6 A test proves the request body carries only the new password
 
 #### Manual
 

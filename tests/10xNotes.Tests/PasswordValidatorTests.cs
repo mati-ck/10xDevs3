@@ -233,6 +233,21 @@ public sealed class PasswordValidatorTests
         Assert.Equal(expected, PasswordLimits.CharacterNoun(count));
     }
 
+    /// <summary>
+    /// The hint sits directly above the validation message on both forms. If the too-short error
+    /// repeats it word for word, the user reads the same sentence twice and it looks like a
+    /// rendering fault rather than feedback.
+    /// </summary>
+    [Fact]
+    public void The_too_short_message_does_not_repeat_the_hint_verbatim()
+    {
+        var message = ValidateThroughAttribute("krotkie");
+
+        Assert.NotNull(message);
+        Assert.NotEqual(PasswordRequirementAttribute.Hint, message);
+        Assert.Contains("za krótkie", message);
+    }
+
     private static string? ValidateThroughAttribute(string? password)
     {
         var model = new PasswordHolder { Password = password! };

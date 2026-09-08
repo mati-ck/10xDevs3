@@ -6,6 +6,7 @@
 @using _10xnotes.Auth
 @using _10xnotes.Profiles
 @inject ProfileService Profiles
+@inject SupabaseAuthClient AuthClient
 @inject ILogger<Profile> Logger
 @inject NavigationManager Navigation
 
@@ -57,6 +58,42 @@
     </EditForm>
 </section>
 
+<section class="mb-5">
+    <h2 class="h5">Zmiana hasła</h2>
+
+    @if (passwordError is not null)
+    {
+        <div class="alert alert-danger" role="alert">@passwordError</div>
+    }
+    else if (passwordChanged)
+    {
+        <div class="alert alert-success" role="alert">
+            Hasło zostało zmienione. Użyj go przy następnym logowaniu.
+        </div>
+    }
+
+    <EditForm Model="PasswordInput" method="post" OnValidSubmit="ChangePasswordAsync" FormName="change-password">
+        <DataAnnotationsValidator />
+
+        <div class="mb-3">
+            <label for="current-password" class="form-label">Obecne hasło</label>
+            <InputText id="current-password" type="password" class="form-control"
+                       @bind-Value="PasswordInput!.CurrentPassword" autocomplete="current-password" />
+            <ValidationMessage For="() => PasswordInput!.CurrentPassword" class="text-danger" />
+        </div>
+
+        <div class="mb-3">
+            <label for="new-password" class="form-label">Nowe hasło</label>
+            <InputText id="new-password" type="password" class="form-control"
+                       @bind-Value="PasswordInput!.NewPassword" autocomplete="new-password" />
+            <div class="form-text">@PasswordRequirementAttribute.Hint</div>
+            <ValidationMessage For="() => PasswordInput!.NewPassword" class="text-danger" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Zmień hasło</button>
+    </EditForm>
+</section>
+
 @code {
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -65,7 +102,14 @@
     [SupplyParameterFromForm(FormName = "display-name")]
     private DisplayNameForm? DisplayNameInput { get; set; }
 
+    [SupplyParameterFromForm(FormName = "change-password")]
+    private ChangePasswordForm? PasswordInput { get; set; }
+
     private string? displayNameError;
+
+    private string? passwordError;
+
+    private bool passwordChanged;
 
     private bool wasPosted;
 
@@ -91,6 +135,7 @@
         // value beside their error message.
         wasPosted = DisplayNameInput is not null;
         DisplayNameInput ??= new DisplayNameForm();
+        PasswordInput ??= new ChangePasswordForm();
     }
 
     protected override async Task OnInitializedAsync()
@@ -151,6 +196,52 @@
         Navigation.NavigateTo("/profile");
     }
 
+    /// <summary>
+    /// Re-authenticates with the current password and, only on success, sets the new one.
+    /// </summary>
+    /// <remarks>
+    /// The email comes from the principal's own claim, never from a form field: it identifies
+    /// whose password is being changed, so accepting it from the page would let a post name
+    /// somebody else's account. The two-step ordering lives in the client, not here — see
+    /// SupabaseAuthClient.ChangePasswordAsync.
+    /// <para>
+    /// No redirect and no cookie re-issue afterwards. The cookie carries no password material,
+    /// and a change does not invalidate cookies already issued — an accepted limitation recorded
+    /// in the plan, since the app keeps no server-side session store to revoke against.
+    /// </para>
+    /// </remarks>
+    private async Task ChangePasswordAsync()
+    {
+        passwordError = null;
+        passwordChanged = false;
+
+        var result = await AuthClient.ChangePasswordAsync(
+            Email,
+            PasswordInput!.CurrentPassword,
+            PasswordInput.NewPassword,
+            HttpContext.RequestAborted);
+
+        if (!result.Succeeded)
+        {
+            passwordError = result.FailureReason switch
+            {
+                AuthFailureReason.InvalidCredentials =>
+                    "Obecne hasło jest nieprawidłowe.",
+                AuthFailureReason.WeakPassword =>
+                    $"Nowe hasło jest zbyt słabe. Użyj co najmniej {PasswordLimits.MinLength} znaków.",
+                AuthFailureReason.SamePassword =>
+                    "Nowe hasło musi różnić się od obecnego.",
+                _ =>
+                    "Nie udało się zmienić hasła. Spróbuj ponownie za chwilę."
+            };
+            return;
+        }
+
+        // Cleared so the browser does not re-render the values it just posted.
+        PasswordInput = new ChangePasswordForm();
+        passwordChanged = true;
+    }
+
     private sealed class DisplayNameForm
     {
         // Bound as a string rather than a string? because InputText binds "" for an empty box.
@@ -159,5 +250,17 @@
             DisplayNameValidator.MaxLength,
             ErrorMessage = "Nazwa może mieć najwyżej {1} znaków.")]
         public string DisplayName { get; set; } = string.Empty;
+    }
+
+    private sealed class ChangePasswordForm
+    {
+        // No PasswordRequirement here: the rule bounds a password being *set*, and the current
+        // one was set under whatever rules applied then. Validating it would refuse to let
+        // somebody change a password precisely because it is one this app would no longer issue.
+        [Required(ErrorMessage = "Podaj obecne hasło.")]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [PasswordRequirement]
+        public string NewPassword { get; set; } = string.Empty;
     }
 }

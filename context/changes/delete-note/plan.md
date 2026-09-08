@@ -215,19 +215,19 @@ No schema change, so nothing to migrate and nothing to roll back. A Coolify roll
 
 #### Automated
 
-- [x] 2.1 Solution builds: `dotnet build`
-- [x] 2.2 Test suite passes: `dotnet test`
-- [x] 2.3 `DataAccessBoundaryTests` still passes — neither page injects a `DbContext` or `IDbContextFactory<>`
-- [x] 2.4 `grep -r "data-bs-dismiss" Components/` returns nothing
+- [x] 2.1 Solution builds: `dotnet build` — b68e2f3
+- [x] 2.2 Test suite passes: `dotnet test` — b68e2f3
+- [x] 2.3 `DataAccessBoundaryTests` still passes — neither page injects a `DbContext` or `IDbContextFactory<>` — b68e2f3
+- [x] 2.4 `grep -r "data-bs-dismiss" Components/` returns nothing — b68e2f3
 
 #### Manual
 
-- [ ] 2.5 The `Usuń notatkę` button is visible beside the editor on `/notes/{id}`
-- [ ] 2.6 Clicking it shows the Polish warning in the page — no browser dialog
-- [ ] 2.7 `Anuluj` dismisses the warning and leaves the note intact after a refresh
-- [ ] 2.8 Confirming lands on `/materials/{id}` with `Notatka została usunięta.`, and the close control dismisses it
-- [ ] 2.9 The material's text is unchanged and the `Ten materiał ma już zapisaną notatkę` line is gone
-- [ ] 2.10 Generating and saving a new note for that same material succeeds
-- [ ] 2.11 `/` no longer lists the deleted note
-- [ ] 2.12 The deleted note's old URL renders `Nie znaleziono notatki`
-- [ ] 2.13 A second account cannot reach or delete the first account's note
+- [x] 2.5 The `Usuń notatkę` button is visible beside the editor on `/notes/{id}` — 8fe64da
+- [x] 2.6 Clicking it shows the Polish warning in the page — no browser dialog — e2ca914
+- [x] 2.7 `Anuluj` dismisses the warning and leaves the note intact after a refresh — e2ca914
+- [x] 2.8 Confirming lands on `/materials/{id}` with `Notatka została usunięta.`, and the close control dismisses it — e2ca914
+- [x] 2.9 The material's text is unchanged and the `Ten materiał ma już zapisaną notatkę` line is gone — e2ca914
+- [x] 2.10 Generating and saving a new note for that same material succeeds — e2ca914
+- [x] 2.11 `/` no longer lists the deleted note — e2ca914
+- [x] 2.12 The deleted note's old URL renders `Nie znaleziono notatki` — e2ca914
+- [x] 2.13 A second account cannot reach or delete the first account's note — e2ca914

@@ -303,6 +303,67 @@ public sealed class NoteServiceTests : IDisposable
         Assert.Equal(NoteSaveFailure.NotFound, result.FailureReason);
     }
 
+    // -- Deleting -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Deleting_a_note_removes_it_and_leaves_the_users_other_notes()
+    {
+        var kept = SeedMaterial(UserA);
+        var doomed = SeedMaterial(UserA);
+        var service = CreateService(UserA);
+
+        await service.AcceptAsync(kept, "Zostaje", "treść, która zostaje", Draft, PromptVersion, Model);
+        await service.AcceptAsync(doomed, "Do usunięcia", "treść do usunięcia", Draft, PromptVersion, Model);
+
+        var doomedId = (await service.GetByMaterialAsync(doomed))!.Id;
+
+        Assert.True(await service.DeleteAsync(doomedId));
+
+        using var context = CreateContext(UserA);
+        var survivor = Assert.Single(context.Notes);
+        Assert.Equal(kept, survivor.SourceMaterialId);
+    }
+
+    [Fact]
+    public async Task Deleting_someone_elses_note_removes_nothing()
+    {
+        // The delete goes through the same guards the reads do: the query filter hides the row
+        // from UserB, so there is nothing to remove and nothing to report.
+        var material = SeedMaterial(UserA);
+        await CreateService(UserA).AcceptAsync(material, "Cudza", "cudza treść", Draft, PromptVersion, Model);
+
+        var noteId = (await CreateService(UserA).GetByMaterialAsync(material))!.Id;
+
+        Assert.False(await CreateService(UserB).DeleteAsync(noteId));
+
+        using var context = CreateContext(UserA);
+        Assert.Single(context.Notes);
+    }
+
+    [Fact]
+    public async Task A_material_can_take_a_new_note_after_its_note_is_deleted()
+    {
+        // The point of the delete freeing the unique index on source_material_id: without a real
+        // removal the second accept would collide with a ghost row rather than create one.
+        var material = SeedMaterial(UserA);
+        var service = CreateService(UserA);
+
+        await service.AcceptAsync(material, "Pierwsza", "pierwsza treść", Draft, PromptVersion, Model);
+
+        var noteId = (await service.GetByMaterialAsync(material))!.Id;
+
+        Assert.True(await service.DeleteAsync(noteId));
+
+        var result = await service.AcceptAsync(material, "Druga", "druga treść", Draft, PromptVersion, Model);
+
+        Assert.True(result.Succeeded);
+
+        using var context = CreateContext(UserA);
+        var note = Assert.Single(context.Notes);
+        Assert.Equal(material, note.SourceMaterialId);
+        Assert.Equal("Druga", note.Title);
+    }
+
     // -- The acceptance ledger ------------------------------------------------------------
 
     [Fact]

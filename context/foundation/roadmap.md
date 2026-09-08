@@ -40,7 +40,7 @@ Sam przepływ pozostaje niepodzielny jako **cel**, ale jest dostarczany w trzech
 | S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01c         | FR-003                          | done         |
 | S-03  | browse-notes-and-sources   | przeglądać własne notatki i materiały źródłowe                    | S-01c, F-02   | FR-007                          | done        |
 | S-04  | edit-source-material       | edytować zapisany materiał źródłowy                               | S-01a         | FR-009                          | blocked  |
-| S-05  | delete-note                | usunąć własną notatkę                                             | S-01c         | FR-010                          | proposed |
+| S-05  | delete-note                | usunąć własną notatkę                                             | S-01c         | FR-010                          | in-progress |
 | S-06  | delete-source-material     | usunąć materiał źródłowy                                          | S-01a         | FR-011                          | blocked  |
 | S-07  | user-profile               | zarządzać kontem: nazwa wyświetlana, hasło, usunięcie konta       | F-02          | FR-012, FR-013, FR-014          | planning |
 
@@ -205,7 +205,7 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Prosta operacja na pojedynczej notatce, bez kaskady (to notatka jest usuwana, nie źródło) — najniższe ryzyko z całego cyklu życia treści.
-- **Status:** proposed
+- **Status:** in-progress
 
 ### S-06: Usunięcie materiału źródłowego
 

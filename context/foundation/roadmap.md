@@ -40,7 +40,7 @@ Sam przepływ pozostaje niepodzielny jako **cel**, ale jest dostarczany w trzech
 | S-02  | paste-text-generation      | wkleić tekst jako źródło i wygenerować z niego notatkę            | S-01c         | FR-003                          | done         |
 | S-03  | browse-notes-and-sources   | przeglądać własne notatki i materiały źródłowe                    | S-01c, F-02   | FR-007                          | done        |
 | S-04  | edit-source-material       | edytować zapisany materiał źródłowy                               | S-01a         | FR-009                          | blocked  |
-| S-05  | delete-note                | usunąć własną notatkę                                             | S-01c         | FR-010                          | in-progress |
+| S-05  | delete-note                | usunąć własną notatkę                                             | S-01c         | FR-010                          | done     |
 | S-06  | delete-source-material     | usunąć materiał źródłowy                                          | S-01a         | FR-011                          | blocked  |
 | S-07  | user-profile               | zarządzać kontem: nazwa wyświetlana, hasło, usunięcie konta       | F-02          | FR-012, FR-013, FR-014          | planning |
 
@@ -205,7 +205,7 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Prosta operacja na pojedynczej notatce, bez kaskady (to notatka jest usuwana, nie źródło) — najniższe ryzyko z całego cyklu życia treści.
-- **Status:** in-progress
+- **Status:** done
 
 ### S-06: Usunięcie materiału źródłowego
 
@@ -277,3 +277,4 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 - **S-01c: użytkownik poprawia wygenerowaną notatkę i zapisuje ją — zapis wiąże notatkę z kontem i liczy się jako akceptacja; porzucenie bez zapisu nie pozostawia jej na koncie; materiał źródłowy zostaje nietknięty. Ten kawałek domyka gwiazdę.** — Archived 2026-08-17 → `context/archive/2026-08-17-note-review-save/`. Lesson: „An advertised limit must be one every layer beneath it can carry" (`lessons.md`).
 - **S-02: użytkownik wkleja surowy tekst jako materiał źródłowy i generuje z niego notatkę tą samą pętlą co w S-01a→S-01c.** — Archived 2026-08-27 → `context/archive/2026-08-18-paste-text-generation/`. Lesson: —.
 - **S-03: użytkownik widzi listę swoich zapisanych notatek i materiałów źródłowych i może otworzyć wybrany; nie widzi cudzych danych.** — Archived 2026-09-08 → `context/archive/2026-08-18-browse-notes-and-sources/`. Weryfikacja ręczna domknięta tego samego dnia — 2.10 (przesunięcie na górę listy) i 2.12 (izolacja drugiego konta) dowiedzione dopiero teraz. Lesson: —.
+- **S-05: użytkownik usuwa jedną ze swoich notatek; materiał źródłowy pozostaje nietknięty.** — Archived 2026-09-08 → `context/archive/2026-09-08-delete-note/`. Przegląd wdrożenia znalazł, że to pierwszy plasterek kasujący encję użytkownika — a więc pierwszy, w którym `DELETE` trafiający w zero wierszy ma niewinne wytłumaczenie; `AppDbContext` oskarżał wtedy użytkownika o cudzą notatkę (naprawione w `2a76f99`). Lesson: —.

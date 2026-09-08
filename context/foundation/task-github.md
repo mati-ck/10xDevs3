@@ -280,6 +280,10 @@ Porównanie 14 issues (`gh issue list --state all`) z `context/changes/`, `conte
 
 Zgodne bez uwag: #6, #7, #8, #9, #11, #12, #13, #14, #15, #22, #25, #26, #27.
 
+### Domknięcie #10 (2026-09-08, ta sama sesja)
+
+Cztery kryteria ręczne zaległe od 2026-08-27 wykonane w przeglądarce przeciwko realnej bazie; wszystkie przechodzą. 2.10 dowiedzione przez ponowny zapis **najstarszej** z czterech notatek (przesunięcie 4/4 → 1/4), 2.12 przez drugie konto widzące obie listy puste. Zmiana zarchiwizowana → `context/archive/2026-08-18-browse-notes-and-sources/`, roadmapa S-03 → `done`, issue [#10](https://github.com/mati-ck/10xDevs3/issues/10) zamknięty i pozbawiony etykiety `status:verifying` zgodnie z konwencją higieny. Etykieta `status:verifying` przeżyła swój pierwszy cykl życia: nadana i zdjęta tego samego dnia.
+
 ## Not created (out of scope of current token)
 
 - **GitHub Projects board** — token lacks `project` scope. To add a board with status/dependency fields: `gh auth refresh -s project`, then create a Project and add issues #6–#15.

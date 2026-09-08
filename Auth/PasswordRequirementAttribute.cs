@@ -21,12 +21,17 @@ namespace _10xnotes.Auth;
 public sealed class PasswordRequirementAttribute : ValidationAttribute
 {
     /// <summary>
-    /// The hint shown under a password field. States both bounds, and names the byte for the
-    /// upper one because that is the unit that actually applies.
+    /// The hint shown under a password field.
     /// </summary>
-    public const string Hint =
-        "Hasło musi mieć co najmniej 8 znaków i nie więcej niż 72 bajty "
-        + "(polskie znaki liczą się podwójnie).";
+    /// <remarks>
+    /// States the minimum only. The maximum is deliberately absent: it is a byte bound, so there
+    /// is no character number that is both true and useful — 72 for a Latin password, 36 for a
+    /// Polish one, 18 for emoji — and quoting bytes tells the user about bcrypt instead of about
+    /// their password. The rare over-long case is handled by an error that says exactly how many
+    /// characters to remove, which is the only form of the limit anybody can act on.
+    /// </remarks>
+    public static readonly string Hint =
+        $"Hasło musi mieć co najmniej {PasswordLimits.MinLength} znaków.";
 
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
@@ -42,12 +47,21 @@ public sealed class PasswordRequirementAttribute : ValidationAttribute
             PasswordValidationFailure.Missing => "Podaj hasło.",
             PasswordValidationFailure.TooShort =>
                 $"Hasło musi mieć co najmniej {PasswordLimits.MinLength} znaków.",
-            PasswordValidationFailure.TooManyBytes =>
-                $"Hasło jest za długie — maksymalnie {PasswordLimits.MaxBytes} bajty. "
-                + "Polskie znaki zajmują po dwa bajty, więc skróć hasło.",
+            PasswordValidationFailure.TooManyBytes => TooLongMessage(value as string ?? string.Empty),
             _ => "Podaj poprawne hasło."
         };
 
         return new ValidationResult(message, [validationContext.MemberName!]);
+    }
+
+    /// <summary>
+    /// Says how much to delete rather than what the limit is, and never mentions a byte.
+    /// </summary>
+    private static string TooLongMessage(string password)
+    {
+        var excess = PasswordLimits.ExcessCharacters(password);
+
+        return $"Hasło jest za długie — skróć je o co najmniej {excess} "
+            + $"{PasswordLimits.CharacterNoun(excess)}.";
     }
 }

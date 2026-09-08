@@ -51,4 +51,61 @@ public static class PasswordLimits
     /// What this password costs against <see cref="MaxBytes"/>.
     /// </summary>
     public static int ByteCount(string password) => Encoding.UTF8.GetByteCount(password);
+
+    /// <summary>
+    /// How many characters must come off the end for this password to fit, or 0 if it already
+    /// does.
+    /// </summary>
+    /// <remarks>
+    /// Exists so the user is never shown a byte count. "Maksymalnie 72 bajty" is unactionable —
+    /// it asks someone to know how their own alphabet is encoded before they can guess how much
+    /// to delete. This turns the same bound into the one instruction they can follow. Bytes stay
+    /// the unit that is <em>enforced</em>, and stay out of every user-facing string.
+    /// <para>
+    /// Counts whole code points, not UTF-16 units, so an emoji costs one character rather than
+    /// two and the answer never asks the user to delete half a surrogate pair.
+    /// </para>
+    /// </remarks>
+    public static int ExcessCharacters(string password)
+    {
+        var bytes = 0;
+        var seen = 0;
+        var fitting = 0;
+
+        foreach (var rune in password.EnumerateRunes())
+        {
+            seen++;
+            bytes += rune.Utf8SequenceLength;
+
+            if (bytes <= MaxBytes)
+            {
+                fitting = seen;
+            }
+        }
+
+        return seen - fitting;
+    }
+
+    /// <summary>
+    /// "znak" / "znaki" / "znaków" for <paramref name="count"/>.
+    /// </summary>
+    /// <remarks>
+    /// Polish takes three forms, and the message built from <see cref="ExcessCharacters"/> is
+    /// the only place in the project that has to interpolate a count into a noun. Getting it
+    /// wrong reads as broken Polish, so the rule is here rather than approximated at the call
+    /// site: 1 is singular; 2-4 take the plural, except in the teens; everything else takes the
+    /// genitive plural.
+    /// </remarks>
+    public static string CharacterNoun(int count)
+    {
+        if (count == 1)
+        {
+            return "znak";
+        }
+
+        var lastTwo = count % 100;
+        var last = count % 10;
+
+        return last is >= 2 and <= 4 && lastTwo is < 12 or > 14 ? "znaki" : "znaków";
+    }
 }

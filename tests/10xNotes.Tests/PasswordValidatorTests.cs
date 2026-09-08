@@ -164,16 +164,73 @@ public sealed class PasswordValidatorTests
         Assert.Equal(expectedValid, ValidateThroughAttribute(password) is null);
     }
 
-    [Fact]
-    public void The_form_attribute_rejects_an_over_long_polish_password_in_polish()
+    /// <summary>
+    /// The user is never shown a byte count. "Maksymalnie 72 bajty" is unactionable — it asks
+    /// someone to know how their alphabet is encoded before they can guess how much to delete —
+    /// so the message says how many characters to remove instead. Bytes stay the enforced unit
+    /// and stay out of every string the user reads.
+    /// </summary>
+    [Theory]
+    [InlineData(40, 4)]   // 40 Polish characters are 80 bytes; 36 fit, so 4 must go.
+    [InlineData(37, 1)]   // 74 bytes: one character over.
+    public void An_over_long_polish_password_is_told_how_much_to_remove(int length, int excess)
     {
-        var message = ValidateThroughAttribute(new string('ż', 40));
+        var message = ValidateThroughAttribute(new string('ż', length));
 
         Assert.NotNull(message);
-        Assert.Contains(PasswordLimits.MaxBytes.ToString(), message);
-        // The PRD requires Polish copy; a bare "The field Password is invalid." would mean the
-        // attribute rejected the password without wording the reason.
-        Assert.Contains("bajty", message);
+        Assert.Contains($"o co najmniej {excess} ", message);
+        Assert.DoesNotContain("bajt", message);
+        Assert.DoesNotContain(PasswordLimits.MaxBytes.ToString(), message);
+    }
+
+    [Theory]
+    [InlineData(73, 1)]
+    [InlineData(74, 2)]
+    [InlineData(77, 5)]
+    public void An_over_long_latin_password_counts_characters_one_for_one(int length, int excess)
+    {
+        Assert.Equal(excess, PasswordLimits.ExcessCharacters(new string('a', length)));
+    }
+
+    [Fact]
+    public void A_password_that_fits_has_nothing_to_remove()
+    {
+        Assert.Equal(0, PasswordLimits.ExcessCharacters(new string('a', PasswordLimits.MaxBytes)));
+        Assert.Equal(0, PasswordLimits.ExcessCharacters("haslo12345"));
+    }
+
+    /// <summary>
+    /// An emoji is one character to the user and four bytes to bcrypt. The count must be the
+    /// user's, or the message asks them to delete half a surrogate pair.
+    /// </summary>
+    [Fact]
+    public void An_emoji_counts_as_one_character_to_remove_not_two()
+    {
+        // 19 emoji are 76 bytes; 18 fit, so exactly one emoji must go.
+        var emoji = string.Concat(Enumerable.Repeat("🔒", 19));
+
+        Assert.Equal(1, PasswordLimits.ExcessCharacters(emoji));
+        Assert.Contains("o co najmniej 1 znak.", ValidateThroughAttribute(emoji));
+    }
+
+    /// <summary>
+    /// Polish takes three noun forms and the message interpolates a count, so getting this wrong
+    /// reads as broken Polish in a Polish-language product.
+    /// </summary>
+    [Theory]
+    [InlineData(1, "znak")]
+    [InlineData(2, "znaki")]
+    [InlineData(4, "znaki")]
+    [InlineData(5, "znaków")]
+    [InlineData(12, "znaków")]   // the teens take the genitive despite ending in 2
+    [InlineData(14, "znaków")]
+    [InlineData(22, "znaki")]
+    [InlineData(25, "znaków")]
+    [InlineData(112, "znaków")]
+    [InlineData(122, "znaki")]
+    public void The_character_count_takes_the_right_polish_noun_form(int count, string expected)
+    {
+        Assert.Equal(expected, PasswordLimits.CharacterNoun(count));
     }
 
     private static string? ValidateThroughAttribute(string? password)

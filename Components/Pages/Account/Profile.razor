@@ -1,0 +1,387 @@
+@page "/profile"
+@attribute [Authorize]
+@using System.ComponentModel.DataAnnotations
+@using System.Data.Common
+@using System.Security.Claims
+@using _10xnotes.Auth
+@using _10xnotes.Profiles
+@inject ProfileService Profiles
+@inject SupabaseAuthClient AuthClient
+@inject AccountDeletionService AccountDeletion
+@inject ILogger<Profile> Logger
+@inject NavigationManager Navigation
+
+@* Static SSR on purpose — no @rendermode. Saving a display name re-issues the auth cookie so the
+   nav picks it up, and AuthCookie.ReissueWithDisplayNameAsync needs a response that has not
+   started. An interactive circuit cannot provide one; the same constraint Login.razor and
+   Logout.razor already document.
+
+   Three independent sections, each its own EditForm with its own FormName and its own error
+   state, so a failure in one never blanks another. *@
+
+<PageTitle>Moje konto</PageTitle>
+
+<h1>Moje konto</h1>
+
+<section class="mb-5">
+    <h2 class="h5">Dane konta</h2>
+    <dl class="row mb-0">
+        <dt class="col-sm-3">Adres e-mail</dt>
+        <dd class="col-sm-9">@Email</dd>
+    </dl>
+    <div class="form-text">Adresu e-mail nie można zmienić.</div>
+</section>
+
+<section class="mb-5">
+    <h2 class="h5">Nazwa wyświetlana</h2>
+
+    @if (displayNameError is not null)
+    {
+        <div class="alert alert-danger" role="alert">@displayNameError</div>
+    }
+
+    <p class="text-body-secondary">
+        Nazwa pojawi się w menu zamiast adresu e-mail. Zostaw pole puste, aby wrócić do adresu.
+    </p>
+
+    <EditForm Model="DisplayNameInput" method="post" OnValidSubmit="SaveDisplayNameAsync" FormName="display-name">
+        <DataAnnotationsValidator />
+
+        <div class="mb-3">
+            <label for="display-name" class="form-label">Nazwa wyświetlana</label>
+            <InputText id="display-name" class="form-control" @bind-Value="DisplayNameInput!.DisplayName"
+                       autocomplete="nickname" maxlength="@DisplayNameValidator.MaxLength" />
+            <div class="form-text">Maksymalnie @DisplayNameValidator.MaxLength znaków.</div>
+            <ValidationMessage For="() => DisplayNameInput!.DisplayName" class="text-danger" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Zapisz nazwę</button>
+    </EditForm>
+</section>
+
+<section class="mb-5">
+    <h2 class="h5">Zmiana hasła</h2>
+
+    @if (passwordError is not null)
+    {
+        <div class="alert alert-danger" role="alert">@passwordError</div>
+    }
+    else if (passwordChanged)
+    {
+        <div class="alert alert-success" role="alert">
+            Hasło zostało zmienione. Użyj go przy następnym logowaniu.
+        </div>
+    }
+
+    <EditForm Model="PasswordInput" method="post" OnValidSubmit="ChangePasswordAsync" FormName="change-password">
+        <DataAnnotationsValidator />
+
+        <div class="mb-3">
+            <label for="current-password" class="form-label">Obecne hasło</label>
+            <InputText id="current-password" type="password" class="form-control"
+                       @bind-Value="PasswordInput!.CurrentPassword" autocomplete="current-password" />
+            <ValidationMessage For="() => PasswordInput!.CurrentPassword" class="text-danger" />
+        </div>
+
+        <div class="mb-3">
+            <label for="new-password" class="form-label">Nowe hasło</label>
+            <InputText id="new-password" type="password" class="form-control"
+                       @bind-Value="PasswordInput!.NewPassword" autocomplete="new-password" />
+            <div class="form-text">@PasswordRequirementAttribute.Hint</div>
+            <ValidationMessage For="() => PasswordInput!.NewPassword" class="text-danger" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Zmień hasło</button>
+    </EditForm>
+</section>
+
+<section class="mb-5 border border-danger rounded p-3">
+    <h2 class="h5 text-danger">Usunięcie konta</h2>
+
+    @if (deleteError is not null)
+    {
+        <div class="alert alert-danger" role="alert">@deleteError</div>
+    }
+
+    <p>
+        Usunięcie konta jest nieodwracalne. Znikną wszystkie Twoje notatki, materiały źródłowe
+        i samo konto. Nie da się tego cofnąć ani odzyskać danych.
+    </p>
+
+    <p>Potwierdź hasłem, że chcesz usunąć konto.</p>
+
+    <EditForm Model="DeleteInput" method="post" OnValidSubmit="DeleteAccountAsync" FormName="delete-account">
+        <DataAnnotationsValidator />
+
+        <div class="mb-3">
+            <label for="delete-password" class="form-label">Hasło</label>
+            <InputText id="delete-password" type="password" class="form-control"
+                       @bind-Value="DeleteInput!.Password" autocomplete="current-password" />
+            <ValidationMessage For="() => DeleteInput!.Password" class="text-danger" />
+        </div>
+
+        <button type="submit" class="btn btn-danger">Usuń konto na zawsze</button>
+    </EditForm>
+</section>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    // Not initialized inline: a form post can overwrite the property with null (BL0008).
+    [SupplyParameterFromForm(FormName = "display-name")]
+    private DisplayNameForm? DisplayNameInput { get; set; }
+
+    [SupplyParameterFromForm(FormName = "change-password")]
+    private ChangePasswordForm? PasswordInput { get; set; }
+
+    [SupplyParameterFromForm(FormName = "delete-account")]
+    private DeleteAccountForm? DeleteInput { get; set; }
+
+    private string? displayNameError;
+
+    private string? passwordError;
+
+    private bool passwordChanged;
+
+    private string? deleteError;
+
+    private bool wasPosted;
+
+    private string Email =>
+        HttpContext.User.FindFirstValue(ClaimTypes.Email)
+        ?? HttpContext.User.Identity?.Name
+        ?? string.Empty;
+
+    /// <summary>
+    /// Gives every form a model synchronously, before anything is awaited.
+    /// </summary>
+    /// <remarks>
+    /// Load-bearing, and not merged into OnInitializedAsync. ComponentBase calls
+    /// StateHasChanged() and renders once *before* awaiting an OnInitializedAsync that has not
+    /// already completed, so a model assigned only after an await is null on that first render
+    /// and EditForm throws "requires either a Model parameter, or an EditContext parameter".
+    /// The same reason Materials/Index.razor initializes its list synchronously.
+    /// </remarks>
+    protected override void OnInitialized()
+    {
+        // A non-null value here means this render is a post of this form, so what the user typed
+        // must survive: re-reading the stored name would throw their input away and show the old
+        // value beside their error message.
+        wasPosted = DisplayNameInput is not null;
+        DisplayNameInput ??= new DisplayNameForm();
+        PasswordInput ??= new ChangePasswordForm();
+        DeleteInput ??= new DeleteAccountForm();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (wasPosted)
+        {
+            return;
+        }
+
+        try
+        {
+            DisplayNameInput!.DisplayName =
+                await Profiles.GetDisplayNameAsync(HttpContext.RequestAborted) ?? string.Empty;
+        }
+        catch (Exception exception) when (exception is DbException or InvalidOperationException)
+        {
+            // Same posture as the material list: a transient read failure says so in Polish
+            // rather than unwinding to the stock Error page. The box stays empty, so the copy
+            // has to warn that saving it would clear a name the user may still have stored.
+            Logger.LogError(exception, "Failed to load the profile for the account page.");
+            displayNameError =
+                "Nie udało się wczytać nazwy wyświetlanej. Odśwież stronę — zapisanie pustego "
+                + "pola teraz skasowałoby zapisaną nazwę.";
+        }
+    }
+
+    /// <summary>
+    /// Persist, then re-issue the cookie, then redirect.
+    /// </summary>
+    /// <remarks>
+    /// The order is load-bearing. Re-issuing first would leave the nav showing a name that was
+    /// never stored, which is worse than the write failing visibly. The redirect is what makes
+    /// the nav re-render from the new cookie — without it the response is rendered from the
+    /// principal this request started with, which still carries the old name.
+    /// </remarks>
+    private async Task SaveDisplayNameAsync()
+    {
+        displayNameError = null;
+
+        var result = await Profiles.SetDisplayNameAsync(
+            DisplayNameInput!.DisplayName,
+            HttpContext.RequestAborted);
+
+        if (!result.Succeeded)
+        {
+            displayNameError = result.FailureReason switch
+            {
+                ProfileUpdateFailure.NameTooLong =>
+                    $"Nazwa może mieć najwyżej {DisplayNameValidator.MaxLength} znaków.",
+                _ =>
+                    "Nie udało się zapisać nazwy. Spróbuj ponownie za chwilę."
+            };
+            return;
+        }
+
+        await AuthCookie.ReissueWithDisplayNameAsync(HttpContext, result.DisplayName);
+
+        Navigation.NavigateTo("/profile");
+    }
+
+    /// <summary>
+    /// Re-authenticates with the current password and, only on success, sets the new one.
+    /// </summary>
+    /// <remarks>
+    /// The email comes from the principal's own claim, never from a form field: it identifies
+    /// whose password is being changed, so accepting it from the page would let a post name
+    /// somebody else's account. The two-step ordering lives in the client, not here — see
+    /// SupabaseAuthClient.ChangePasswordAsync.
+    /// <para>
+    /// No redirect and no cookie re-issue afterwards. The cookie carries no password material,
+    /// and a change does not invalidate cookies already issued — an accepted limitation recorded
+    /// in the plan, since the app keeps no server-side session store to revoke against.
+    /// </para>
+    /// </remarks>
+    private async Task ChangePasswordAsync()
+    {
+        passwordError = null;
+        passwordChanged = false;
+
+        var result = await AuthClient.ChangePasswordAsync(
+            Email,
+            PasswordInput!.CurrentPassword,
+            PasswordInput.NewPassword,
+            HttpContext.RequestAborted);
+
+        if (!result.Succeeded)
+        {
+            passwordError = result.FailureReason switch
+            {
+                AuthFailureReason.InvalidCredentials =>
+                    "Obecne hasło jest nieprawidłowe.",
+                AuthFailureReason.WeakPassword =>
+                    $"Nowe hasło jest zbyt słabe. Użyj co najmniej {PasswordLimits.MinLength} znaków.",
+                AuthFailureReason.SamePassword =>
+                    "Nowe hasło musi różnić się od obecnego.",
+                _ =>
+                    "Nie udało się zmienić hasła. Spróbuj ponownie za chwilę."
+            };
+
+            // Cleared on the way out, not only on success. InputText renders
+            // value="@CurrentValue" and type="password" does not suppress it, so returning
+            // here with the model intact would put both plaintext passwords into the response
+            // HTML — and the failure path is the one that actually repeats.
+            PasswordInput = new ChangePasswordForm();
+            return;
+        }
+
+        PasswordInput = new ChangePasswordForm();
+        passwordChanged = true;
+    }
+
+    /// <summary>
+    /// Proves the password, deletes the account, signs out, and leaves.
+    /// </summary>
+    /// <remarks>
+    /// The order matters in both directions. The password is proved first, so a stolen cookie or
+    /// a walk-up cannot destroy an account on its own. The sign-out happens last but is not
+    /// optional: once auth.users is gone the cookie still authenticates a principal whose every
+    /// query returns nothing and whose every write throws — the "looks exactly like data loss"
+    /// state Program.cs already guards against for expired sessions. Leaving the cookie in place
+    /// would reintroduce it.
+    /// <para>
+    /// SignOutAsync needs a response that has not started, which is one of the two reasons this
+    /// page is static SSR.
+    /// </para>
+    /// <para>
+    /// The redirect carries no message, per the scope decision: there is no account left to
+    /// address, and a farewell banner on the login page would be read by the next visitor.
+    /// </para>
+    /// </remarks>
+    private async Task DeleteAccountAsync()
+    {
+        deleteError = null;
+
+        // SignInAsync against GoTrue rather than a bespoke check: it is the same proof the
+        // password change already relies on, and it costs nothing extra here.
+        var proof = await AuthClient.SignInAsync(
+            Email,
+            DeleteInput!.Password,
+            HttpContext.RequestAborted);
+
+        if (!proof.Succeeded)
+        {
+            deleteError = proof.FailureReason == AuthFailureReason.Unavailable
+                ? "Usługa jest chwilowo niedostępna. Spróbuj ponownie za chwilę."
+                : "Hasło jest nieprawidłowe. Konto nie zostało usunięte.";
+
+            // See the change-password handler: the password must not travel back in the
+            // re-rendered form's value attribute.
+            DeleteInput = new DeleteAccountForm();
+            return;
+        }
+
+        // Sign out BEFORE the delete, so the direction a failure can take is the recoverable
+        // one. SignOutAsync only queues a Set-Cookie on the response — it does not touch
+        // HttpContext.User — so CurrentUserId is still populated and the delete below still
+        // finds its target.
+        //
+        // Ordered the other way round, a throwing SignOutAsync would leave the cookie alive
+        // over an account that no longer exists: every read returns nothing, every write throws
+        // from StampOwners, and IsPastSessionCap will not retire it, so it survives the full
+        // 14-day sliding window. That is exactly the "indistinguishable from data loss" state
+        // Program.cs guards against for expired sessions. This way the worst case is a user
+        // signed out over data that is still entirely intact, which one sign-in undoes.
+        await AuthCookie.SignOutAsync(HttpContext);
+
+        try
+        {
+            await AccountDeletion.DeleteCurrentAccountAsync(HttpContext.RequestAborted);
+        }
+        catch (Exception exception)
+        {
+            // The cookie is already cleared, so the user lands signed out with their data
+            // untouched — they can sign in again and retry.
+            Logger.LogError(exception, "Deleting the account failed after sign-out.");
+            deleteError =
+                "Nie udało się usunąć konta i zostałeś wylogowany. Zaloguj się i spróbuj ponownie.";
+            return;
+        }
+
+        Navigation.NavigateTo("/login");
+    }
+
+    private sealed class DisplayNameForm
+    {
+        // Bound as a string rather than a string? because InputText binds "" for an empty box.
+        // DisplayNameValidator.Normalize is what turns that back into the null the column wants.
+        [StringLength(
+            DisplayNameValidator.MaxLength,
+            ErrorMessage = "Nazwa może mieć najwyżej {1} znaków.")]
+        public string DisplayName { get; set; } = string.Empty;
+    }
+
+    private sealed class ChangePasswordForm
+    {
+        // No PasswordRequirement here: the rule bounds a password being *set*, and the current
+        // one was set under whatever rules applied then. Validating it would refuse to let
+        // somebody change a password precisely because it is one this app would no longer issue.
+        [Required(ErrorMessage = "Podaj obecne hasło.")]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [PasswordRequirement]
+        public string NewPassword { get; set; } = string.Empty;
+    }
+
+    private sealed class DeleteAccountForm
+    {
+        // Required only, for the same reason the current password is on the change form: this is
+        // an existing password being proved, not a new one being set.
+        [Required(ErrorMessage = "Podaj hasło, aby potwierdzić usunięcie konta.")]
+        public string Password { get; set; } = string.Empty;
+    }
+}

@@ -42,7 +42,7 @@ Sam przepływ pozostaje niepodzielny jako **cel**, ale jest dostarczany w trzech
 | S-04  | edit-source-material       | edytować zapisany materiał źródłowy                               | S-01a         | FR-009                          | blocked  |
 | S-05  | delete-note                | usunąć własną notatkę                                             | S-01c         | FR-010                          | done     |
 | S-06  | delete-source-material     | usunąć materiał źródłowy                                          | S-01a         | FR-011                          | blocked  |
-| S-07  | user-profile               | zarządzać kontem: nazwa wyświetlana, hasło, usunięcie konta       | F-02          | FR-012, FR-013, FR-014          | planning |
+| S-07  | user-profile               | zarządzać kontem: nazwa wyświetlana, hasło, usunięcie konta       | F-02          | FR-012, FR-013, FR-014          | done |
 
 > **S-01 (gwiazda przewodnia)** nie jest już pojedynczym plasterkiem — pakował cztery rzeczy naraz (model domenowy, import pliku, integrację z AI, edytor + zapis), a zależało od niego wszystko pozostałe. Rozbity 2026-08-13 na `S-01a` → `S-01b` → `S-01c`; gwiazda jest dowiedziona dopiero po `S-01c`. Wycofany change ID: `import-generation-review-save`.
 
@@ -234,7 +234,7 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
   - ~~Czy usunięcie konta wymaga klucza `service_role`?~~ — Rozstrzygnięte 2026-09-08 w `plan.md`: **nie**. Zweryfikowano na projekcie, że rola `postgres` ma `DELETE` na `auth.users`, więc kasowanie idzie po istniejącym połączeniu, a kaskady FK robią resztę.
   - ~~Jak zmienić hasło, skoro `AuthCookie` świadomie porzuca tokeny GoTrue?~~ — Rozstrzygnięte 2026-09-08 w `plan.md`: **ponowne uwierzytelnienie** dotychczasowym hasłem; token żyje wyłącznie wewnątrz jednej metody, więc ciasteczko pozostaje jedynym pojęciem sesji.
 - **Risk:** Jedyny plasterek z operacją nieodwracalną — usunięcie konta kasuje kaskadowo pięć tabel, w tym `note_events`, czyli wkład tego konta w metrykę 75% akceptacji. Kaskady nie da się dowieść zestawem testów (żyje w kluczach obcych do `auth.users`, a harness SQLite nie ma takiej tabeli), więc dowodem jest weryfikacja ręczna na koncie jednorazowym. Drugie ryzyko to rozrost w stronę pełnego zarządzania kontem — zmiana e-maila, reset hasła dla wylogowanego i unieważnianie sesji są świadomie poza zakresem.
-- **Status:** planning
+- **Status:** done
 
 ## Backlog Handoff
 
@@ -278,3 +278,4 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 - **S-02: użytkownik wkleja surowy tekst jako materiał źródłowy i generuje z niego notatkę tą samą pętlą co w S-01a→S-01c.** — Archived 2026-08-27 → `context/archive/2026-08-18-paste-text-generation/`. Lesson: —.
 - **S-03: użytkownik widzi listę swoich zapisanych notatek i materiałów źródłowych i może otworzyć wybrany; nie widzi cudzych danych.** — Archived 2026-09-08 → `context/archive/2026-08-18-browse-notes-and-sources/`. Weryfikacja ręczna domknięta tego samego dnia — 2.10 (przesunięcie na górę listy) i 2.12 (izolacja drugiego konta) dowiedzione dopiero teraz. Lesson: —.
 - **S-05: użytkownik usuwa jedną ze swoich notatek; materiał źródłowy pozostaje nietknięty.** — Archived 2026-09-08 → `context/archive/2026-09-08-delete-note/`. Przegląd wdrożenia znalazł, że to pierwszy plasterek kasujący encję użytkownika — a więc pierwszy, w którym `DELETE` trafiający w zero wierszy ma niewinne wytłumaczenie; `AppDbContext` oskarżał wtedy użytkownika o cudzą notatkę (naprawione w `2a76f99`). Lesson: —.
+- **S-07: użytkownik wchodzi na `/profile` i zarządza swoim kontem: ustawia albo czyści nazwę wyświetlaną (która zastępuje e-mail w nawigacji), zmienia hasło podając dotychczasowe, oraz usuwa konto wraz ze wszystkimi swoimi danymi — potwierdzając to hasłem.** — Archived 2026-09-08 → `context/archive/2026-09-08-user-profile/`. Lesson: „Give the markup its state before the first await" (`lessons.md`).

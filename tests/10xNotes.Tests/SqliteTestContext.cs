@@ -55,17 +55,34 @@ namespace _10xNotes.Tests;
 internal static class SqliteTestContext
 {
     /// <param name="log">
-    /// Receives the provider's log lines when supplied. Only <c>ProjectionGuardTests</c> uses it,
-    /// to read back the SQL a service actually emitted rather than trusting the LINQ to have
-    /// stayed a projection.
+    /// Receives the provider's log lines when supplied. <c>ProjectionGuardTests</c> uses it to read
+    /// back the SQL a service actually emitted rather than trusting the LINQ to have stayed a
+    /// projection; <c>AccountDeletionServiceTests</c> uses it to read back the delete statement.
+    /// </param>
+    /// <param name="logParameterValues">
+    /// Logs parameter <em>values</em> as well as their names. Off by default, and deliberately
+    /// opt-in: EF redacts them precisely because they are user data, and a test that does not need
+    /// them should not be printing them.
+    /// <para>
+    /// <c>AccountDeletionServiceTests</c> needs them. Its subject is a raw <c>DELETE</c> that
+    /// bypasses the owner query filter by construction, so "the id in that statement is the
+    /// signed-in user's and nobody else's" is the guarantee, and without values the test can only
+    /// see that <em>some</em> parameter was bound.
+    /// </para>
     /// </param>
     public static DbContextOptions<AppDbContext> OptionsFor(
         SqliteConnection connection,
-        Action<string>? log = null)
+        Action<string>? log = null,
+        bool logParameterValues = false)
     {
         var builder = new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlite(connection)
             .ReplaceService<IModelCustomizer, TicksForDateTimeOffsetCustomizer>();
+
+        if (logParameterValues)
+        {
+            builder = builder.EnableSensitiveDataLogging();
+        }
 
         if (log is not null)
         {
@@ -87,10 +104,13 @@ internal static class SqliteTestContext
     /// Hands out contexts on a shared in-memory connection with no user applied — the shape
     /// <c>UserScopedDbContextFactory</c> expects underneath itself.
     /// </summary>
-    public sealed class Factory(SqliteConnection connection, Action<string>? log = null)
+    public sealed class Factory(
+        SqliteConnection connection,
+        Action<string>? log = null,
+        bool logParameterValues = false)
         : IDbContextFactory<AppDbContext>
     {
-        public AppDbContext CreateDbContext() => new(OptionsFor(connection, log));
+        public AppDbContext CreateDbContext() => new(OptionsFor(connection, log, logParameterValues));
     }
 
     private sealed class TicksForDateTimeOffsetCustomizer(ModelCustomizerDependencies dependencies)

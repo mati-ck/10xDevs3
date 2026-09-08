@@ -1,3 +1,5 @@
+@using _10xnotes.Auth
+
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">10xnotes</a>
@@ -31,8 +33,17 @@
                     </NavLink>
                 </div>
 
-                <div class="nav-item px-3 nav-user" title="@context.User.Identity?.Name">
-                    @context.User.Identity?.Name
+                @* The display name when the user set one, the email otherwise. The rule is
+                   AuthCookie's rather than this markup's so it is testable, and it reads a claim
+                   rather than the database so the nav costs no query on any render. *@
+                <div class="nav-item px-3 nav-user" title="@AuthCookie.DisplayNameOrEmail(context.User)">
+                    @AuthCookie.DisplayNameOrEmail(context.User)
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="profile">
+                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> Moje konto
+                    </NavLink>
                 </div>
 
                 @* A link, not a form: signing out must be a POST carrying an antiforgery token,

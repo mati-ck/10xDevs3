@@ -15,3 +15,10 @@
 - **Problem**: The layers disagree silently, and the failure lands past the point where the application can handle it. Exceeding `MaximumReceiveMessageSize` does not return an error a component can catch — SignalR aborts the connection, so the user gets a reconnect modal and loses work that was never saved. Verified: 32768 against 65536, exactly half. The failure shape is the worst available — a long note renders correctly and only dies when the user touches it.
 - **Rule**: When you set a user-facing limit, name every layer the value must cross and check each one's own bound. Derive the lower bounds from the advertised constant rather than setting them independently, and pin the relationship in a test — a comment cannot fail. Watch for unit mismatches while doing it: a character count is not a byte count.
 - **Applies to**: all
+
+## Give the markup its state before the first await
+
+- **Context**: Any Blazor component whose markup dereferences state that an awaited lifecycle method produces — `EditForm`'s `Model` above all, because it throws rather than rendering empty.
+- **Problem**: `ComponentBase` calls `StateHasChanged()` and renders once BEFORE awaiting an `OnInitializedAsync` that has not already completed, so state assigned only after that await is null on the first render. In S-07 the `/profile` display-name form built its model from an awaited `ProfileService` read, so every visit threw "EditForm requires either a Model parameter, or an EditContext parameter" and the page never rendered at all.
+- **Rule**: Assign anything the markup dereferences synchronously — in the field declaration or in `OnInitialized` — before any await. Use an awaited lifecycle method only to fill in values, never to create the object the markup needs. The precedent that gets this right is `Materials/Index.razor`, whose list is initialized to `[]` in the field declaration.
+- **Applies to**: implement, impl-review

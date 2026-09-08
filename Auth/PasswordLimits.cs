@@ -44,6 +44,11 @@ public static class PasswordLimits
     /// Characters is the right unit here, unlike <see cref="MaxBytes"/>: this is our own floor,
     /// not a bound imposed underneath us, and it is the number the register form has always
     /// advertised. Supabase's own minimum is configured per project and may be lower.
+    /// <para>
+    /// "Characters" means code points, measured by <see cref="CharacterCount"/> — not
+    /// <c>string.Length</c>, which counts UTF-16 units and would let four emoji satisfy a rule
+    /// that tells the user it wants eight characters.
+    /// </para>
     /// </remarks>
     public const int MinLength = 8;
 
@@ -51,6 +56,25 @@ public static class PasswordLimits
     /// What this password costs against <see cref="MaxBytes"/>.
     /// </summary>
     public static int ByteCount(string password) => Encoding.UTF8.GetByteCount(password);
+
+    /// <summary>
+    /// How many characters this password is, counted the way the user counts them.
+    /// </summary>
+    /// <remarks>
+    /// Code points rather than UTF-16 units, so an emoji is one character and not two — the same
+    /// unit <see cref="ExcessCharacters"/> reports in, so the two ends of the rule agree.
+    /// </remarks>
+    public static int CharacterCount(string password)
+    {
+        var count = 0;
+
+        foreach (var _ in password.EnumerateRunes())
+        {
+            count++;
+        }
+
+        return count;
+    }
 
     /// <summary>
     /// How many characters must come off the end for this password to fit, or 0 if it already

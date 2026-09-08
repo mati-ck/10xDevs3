@@ -56,7 +56,12 @@ public static class PasswordValidator
             return PasswordValidationResult.Failure(PasswordValidationFailure.Missing);
         }
 
-        if (password.Length < PasswordLimits.MinLength)
+        // Code points, not UTF-16 units, and for the same reason PasswordLimits.ExcessCharacters
+        // counts them: the message says "znaków", and to a user an emoji is one character. Using
+        // .Length here would let four emoji satisfy a rule that claims to want eight characters —
+        // the unit mismatch this whole type exists to remove, reintroduced one line below the
+        // constant that documents it.
+        if (PasswordLimits.CharacterCount(password) < PasswordLimits.MinLength)
         {
             return PasswordValidationResult.Failure(PasswordValidationFailure.TooShort);
         }

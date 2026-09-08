@@ -72,6 +72,33 @@ public sealed class PasswordValidatorTests
     }
 
     /// <summary>
+    /// The minimum counts characters the way the user counts them, matching the wording of its own
+    /// message. Four emoji are eight UTF-16 units but four characters, so a `.Length` check would
+    /// accept them while telling the user it wanted eight — the unit mismatch this type exists to
+    /// remove, and the one the too-long side already avoids.
+    /// </summary>
+    [Fact]
+    public void The_minimum_counts_code_points_not_utf16_units()
+    {
+        var fourEmoji = string.Concat(Enumerable.Repeat("🔒", 4));
+
+        Assert.Equal(8, fourEmoji.Length);
+        Assert.Equal(4, PasswordLimits.CharacterCount(fourEmoji));
+
+        var result = PasswordValidator.Validate(fourEmoji);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(PasswordValidationFailure.TooShort, result.FailureReason);
+    }
+
+    /// <summary>Eight emoji are eight characters — long enough, and 32 bytes, so well inside.</summary>
+    [Fact]
+    public void Eight_emoji_are_eight_characters_and_are_accepted()
+    {
+        Assert.True(PasswordValidator.Validate(string.Concat(Enumerable.Repeat("🔒", 8))).Succeeded);
+    }
+
+    /// <summary>
     /// Whitespace is part of a password, unlike a title — so a passphrase of spaces is short, not
     /// blank, and the validator must not trim it into emptiness.
     /// </summary>

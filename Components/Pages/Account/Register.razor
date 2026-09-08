@@ -66,6 +66,10 @@
                 _ =>
                     "Nie udało się utworzyć konta. Jeśli masz już konto, zaloguj się."
             };
+
+            // See Login.razor: the password must not be echoed back in the form's value
+            // attribute. The address stays.
+            Input.Password = string.Empty;
             return;
         }
 

@@ -51,8 +51,16 @@ public sealed record AuthResult
     /// The password-grant endpoint returns one; <c>signup</c> may not, so an empty value is a
     /// valid success rather than a fault. This is the single exception to the rule that GoTrue's
     /// tokens are discarded (see <c>AuthCookie</c>): the change-password flow needs a bearer token
-    /// for <c>PUT /user</c> and has no other way to obtain one. It is a local in that flow and is
-    /// never written to the cookie, the database, or a field — do not widen that.
+    /// for <c>PUT /user</c> and has no other way to obtain one.
+    /// <para>
+    /// It is <em>populated</em> on every password-grant response, not only the change-password
+    /// one, so an ordinary sign-in and the delete flow's proof also carry a live token in this
+    /// property. Nothing reads it there. What is guaranteed is narrower than "only that flow
+    /// sees it": the token is never written to the cookie, the database, or a field, never
+    /// logged (<see cref="PrintMembers"/> redacts it), and never returned by
+    /// <c>SupabaseAuthClient.ChangePasswordAsync</c>, which uses it and drops it. Do not widen
+    /// that set.
+    /// </para>
     /// </remarks>
     public string AccessToken { get; private init; } = string.Empty;
 

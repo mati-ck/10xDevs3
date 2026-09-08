@@ -270,10 +270,15 @@
                 _ =>
                     "Nie udało się zmienić hasła. Spróbuj ponownie za chwilę."
             };
+
+            // Cleared on the way out, not only on success. InputText renders
+            // value="@CurrentValue" and type="password" does not suppress it, so returning
+            // here with the model intact would put both plaintext passwords into the response
+            // HTML — and the failure path is the one that actually repeats.
+            PasswordInput = new ChangePasswordForm();
             return;
         }
 
-        // Cleared so the browser does not re-render the values it just posted.
         PasswordInput = new ChangePasswordForm();
         passwordChanged = true;
     }
@@ -313,8 +318,25 @@
             deleteError = proof.FailureReason == AuthFailureReason.Unavailable
                 ? "Usługa jest chwilowo niedostępna. Spróbuj ponownie za chwilę."
                 : "Hasło jest nieprawidłowe. Konto nie zostało usunięte.";
+
+            // See the change-password handler: the password must not travel back in the
+            // re-rendered form's value attribute.
+            DeleteInput = new DeleteAccountForm();
             return;
         }
+
+        // Sign out BEFORE the delete, so the direction a failure can take is the recoverable
+        // one. SignOutAsync only queues a Set-Cookie on the response — it does not touch
+        // HttpContext.User — so CurrentUserId is still populated and the delete below still
+        // finds its target.
+        //
+        // Ordered the other way round, a throwing SignOutAsync would leave the cookie alive
+        // over an account that no longer exists: every read returns nothing, every write throws
+        // from StampOwners, and IsPastSessionCap will not retire it, so it survives the full
+        // 14-day sliding window. That is exactly the "indistinguishable from data loss" state
+        // Program.cs guards against for expired sessions. This way the worst case is a user
+        // signed out over data that is still entirely intact, which one sign-in undoes.
+        await AuthCookie.SignOutAsync(HttpContext);
 
         try
         {
@@ -322,13 +344,14 @@
         }
         catch (Exception exception)
         {
-            // Nothing was signed out, so the user keeps a working session over intact data.
-            Logger.LogError(exception, "Deleting the account failed.");
-            deleteError = "Nie udało się usunąć konta. Spróbuj ponownie za chwilę.";
+            // The cookie is already cleared, so the user lands signed out with their data
+            // untouched — they can sign in again and retry.
+            Logger.LogError(exception, "Deleting the account failed after sign-out.");
+            deleteError =
+                "Nie udało się usunąć konta i zostałeś wylogowany. Zaloguj się i spróbuj ponownie.";
             return;
         }
 
-        await AuthCookie.SignOutAsync(HttpContext);
         Navigation.NavigateTo("/login");
     }
 

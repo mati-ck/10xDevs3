@@ -68,6 +68,12 @@
             errorMessage = result.FailureReason == AuthFailureReason.Unavailable
                 ? "Usługa logowania jest chwilowo niedostępna. Spróbuj ponownie za chwilę."
                 : "Nieprawidłowy e-mail lub hasło.";
+
+            // The password, not the whole model: InputText renders value="@CurrentValue" and
+            // type="password" does not suppress it, so leaving it set would echo the plaintext
+            // password into the re-rendered page. The address stays so the user retypes only
+            // the part that is secret.
+            Input.Password = string.Empty;
             return;
         }
 

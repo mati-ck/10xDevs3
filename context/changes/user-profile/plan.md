@@ -132,6 +132,8 @@ Establish the shared foundations Phases 2–4 consume: one byte-measured passwor
 
 **Contract**: The password field validates through `PasswordValidator`; the `form-text` hint states both bounds in Polish. Registration behavior for every currently-valid password is unchanged.
 
+> **Addendum (2026-09-08, during implementation).** The "states both bounds" half of this contract was deliberately dropped after review. The upper bound is measured in bytes, so no character number is both true and useful — 72 for a Latin password, 36 for a Polish one, 18 for emoji — and quoting bytes explains bcrypt rather than the password. The hint now states the minimum only, and the rare over-long case is answered by a message saying exactly how many characters to remove (`PasswordLimits.ExcessCharacters`). Enforcement stays byte-measured, so the defect this change set out to fix is fixed. See `change.md`.
+
 ### Success Criteria:
 
 #### Automated Verification:

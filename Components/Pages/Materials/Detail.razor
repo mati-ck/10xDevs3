@@ -76,7 +76,7 @@ else
         <div class="col-lg-6">
             <h2 class="h5">Notatka</h2>
 
-            @if (NoteDeleted && !noteDeletionDismissed)
+            @if (!string.IsNullOrEmpty(NoteDeleted) && !noteDeletionDismissed)
             {
                 @* Where the note page sends the user after a delete. Without it this page is
                    indistinguishable from a material that never had a note, so somebody who
@@ -183,9 +183,16 @@ else
     /// Carried in the query string rather than in component state because it crosses a
     /// navigation: the page that knows a note was deleted is a different page from the one that
     /// has to say so.
+    /// <para>
+    /// A <c>string?</c> rather than a <c>bool</c>, and not a matter of taste: Blazor parses a
+    /// bool-typed query parameter with <c>bool.TryParse</c> and <b>throws</b> on anything it
+    /// cannot read, so <c>?noteDeleted=1</c> — or any value a user types, edits or keeps in a
+    /// stale bookmark — would unwind to <c>UseExceptionHandler("/Error")</c> and render the
+    /// stock English error page in a Polish app. Presence is the signal; the value is not read.
+    /// </para>
     /// </remarks>
     [SupplyParameterFromQuery(Name = "noteDeleted")]
-    public bool NoteDeleted { get; set; }
+    public string? NoteDeleted { get; set; }
 
     /// <summary>
     /// Whether the user has closed the deletion notice.

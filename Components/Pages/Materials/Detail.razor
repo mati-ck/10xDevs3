@@ -76,6 +76,23 @@ else
         <div class="col-lg-6">
             <h2 class="h5">Notatka</h2>
 
+            @if (!string.IsNullOrEmpty(NoteDeleted) && !noteDeletionDismissed)
+            {
+                @* Where the note page sends the user after a delete. Without it this page is
+                   indistinguishable from a material that never had a note, so somebody who
+                   mis-clicked could not tell whether the delete happened.
+
+                   Dismissed through Blazor, never data-bs-dismiss: App.razor links Bootstrap's
+                   CSS only — the sole script is blazor.web.js — so the data attribute would
+                   render a close button that silently does nothing. The btn-close class is pure
+                   CSS and works regardless. *@
+                <div class="alert alert-success d-flex align-items-start" role="alert">
+                    <span class="flex-grow-1">Notatka została usunięta.</span>
+                    <button type="button" class="btn-close ms-2" aria-label="Zamknij"
+                            @onclick="() => noteDeletionDismissed = true"></button>
+                </div>
+            }
+
             @if (savedNote is not null)
             {
                 @* Today the only route to a saved note besides the redirect after saving — the
@@ -158,6 +175,34 @@ else
 
     [Parameter]
     public Guid Id { get; set; }
+
+    /// <summary>
+    /// Set by the redirect the note page performs after deleting a note for this material.
+    /// </summary>
+    /// <remarks>
+    /// Carried in the query string rather than in component state because it crosses a
+    /// navigation: the page that knows a note was deleted is a different page from the one that
+    /// has to say so.
+    /// <para>
+    /// A <c>string?</c> rather than a <c>bool</c>, and not a matter of taste: Blazor parses a
+    /// bool-typed query parameter with <c>bool.TryParse</c> and <b>throws</b> on anything it
+    /// cannot read, so <c>?noteDeleted=1</c> — or any value a user types, edits or keeps in a
+    /// stale bookmark — would unwind to <c>UseExceptionHandler("/Error")</c> and render the
+    /// stock English error page in a Polish app. Presence is the signal; the value is not read.
+    /// </para>
+    /// </remarks>
+    [SupplyParameterFromQuery(Name = "noteDeleted")]
+    public string? NoteDeleted { get; set; }
+
+    /// <summary>
+    /// Whether the user has closed the deletion notice.
+    /// </summary>
+    /// <remarks>
+    /// A plain field, and deliberately never reset in <c>OnInitializedAsync</c> — that method runs
+    /// twice per load (prerender, then circuit), and the flag is only ever set by a click after
+    /// the circuit is open, so resetting it there would make a dismissed alert reappear.
+    /// </remarks>
+    private bool noteDeletionDismissed;
 
     private SourceMaterial? material;
 

@@ -235,16 +235,27 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     /// Whether a concurrency failure is really an ownership violation.
     /// </summary>
     /// <remarks>
-    /// <see cref="IOwnedByUser.OwnerId"/> is a concurrency token, so an <c>UPDATE</c> or
-    /// <c>DELETE</c> aimed at a row the caller does not own matches nothing and EF reports a
-    /// concurrency conflict. With exactly one owner per row and ownership frozen after insert,
-    /// there is no other way for an owned entity to produce one — a genuine concurrent edit
-    /// cannot change <c>owner_id</c>. Anything involving a non-owned entity is left alone: that
-    /// one really is concurrency.
+    /// <see cref="IOwnedByUser.OwnerId"/> is a concurrency token, so an <c>UPDATE</c> aimed at a
+    /// row the caller does not own matches nothing and EF reports a concurrency conflict. With
+    /// exactly one owner per row and ownership frozen after insert, an update has no other way to
+    /// produce one — a genuine concurrent edit cannot change <c>owner_id</c>. Anything involving a
+    /// non-owned entity is left alone: that one really is concurrency.
+    /// <para>
+    /// <b>Deletes are excluded, and that is a correction rather than a loosening.</b> A
+    /// <see cref="EntityState.Deleted"/> entry that matches zero rows is genuinely ambiguous: the
+    /// row may have been removed by another tab a moment earlier, or the caller may have attached a
+    /// forged key. Both readings end the same way — nothing is deleted — because the guarantee
+    /// lives in the <c>WHERE owner_id = …</c> predicate, not in which exception is thrown
+    /// afterwards. Naming the innocent case an ownership violation therefore protects nothing and
+    /// costs the caller the ability to tell "already gone" from "not yours", which is exactly the
+    /// distinction <c>NoteService.DeleteAsync</c> has to collapse into an idempotent result. The
+    /// original <see cref="DbUpdateConcurrencyException"/> escapes instead, and the caller decides.
+    /// </para>
     /// </remarks>
     private static bool IsOwnershipViolation(DbUpdateConcurrencyException exception) =>
         exception.Entries.Count > 0
-        && exception.Entries.All(entry => entry.Entity is IOwnedByUser);
+        && exception.Entries.All(entry =>
+            entry.Entity is IOwnedByUser && entry.State != EntityState.Deleted);
 
     /// <summary>
     /// Reuses the wording <see cref="StampOwners"/> uses for the tracked case, so both guards —

@@ -303,6 +303,130 @@ public sealed class NoteServiceTests : IDisposable
         Assert.Equal(NoteSaveFailure.NotFound, result.FailureReason);
     }
 
+    // -- Deleting -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Deleting_a_note_removes_it_and_leaves_the_users_other_notes()
+    {
+        var kept = SeedMaterial(UserA);
+        var doomed = SeedMaterial(UserA);
+        var service = CreateService(UserA);
+
+        await service.AcceptAsync(kept, "Zostaje", "treść, która zostaje", Draft, PromptVersion, Model);
+        await service.AcceptAsync(doomed, "Do usunięcia", "treść do usunięcia", Draft, PromptVersion, Model);
+
+        var doomedId = (await service.GetByMaterialAsync(doomed))!.Id;
+
+        Assert.True(await service.DeleteAsync(doomedId));
+
+        using var context = CreateContext(UserA);
+        var survivor = Assert.Single(context.Notes);
+        Assert.Equal(kept, survivor.SourceMaterialId);
+    }
+
+    [Fact]
+    public async Task Deleting_someone_elses_note_removes_nothing()
+    {
+        // The delete goes through the same guards the reads do: the query filter hides the row
+        // from UserB, so there is nothing to remove and nothing to report.
+        var material = SeedMaterial(UserA);
+        await CreateService(UserA).AcceptAsync(material, "Cudza", "cudza treść", Draft, PromptVersion, Model);
+
+        var noteId = (await CreateService(UserA).GetByMaterialAsync(material))!.Id;
+
+        Assert.False(await CreateService(UserB).DeleteAsync(noteId));
+
+        using var context = CreateContext(UserA);
+        Assert.Single(context.Notes);
+    }
+
+    [Fact]
+    public async Task A_material_can_take_a_new_note_after_its_note_is_deleted()
+    {
+        // The point of the delete freeing the unique index on source_material_id: without a real
+        // removal the second accept would collide with a ghost row rather than create one.
+        var material = SeedMaterial(UserA);
+        var service = CreateService(UserA);
+
+        await service.AcceptAsync(material, "Pierwsza", "pierwsza treść", Draft, PromptVersion, Model);
+
+        var noteId = (await service.GetByMaterialAsync(material))!.Id;
+
+        Assert.True(await service.DeleteAsync(noteId));
+
+        var result = await service.AcceptAsync(material, "Druga", "druga treść", Draft, PromptVersion, Model);
+
+        Assert.True(result.Succeeded);
+
+        using var context = CreateContext(UserA);
+        var note = Assert.Single(context.Notes);
+        Assert.Equal(material, note.SourceMaterialId);
+        Assert.Equal("Druga", note.Title);
+    }
+
+    [Fact]
+    public async Task Deleting_a_note_leaves_the_acceptance_ledger_intact()
+    {
+        // The reason NoteEvent carries no foreign key to notes or materials: the 75% criterion is
+        // counted from rows that must outlive whatever happens to the note. Deleting a note does
+        // not un-accept the draft it was, so both events stay. Nothing in DeleteAsync touches this
+        // table today — the test exists so that a future "tidy up orphan events" cannot quietly
+        // delete the measurement along with the note.
+        var material = SeedMaterial(UserA);
+        var service = CreateService(UserA);
+
+        await service.RecordGenerationAsync(material, Draft, PromptVersion, Model);
+        await service.AcceptAsync(material, "Notatka", Edited, Draft, PromptVersion, Model);
+
+        var noteId = (await service.GetByMaterialAsync(material))!.Id;
+
+        Assert.True(await service.DeleteAsync(noteId));
+
+        using var context = CreateContext(UserA);
+
+        Assert.Empty(context.Notes);
+
+        var kinds = context.NoteEvents
+            .Where(e => e.SourceMaterialId == material)
+            .Select(e => e.Kind)
+            .ToList();
+
+        Assert.Equal(2, kinds.Count);
+        Assert.Contains(NoteEventKind.Generated, kinds);
+        Assert.Contains(NoteEventKind.Saved, kinds);
+    }
+
+    [Fact]
+    public async Task Deleting_a_note_that_vanished_mid_flight_reports_it_gone_rather_than_throwing()
+    {
+        // Two tabs on one note. The owner concurrency token puts owner_id into the DELETE's WHERE
+        // clause, so the loser matches zero rows — which EF raises as a concurrency conflict and
+        // AppDbContext used to reclassify as "owned by another user". The user was then told to
+        // retry a delete that could never succeed. The delete is idempotent instead.
+        var material = SeedMaterial(UserA);
+        var service = CreateService(UserA);
+
+        await service.AcceptAsync(material, "Notatka", Edited, Draft, PromptVersion, Model);
+
+        var noteId = (await service.GetByMaterialAsync(material))!.Id;
+
+        // The note the losing tab is about to delete, loaded before the winner removes it.
+        using var losingTab = CreateContext(UserA);
+        var stale = await losingTab.Notes.FirstAsync(n => n.Id == noteId);
+
+        Assert.True(await service.DeleteAsync(noteId));
+
+        losingTab.Notes.Remove(stale);
+
+        var exception = await Record.ExceptionAsync(() => losingTab.SaveChangesAsync());
+
+        // The context reports a plain concurrency conflict now, not a false ownership accusation.
+        Assert.IsType<DbUpdateConcurrencyException>(exception);
+
+        // And the service turns that into the idempotent answer the caller acts on.
+        Assert.False(await service.DeleteAsync(noteId));
+    }
+
     // -- The acceptance ledger ------------------------------------------------------------
 
     [Fact]

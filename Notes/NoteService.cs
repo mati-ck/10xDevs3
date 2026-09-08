@@ -233,6 +233,72 @@ public sealed class NoteService(
     }
 
     /// <summary>
+    /// Deletes a saved note, and reports whether there was one to delete.
+    /// </summary>
+    /// <returns>
+    /// <c>true</c> when a row was removed; <c>false</c> when the note is already gone or belongs
+    /// to somebody else. The caller is expected to treat both the same way — telling them apart
+    /// in the UI would turn the page into a probe for which ids exist, which is the reason
+    /// <see cref="NoteSaveFailure.NotFound"/> conflates them too.
+    /// </returns>
+    /// <remarks>
+    /// Appends no <see cref="NoteEvent"/>, and removes none. Deleting a note does not un-accept
+    /// the draft it was: the ledger records that a generation happened and that a human accepted
+    /// its output, and both remain true afterwards. A <c>Deleted</c> kind would also break the
+    /// <c>count(Saved) / count(Generated)</c> definition <see cref="NoteEventKind"/> documents,
+    /// and the ledger deliberately carries no foreign key so that it outlives the rows it counts.
+    /// <para>
+    /// The material is untouched. The foreign key runs from the note into
+    /// <c>source_materials</c>, never the other way, so nothing here can reach it — and removing
+    /// the note frees the unique index on <c>source_material_id</c>, which is what lets the
+    /// material take a newly generated note afterwards.
+    /// </para>
+    /// <para>
+    /// A tracked <c>Remove</c> rather than <c>ExecuteDeleteAsync</c>, deliberately.
+    /// <c>ExecuteDelete</c> runs as one statement that never enters the change tracker, so it
+    /// skips <c>AppDbContext.StampOwners</c> — the write-side half of the isolation contract.
+    /// Trading one of the two owner guards for one round trip is a bad deal in the one method
+    /// whose mistakes destroy user data.
+    /// </para>
+    /// </remarks>
+    public async Task<bool> DeleteAsync(Guid noteId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbContextFactory.CreateAsync(cancellationToken);
+
+        // No owner filter written here, as everywhere else in this class: the global query filter
+        // is what makes another user's id find nothing, so the delete below can only ever target
+        // a row the caller owns.
+        var note = await db.Notes.FirstOrDefaultAsync(n => n.Id == noteId, cancellationToken);
+
+        if (note is null)
+        {
+            return false;
+        }
+
+        db.Notes.Remove(note);
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            // The row went between the read above and this write — another tab deleting the same
+            // note is the whole of it. Reported rather than thrown, because "it is not there any
+            // more" is the outcome the caller asked for: surfacing it as a failure would leave the
+            // user retrying a delete that can never succeed, for a note that is already gone.
+            logger.LogInformation(
+                exception,
+                "Note {NoteId} was already gone when the delete reached the database.",
+                noteId);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Records that a generation finished and produced a draft — the denominator of the
     /// acceptance rate.
     /// </summary>

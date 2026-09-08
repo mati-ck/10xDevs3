@@ -9,6 +9,7 @@
 @using _10xnotes.Time
 @inject UserScopedDbContextFactory DbContextFactory
 @inject NoteService NoteService
+@inject NavigationManager Navigation
 @inject TimeProvider TimeProvider
 @inject ILogger<Detail> Logger
 
@@ -79,8 +80,84 @@ else
                         IsBusy="@isSaving"
                         ErrorMessage="@saveErrorMessage"
                         OnSave="SaveAsync" />
+
+            @* Below the editor and behind a rule, deliberately not beside "Zapisz zmiany": this
+               is the only irreversible action on the page, so it should not sit where a mis-aimed
+               click at the save button can land. *@
+            <hr class="my-4" />
+
+            <button type="button" class="btn btn-outline-danger"
+                    disabled="@(isSaving || isDeleting)" @onclick="OpenDeleteDialog">
+                Usuń notatkę
+            </button>
         </div>
     </div>
+
+    @if (isConfirmingDelete)
+    {
+        @* A modal dialog, and still not window.confirm — that one blocks the circuit's event
+           loop, cannot be styled and cannot be written in Polish, which is why the material page
+           rejected it too. Bootstrap ships the modal CSS but App.razor loads none of its JS, so
+           the open/closed state is Blazor's rather than data-bs-toggle's, and the backdrop is
+           rendered by hand. Placed outside the two-column row so it overlays the whole page. *@
+        <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true"
+             aria-labelledby="delete-note-dialog-title"
+             @onkeydown="OnDeleteDialogKeyDown">
+
+            @* Focus sentinels rather than keystroke bookkeeping: shift-tabbing off the top lands
+               on this span, whose focus handler sends focus to the last control, and the twin
+               below closes the loop the other way. Tracking Tab by hand would need
+               document.activeElement, which means custom JS this project's components do not
+               have; a focus handler needs neither. Without the trap, Tab walks straight out of
+               the dialog into the page behind — which is still there and still interactive —
+               and aria-modal="true" above would be promising a modality nothing enforced. *@
+            <span tabindex="0" class="visually-hidden" aria-hidden="true" @onfocus="FocusConfirmAsync"></span>
+
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title h5" id="delete-note-dialog-title">Usunąć notatkę?</h2>
+                    </div>
+
+                    <div class="modal-body">
+                        @* The title is quoted back so the dialog names what is about to go, rather
+                           than asking about "the note" while the page behind it is dimmed. Plain
+                           interpolation, never MarkupString: the title comes from the user. *@
+                        <p>
+                            Usunięcie notatki „@note.Title” jest nieodwracalne.
+                            Materiał źródłowy pozostanie nietknięty.
+                        </p>
+
+                        @if (deleteErrorMessage is not null)
+                        {
+                            @* Inside the dialog, because the dialog stays open when the delete
+                               fails — an error behind the backdrop would be unreadable. *@
+                            <div class="alert alert-danger mb-0" role="alert">@deleteErrorMessage</div>
+                        }
+                    </div>
+
+                    <div class="modal-footer">
+                        @* Cancel first, and the one that takes focus: the safe choice should be
+                           where a reflexive Enter or click lands. *@
+                        <button type="button" class="btn btn-outline-secondary"
+                                @ref="cancelButton"
+                                disabled="@isDeleting" @onclick="() => isConfirmingDelete = false">
+                            Anuluj
+                        </button>
+                        <button type="button" class="btn btn-danger"
+                                @ref="confirmButton"
+                                disabled="@isDeleting" @onclick="DeleteAsync">
+                            @(isDeleting ? "Usuwam…" : "Usuń notatkę")
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <span tabindex="0" class="visually-hidden" aria-hidden="true" @onfocus="FocusCancelAsync"></span>
+        </div>
+
+        <div class="modal-backdrop show"></div>
+    }
 }
 
 @code {
@@ -98,6 +175,25 @@ else
     private bool isSaving;
     private string? saveErrorMessage;
     private string? savedMessage;
+
+    /// <summary>
+    /// Whether the delete dialog is showing.
+    /// </summary>
+    /// <remarks>
+    /// A plain bool rather than the <c>Confirmation</c> enum the material page uses: that page has
+    /// two mutually exclusive confirmations and has to say which one is pending, this one has a
+    /// single question. Promote it to an enum if a second is ever added here.
+    /// </remarks>
+    private bool isConfirmingDelete;
+
+    private bool isDeleting;
+    private string? deleteErrorMessage;
+
+    private ElementReference cancelButton;
+    private ElementReference confirmButton;
+
+    /// <summary>Set when the dialog opens, so the next render moves focus into it exactly once.</summary>
+    private bool shouldFocusDeleteDialog;
 
     protected override async Task OnInitializedAsync()
     {
@@ -163,6 +259,111 @@ else
         finally
         {
             isSaving = false;
+        }
+    }
+
+    private void OpenDeleteDialog()
+    {
+        isConfirmingDelete = true;
+        deleteErrorMessage = null;
+
+        // Focus cannot move to an element that does not exist yet; OnAfterRenderAsync does it
+        // once the dialog is actually in the DOM.
+        shouldFocusDeleteDialog = true;
+    }
+
+    /// <remarks>
+    /// Without this the dialog is a picture of a dialog: focus stays on the page behind the
+    /// backdrop, so Escape never reaches the handler below and a keyboard user tabs through
+    /// controls they cannot see. <c>FocusAsync</c> is a first-class Blazor API rather than custom
+    /// interop, which matters in a project whose components hold no JS of their own.
+    /// <para>
+    /// Focus lands on <c>Anuluj</c> rather than on the dialog container, which is also what makes
+    /// the sentinels wrap correctly: from the first control, Tab reaches the confirm button and
+    /// then the closing sentinel, and Shift+Tab reaches the opening one. Keydown still bubbles
+    /// from the button to the container, so Escape keeps working.
+    /// </para>
+    /// </remarks>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!shouldFocusDeleteDialog)
+        {
+            return;
+        }
+
+        // Cleared before the await, not after: this method runs again after the delete's own
+        // renders, and a flag still set would fight the dialog for focus.
+        shouldFocusDeleteDialog = false;
+
+        await cancelButton.FocusAsync();
+    }
+
+    /// <summary>Sentinel handlers that wrap focus back into the dialog. See the sentinels' comment.</summary>
+    private Task FocusCancelAsync() => cancelButton.FocusAsync().AsTask();
+
+    private Task FocusConfirmAsync() => confirmButton.FocusAsync().AsTask();
+
+    /// <summary>Escape cancels, which is what a dialog is expected to do.</summary>
+    /// <remarks>
+    /// Ignored while the delete is in flight: the request has already left, so closing the dialog
+    /// would only hide what is happening.
+    /// </remarks>
+    private void OnDeleteDialogKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape" && !isDeleting)
+        {
+            isConfirmingDelete = false;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (note is null || isDeleting)
+        {
+            return;
+        }
+
+        // Captured before the delete, not after: the redirect target is derived from it, and the
+        // note means nothing once its row is gone.
+        var materialId = note.SourceMaterialId;
+
+        // Set before the first await, for the same reason SaveAsync does it: Blazor renders the
+        // moment this handler yields, so leaving it until later hands the browser a render with
+        // the button still live.
+        isDeleting = true;
+        deleteErrorMessage = null;
+
+        try
+        {
+            var deleted = await NoteService.DeleteAsync(Id);
+
+            if (!deleted)
+            {
+                // Already gone, or never theirs. The user's intent — this note should not exist —
+                // is satisfied either way, and telling the two cases apart on screen would turn
+                // the page into a probe for which ids are real, which is exactly what
+                // NoteSaveFailure.NotFound conflates them to avoid. The log line is what makes a
+                // genuine bug that silently deletes nothing findable.
+                Logger.LogInformation("Deleting note {NoteId} removed nothing; it was already gone.", Id);
+            }
+
+            // The material rather than the notes list: the likely reason to delete a note is to
+            // generate a better one, and this is the page that does that. The flag is what makes
+            // the deletion legible on arrival — without it the page is indistinguishable from a
+            // material that never had a note.
+            Navigation.NavigateTo($"/materials/{materialId}?noteDeleted=1");
+        }
+        catch (Exception exception)
+        {
+            // NoteService returns rather than throws, so reaching here means something outside its
+            // contract broke. Unhandled it would tear the circuit down. The confirmation panel is
+            // left open on purpose, with the error above it: the user can retry or cancel.
+            Logger.LogError(exception, "Deleting note {NoteId} failed.", Id);
+            deleteErrorMessage = "Nie udało się usunąć notatki. Spróbuj ponownie za chwilę.";
+        }
+        finally
+        {
+            isDeleting = false;
         }
     }
 

@@ -206,19 +206,19 @@ No schema change, so nothing to migrate and nothing to roll back. A Coolify roll
 
 #### Automated
 
-- [x] 1.1 Solution builds: `dotnet build`
-- [x] 1.2 Test suite passes: `dotnet test`
-- [x] 1.3 The three new `NoteServiceTests` facts pass
-- [x] 1.4 `DataAccessBoundaryTests` still passes — the new method took the sanctioned seam
+- [x] 1.1 Solution builds: `dotnet build` — 792984f
+- [x] 1.2 Test suite passes: `dotnet test` — 792984f
+- [x] 1.3 The three new `NoteServiceTests` facts pass — 792984f
+- [x] 1.4 `DataAccessBoundaryTests` still passes — the new method took the sanctioned seam — 792984f
 
 ### Phase 2: Delete on the note page, acknowledged on the material page
 
 #### Automated
 
-- [ ] 2.1 Solution builds: `dotnet build`
-- [ ] 2.2 Test suite passes: `dotnet test`
-- [ ] 2.3 `DataAccessBoundaryTests` still passes — neither page injects a `DbContext` or `IDbContextFactory<>`
-- [ ] 2.4 `grep -r "data-bs-dismiss" Components/` returns nothing
+- [x] 2.1 Solution builds: `dotnet build`
+- [x] 2.2 Test suite passes: `dotnet test`
+- [x] 2.3 `DataAccessBoundaryTests` still passes — neither page injects a `DbContext` or `IDbContextFactory<>`
+- [x] 2.4 `grep -r "data-bs-dismiss" Components/` returns nothing
 
 #### Manual
 

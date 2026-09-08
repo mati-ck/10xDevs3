@@ -9,6 +9,7 @@
 @using _10xnotes.Time
 @inject UserScopedDbContextFactory DbContextFactory
 @inject NoteService NoteService
+@inject NavigationManager Navigation
 @inject TimeProvider TimeProvider
 @inject ILogger<Detail> Logger
 
@@ -79,6 +80,41 @@ else
                         IsBusy="@isSaving"
                         ErrorMessage="@saveErrorMessage"
                         OnSave="SaveAsync" />
+
+            @* Below the editor and behind a rule, deliberately not beside "Zapisz zmiany": this
+               is the only irreversible action on the page, so it should not sit where a mis-aimed
+               click at the save button can land. *@
+            <hr class="my-4" />
+
+            @if (deleteErrorMessage is not null)
+            {
+                <div class="alert alert-danger" role="alert">@deleteErrorMessage</div>
+            }
+
+            @if (isConfirmingDelete)
+            {
+                @* In the page rather than window.confirm, for the reason the material page
+                   documents: a browser dialog blocks the circuit's event loop, cannot be styled,
+                   and cannot be written in Polish. *@
+                <div class="alert alert-warning" role="alert">
+                    <p>Usunięcie notatki jest nieodwracalne. Materiał źródłowy pozostanie nietknięty. Kontynuować?</p>
+                    <button type="button" class="btn btn-danger btn-sm me-2"
+                            disabled="@isDeleting" @onclick="DeleteAsync">
+                        @(isDeleting ? "Usuwam…" : "Usuń notatkę")
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                            disabled="@isDeleting" @onclick="() => isConfirmingDelete = false">
+                        Anuluj
+                    </button>
+                </div>
+            }
+            else
+            {
+                <button type="button" class="btn btn-outline-danger"
+                        disabled="@(isSaving || isDeleting)" @onclick="() => isConfirmingDelete = true">
+                    Usuń notatkę
+                </button>
+            }
         </div>
     </div>
 }
@@ -98,6 +134,19 @@ else
     private bool isSaving;
     private string? saveErrorMessage;
     private string? savedMessage;
+
+    /// <summary>
+    /// Whether the delete confirmation is showing.
+    /// </summary>
+    /// <remarks>
+    /// A plain bool rather than the <c>Confirmation</c> enum the material page uses: that page has
+    /// two mutually exclusive confirmations and has to say which one is pending, this one has a
+    /// single question. Promote it to an enum if a second is ever added here.
+    /// </remarks>
+    private bool isConfirmingDelete;
+
+    private bool isDeleting;
+    private string? deleteErrorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -163,6 +212,57 @@ else
         finally
         {
             isSaving = false;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (note is null || isDeleting)
+        {
+            return;
+        }
+
+        // Captured before the delete, not after: the redirect target is derived from it, and the
+        // note means nothing once its row is gone.
+        var materialId = note.SourceMaterialId;
+
+        // Set before the first await, for the same reason SaveAsync does it: Blazor renders the
+        // moment this handler yields, so leaving it until later hands the browser a render with
+        // the button still live.
+        isDeleting = true;
+        deleteErrorMessage = null;
+
+        try
+        {
+            var deleted = await NoteService.DeleteAsync(Id);
+
+            if (!deleted)
+            {
+                // Already gone, or never theirs. The user's intent — this note should not exist —
+                // is satisfied either way, and telling the two cases apart on screen would turn
+                // the page into a probe for which ids are real, which is exactly what
+                // NoteSaveFailure.NotFound conflates them to avoid. The log line is what makes a
+                // genuine bug that silently deletes nothing findable.
+                Logger.LogInformation("Deleting note {NoteId} removed nothing; it was already gone.", Id);
+            }
+
+            // The material rather than the notes list: the likely reason to delete a note is to
+            // generate a better one, and this is the page that does that. The flag is what makes
+            // the deletion legible on arrival — without it the page is indistinguishable from a
+            // material that never had a note.
+            Navigation.NavigateTo($"/materials/{materialId}?noteDeleted=1");
+        }
+        catch (Exception exception)
+        {
+            // NoteService returns rather than throws, so reaching here means something outside its
+            // contract broke. Unhandled it would tear the circuit down. The confirmation panel is
+            // left open on purpose, with the error above it: the user can retry or cancel.
+            Logger.LogError(exception, "Deleting note {NoteId} failed.", Id);
+            deleteErrorMessage = "Nie udało się usunąć notatki. Spróbuj ponownie za chwilę.";
+        }
+        finally
+        {
+            isDeleting = false;
         }
     }
 

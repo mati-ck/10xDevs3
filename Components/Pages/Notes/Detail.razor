@@ -86,37 +86,64 @@ else
                click at the save button can land. *@
             <hr class="my-4" />
 
-            @if (deleteErrorMessage is not null)
-            {
-                <div class="alert alert-danger" role="alert">@deleteErrorMessage</div>
-            }
-
-            @if (isConfirmingDelete)
-            {
-                @* In the page rather than window.confirm, for the reason the material page
-                   documents: a browser dialog blocks the circuit's event loop, cannot be styled,
-                   and cannot be written in Polish. *@
-                <div class="alert alert-warning" role="alert">
-                    <p>Usunięcie notatki jest nieodwracalne. Materiał źródłowy pozostanie nietknięty. Kontynuować?</p>
-                    <button type="button" class="btn btn-danger btn-sm me-2"
-                            disabled="@isDeleting" @onclick="DeleteAsync">
-                        @(isDeleting ? "Usuwam…" : "Usuń notatkę")
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm"
-                            disabled="@isDeleting" @onclick="() => isConfirmingDelete = false">
-                        Anuluj
-                    </button>
-                </div>
-            }
-            else
-            {
-                <button type="button" class="btn btn-outline-danger"
-                        disabled="@(isSaving || isDeleting)" @onclick="() => isConfirmingDelete = true">
-                    Usuń notatkę
-                </button>
-            }
+            <button type="button" class="btn btn-outline-danger"
+                    disabled="@(isSaving || isDeleting)" @onclick="OpenDeleteDialog">
+                Usuń notatkę
+            </button>
         </div>
     </div>
+
+    @if (isConfirmingDelete)
+    {
+        @* A modal dialog, and still not window.confirm — that one blocks the circuit's event
+           loop, cannot be styled and cannot be written in Polish, which is why the material page
+           rejected it too. Bootstrap ships the modal CSS but App.razor loads none of its JS, so
+           the open/closed state is Blazor's rather than data-bs-toggle's, and the backdrop is
+           rendered by hand. Placed outside the two-column row so it overlays the whole page. *@
+        <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true"
+             aria-labelledby="delete-note-dialog-title"
+             @ref="deleteDialog" @onkeydown="OnDeleteDialogKeyDown">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title h5" id="delete-note-dialog-title">Usunąć notatkę?</h2>
+                    </div>
+
+                    <div class="modal-body">
+                        @* The title is quoted back so the dialog names what is about to go, rather
+                           than asking about "the note" while the page behind it is dimmed. Plain
+                           interpolation, never MarkupString: the title comes from the user. *@
+                        <p>
+                            Usunięcie notatki „@note.Title” jest nieodwracalne.
+                            Materiał źródłowy pozostanie nietknięty.
+                        </p>
+
+                        @if (deleteErrorMessage is not null)
+                        {
+                            @* Inside the dialog, because the dialog stays open when the delete
+                               fails — an error behind the backdrop would be unreadable. *@
+                            <div class="alert alert-danger mb-0" role="alert">@deleteErrorMessage</div>
+                        }
+                    </div>
+
+                    <div class="modal-footer">
+                        @* Cancel first, and the one that takes focus: the safe choice should be
+                           where a reflexive Enter or click lands. *@
+                        <button type="button" class="btn btn-outline-secondary"
+                                disabled="@isDeleting" @onclick="() => isConfirmingDelete = false">
+                            Anuluj
+                        </button>
+                        <button type="button" class="btn btn-danger"
+                                disabled="@isDeleting" @onclick="DeleteAsync">
+                            @(isDeleting ? "Usuwam…" : "Usuń notatkę")
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-backdrop show"></div>
+    }
 }
 
 @code {
@@ -136,7 +163,7 @@ else
     private string? savedMessage;
 
     /// <summary>
-    /// Whether the delete confirmation is showing.
+    /// Whether the delete dialog is showing.
     /// </summary>
     /// <remarks>
     /// A plain bool rather than the <c>Confirmation</c> enum the material page uses: that page has
@@ -147,6 +174,11 @@ else
 
     private bool isDeleting;
     private string? deleteErrorMessage;
+
+    private ElementReference deleteDialog;
+
+    /// <summary>Set when the dialog opens, so the next render moves focus into it exactly once.</summary>
+    private bool shouldFocusDeleteDialog;
 
     protected override async Task OnInitializedAsync()
     {
@@ -212,6 +244,49 @@ else
         finally
         {
             isSaving = false;
+        }
+    }
+
+    private void OpenDeleteDialog()
+    {
+        isConfirmingDelete = true;
+        deleteErrorMessage = null;
+
+        // Focus cannot move to an element that does not exist yet; OnAfterRenderAsync does it
+        // once the dialog is actually in the DOM.
+        shouldFocusDeleteDialog = true;
+    }
+
+    /// <remarks>
+    /// Without this the dialog is a picture of a dialog: focus stays on the page behind the
+    /// backdrop, so Escape never reaches the handler below and a keyboard user tabs through
+    /// controls they cannot see. <c>FocusAsync</c> is a first-class Blazor API rather than custom
+    /// interop, which matters in a project whose components hold no JS of their own.
+    /// </remarks>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!shouldFocusDeleteDialog)
+        {
+            return;
+        }
+
+        // Cleared before the await, not after: this method runs again after the delete's own
+        // renders, and a flag still set would fight the dialog for focus.
+        shouldFocusDeleteDialog = false;
+
+        await deleteDialog.FocusAsync();
+    }
+
+    /// <summary>Escape cancels, which is what a dialog is expected to do.</summary>
+    /// <remarks>
+    /// Ignored while the delete is in flight: the request has already left, so closing the dialog
+    /// would only hide what is happening.
+    /// </remarks>
+    private void OnDeleteDialogKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape" && !isDeleting)
+        {
+            isConfirmingDelete = false;
         }
     }
 

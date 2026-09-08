@@ -1,10 +1,10 @@
 ---
 change_id: browse-notes-and-sources
 title: Przeglądanie własnych notatek i materiałów (S-03)
-status: impl_reviewed
+status: archived
 created: 2026-08-18
 updated: 2026-09-08
-archived_at: null
+archived_at: 2026-09-08T13:54:44Z
 ---
 
 ## Notes

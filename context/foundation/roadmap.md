@@ -3,7 +3,7 @@ project: "10xNotes"
 version: 1
 status: draft
 created: 2026-07-02
-updated: 2026-08-27
+updated: 2026-09-08
 prd_version: 1
 main_goal: speed
 top_blocker: capacity
@@ -233,7 +233,7 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 
 (Empty on first generation. `/10x-archive` appends here — and flips the item's `Status` to `done` — when a change whose `Change ID` matches a roadmap item is archived. Do NOT pre-populate.)
 
-- **F-01: (foundation) baza jest połączona, EF Core i migracje działają, a rekordy da się przypisać i odpytać w zakresie jednego użytkownika.** — Shipped; issue [#6](https://github.com/mati-ck/10xDevs3/issues/6) closed. Status flipped by hand 2026-08-13 — `context/changes/persistence-baseline/` is at `impl_reviewed` and not yet archived, so `/10x-archive` has not written this entry itself. Lesson: —.
+- **F-01: (foundation) baza jest połączona, EF Core i migracje działają, a rekordy da się przypisać i odpytać w zakresie jednego użytkownika.** — Archived 2026-09-08 → `context/archive/2026-07-27-persistence-baseline/`. Issue [#6](https://github.com/mati-ck/10xDevs3/issues/6) closed 2026-07-27; status w tabeli był przerzucony ręcznie 2026-08-13, folder doarchiwizowany dopiero przy porządkach 2026-09-08. Lesson: —.
 - **F-02: (foundation) użytkownik może się zarejestrować, zalogować i wylogować; aplikacja rozpoznaje zalogowanego użytkownika i chroni trasy tak, że niezalogowany nie widzi żadnych danych. Płaski model, bez ról.** — Archived 2026-08-02 → `context/archive/2026-07-27-email-password-auth/`. Lesson: —.
 - **S-01a: użytkownik wgrywa plik `.md` i widzi go zapisanego na swoim koncie — materiał przetrwa wylogowanie i nie jest widoczny dla nikogo innego. Bez generowania.** — Archived 2026-08-17 → `context/archive/2026-08-17-markdown-import/`. Lesson: —.
 - **S-01b: jednym kliknięciem użytkownik generuje notatkę z zapisanego materiału i widzi ją obok źródła, z ciągłą, widoczną informacją zwrotną w trakcie. Notatka jest na tym etapie ulotna (nie trafia jeszcze na konto), materiał źródłowy pozostaje niezmieniony.** — Archived 2026-08-17 → `context/archive/2026-08-17-ai-note-generation/`. Lesson: —.

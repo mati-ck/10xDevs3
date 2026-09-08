@@ -364,6 +364,69 @@ public sealed class NoteServiceTests : IDisposable
         Assert.Equal("Druga", note.Title);
     }
 
+    [Fact]
+    public async Task Deleting_a_note_leaves_the_acceptance_ledger_intact()
+    {
+        // The reason NoteEvent carries no foreign key to notes or materials: the 75% criterion is
+        // counted from rows that must outlive whatever happens to the note. Deleting a note does
+        // not un-accept the draft it was, so both events stay. Nothing in DeleteAsync touches this
+        // table today — the test exists so that a future "tidy up orphan events" cannot quietly
+        // delete the measurement along with the note.
+        var material = SeedMaterial(UserA);
+        var service = CreateService(UserA);
+
+        await service.RecordGenerationAsync(material, Draft, PromptVersion, Model);
+        await service.AcceptAsync(material, "Notatka", Edited, Draft, PromptVersion, Model);
+
+        var noteId = (await service.GetByMaterialAsync(material))!.Id;
+
+        Assert.True(await service.DeleteAsync(noteId));
+
+        using var context = CreateContext(UserA);
+
+        Assert.Empty(context.Notes);
+
+        var kinds = context.NoteEvents
+            .Where(e => e.SourceMaterialId == material)
+            .Select(e => e.Kind)
+            .ToList();
+
+        Assert.Equal(2, kinds.Count);
+        Assert.Contains(NoteEventKind.Generated, kinds);
+        Assert.Contains(NoteEventKind.Saved, kinds);
+    }
+
+    [Fact]
+    public async Task Deleting_a_note_that_vanished_mid_flight_reports_it_gone_rather_than_throwing()
+    {
+        // Two tabs on one note. The owner concurrency token puts owner_id into the DELETE's WHERE
+        // clause, so the loser matches zero rows — which EF raises as a concurrency conflict and
+        // AppDbContext used to reclassify as "owned by another user". The user was then told to
+        // retry a delete that could never succeed. The delete is idempotent instead.
+        var material = SeedMaterial(UserA);
+        var service = CreateService(UserA);
+
+        await service.AcceptAsync(material, "Notatka", Edited, Draft, PromptVersion, Model);
+
+        var noteId = (await service.GetByMaterialAsync(material))!.Id;
+
+        // The note the losing tab is about to delete, loaded before the winner removes it.
+        using var losingTab = CreateContext(UserA);
+        var stale = await losingTab.Notes.FirstAsync(n => n.Id == noteId);
+
+        Assert.True(await service.DeleteAsync(noteId));
+
+        losingTab.Notes.Remove(stale);
+
+        var exception = await Record.ExceptionAsync(() => losingTab.SaveChangesAsync());
+
+        // The context reports a plain concurrency conflict now, not a false ownership accusation.
+        Assert.IsType<DbUpdateConcurrencyException>(exception);
+
+        // And the service turns that into the idempotent answer the caller acts on.
+        Assert.False(await service.DeleteAsync(noteId));
+    }
+
     // -- The acceptance ledger ------------------------------------------------------------
 
     [Fact]

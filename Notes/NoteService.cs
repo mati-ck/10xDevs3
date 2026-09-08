@@ -277,7 +277,23 @@ public sealed class NoteService(
 
         db.Notes.Remove(note);
 
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            // The row went between the read above and this write — another tab deleting the same
+            // note is the whole of it. Reported rather than thrown, because "it is not there any
+            // more" is the outcome the caller asked for: surfacing it as a failure would leave the
+            // user retrying a delete that can never succeed, for a note that is already gone.
+            logger.LogInformation(
+                exception,
+                "Note {NoteId} was already gone when the delete reached the database.",
+                noteId);
+
+            return false;
+        }
 
         return true;
     }

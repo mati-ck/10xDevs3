@@ -102,7 +102,17 @@ else
            rendered by hand. Placed outside the two-column row so it overlays the whole page. *@
         <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true"
              aria-labelledby="delete-note-dialog-title"
-             @ref="deleteDialog" @onkeydown="OnDeleteDialogKeyDown">
+             @onkeydown="OnDeleteDialogKeyDown">
+
+            @* Focus sentinels rather than keystroke bookkeeping: shift-tabbing off the top lands
+               on this span, whose focus handler sends focus to the last control, and the twin
+               below closes the loop the other way. Tracking Tab by hand would need
+               document.activeElement, which means custom JS this project's components do not
+               have; a focus handler needs neither. Without the trap, Tab walks straight out of
+               the dialog into the page behind — which is still there and still interactive —
+               and aria-modal="true" above would be promising a modality nothing enforced. *@
+            <span tabindex="0" class="visually-hidden" aria-hidden="true" @onfocus="FocusConfirmAsync"></span>
+
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -130,16 +140,20 @@ else
                         @* Cancel first, and the one that takes focus: the safe choice should be
                            where a reflexive Enter or click lands. *@
                         <button type="button" class="btn btn-outline-secondary"
+                                @ref="cancelButton"
                                 disabled="@isDeleting" @onclick="() => isConfirmingDelete = false">
                             Anuluj
                         </button>
                         <button type="button" class="btn btn-danger"
+                                @ref="confirmButton"
                                 disabled="@isDeleting" @onclick="DeleteAsync">
                             @(isDeleting ? "Usuwam…" : "Usuń notatkę")
                         </button>
                     </div>
                 </div>
             </div>
+
+            <span tabindex="0" class="visually-hidden" aria-hidden="true" @onfocus="FocusCancelAsync"></span>
         </div>
 
         <div class="modal-backdrop show"></div>
@@ -175,7 +189,8 @@ else
     private bool isDeleting;
     private string? deleteErrorMessage;
 
-    private ElementReference deleteDialog;
+    private ElementReference cancelButton;
+    private ElementReference confirmButton;
 
     /// <summary>Set when the dialog opens, so the next render moves focus into it exactly once.</summary>
     private bool shouldFocusDeleteDialog;
@@ -262,6 +277,12 @@ else
     /// backdrop, so Escape never reaches the handler below and a keyboard user tabs through
     /// controls they cannot see. <c>FocusAsync</c> is a first-class Blazor API rather than custom
     /// interop, which matters in a project whose components hold no JS of their own.
+    /// <para>
+    /// Focus lands on <c>Anuluj</c> rather than on the dialog container, which is also what makes
+    /// the sentinels wrap correctly: from the first control, Tab reaches the confirm button and
+    /// then the closing sentinel, and Shift+Tab reaches the opening one. Keydown still bubbles
+    /// from the button to the container, so Escape keeps working.
+    /// </para>
     /// </remarks>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -274,8 +295,13 @@ else
         // renders, and a flag still set would fight the dialog for focus.
         shouldFocusDeleteDialog = false;
 
-        await deleteDialog.FocusAsync();
+        await cancelButton.FocusAsync();
     }
+
+    /// <summary>Sentinel handlers that wrap focus back into the dialog. See the sentinels' comment.</summary>
+    private Task FocusCancelAsync() => cancelButton.FocusAsync().AsTask();
+
+    private Task FocusConfirmAsync() => confirmButton.FocusAsync().AsTask();
 
     /// <summary>Escape cancels, which is what a dialog is expected to do.</summary>
     /// <remarks>

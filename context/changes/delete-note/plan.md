@@ -56,6 +56,29 @@ The service follows `UpdateAsync` exactly — read the entity through the owner-
 
 ---
 
+## Addendum — where the code diverged from this plan
+
+Added after implementation. **The phase text below is left exactly as planned**; this section is
+what makes it readable as a record rather than as a description of the code. Full rationale for the
+first two entries lives in `change.md`.
+
+1. **The confirmation is a modal dialog, not the in-page `alert alert-warning` panel** that Phase 2 §1
+   specifies. Changed at the user's request during manual check 2.6. Still not `window.confirm`, and
+   still no Bootstrap JS — Blazor owns the open/closed state and the backdrop is rendered by hand.
+   Focus moves into the dialog and Escape cancels. (`e2ca914`)
+2. **`NoteDeleted` binds as `string?`, not the `bool`** Phase 2 §2 specifies. The URL is unchanged at
+   `?noteDeleted=1`, but a bool-typed `[SupplyParameterFromQuery]` *throws* on any value
+   `bool.TryParse` rejects — including `1` — which unwound to the stock English `/Error` page.
+   Presence is now the signal, so no value in that parameter can crash the page. (`8fe64da`)
+3. **`AppDbContext.IsOwnershipViolation` no longer classifies a `Deleted` entry as an ownership
+   violation.** Not a deviation but a repair the implementation review found: this slice introduced
+   the first delete of an owned entity, which gave a zero-row match an innocent explanation the
+   method did not have when it was written. Without it a concurrent delete accused the user of
+   touching somebody else's note and left them retrying forever. See
+   `reviews/impl-review.md` F1.
+
+---
+
 ## Phase 1: Delete seam in `NoteService`
 
 ### Overview

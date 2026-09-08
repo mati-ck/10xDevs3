@@ -1,9 +1,10 @@
 ---
 change_id: user-profile
 title: Zarządzanie kontem (S-07)
-status: impl_reviewed
+status: archived
 created: 2026-09-08
 updated: 2026-09-08
+archived_at: 2026-09-08T18:17:24Z
 ---
 
 ## Notes

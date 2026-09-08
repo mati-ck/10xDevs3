@@ -44,6 +44,8 @@
 | `north-star` | `e4b400` | S-01 |
 | `decision-needed` | `d93f0b` | OQ1, OQ2 |
 | `epic` | `c2e0c6` | #8 (dodana 2026-08-13 przy rozbiciu S-01) |
+| `status:planning` | `1d76db` | „Plan written, implementation in progress" — dodana po migracji, użyta na #9 i #10 (2026-08-27) |
+| `status:verifying` | `0e8a16` | „Implemented and reviewed, manual verification outstanding" — dodana 2026-09-08 dla stanu, w którym kod jest na `main` i po przeglądzie, a otwarte zostają wyłącznie ręczne kryteria akceptacji |
 
 ## Milestone
 
@@ -239,6 +241,7 @@ Issues opened after the migration run. Same conventions: English body, `MVP` mil
 | 2026-08-13 | [#9](https://github.com/mati-ck/10xDevs3/issues/9), [#12](https://github.com/mati-ck/10xDevs3/issues/12) | `Depends on #8` → `Depends on #27` (S-01c — potrzebna cała pętla). |
 | 2026-08-13 | [#10](https://github.com/mati-ck/10xDevs3/issues/10) | `Depends on #8, #7` → `Depends on #27, #7` (bez zapisanych notatek nie ma czego przeglądać). |
 | 2026-08-13 | [#11](https://github.com/mati-ck/10xDevs3/issues/11), [#13](https://github.com/mati-ck/10xDevs3/issues/13) | `Depends on #8` → `Depends on #25` (S-01a — wystarczy zapisany materiał źródłowy; cykl życia materiału nie czeka już na całą gwiazdę). |
+| 2026-09-08 | [#10](https://github.com/mati-ck/10xDevs3/issues/10) (S-03) | **Rozjazd wyłapany przy audycie.** Etykieta stała na `status:planning`, a S-03 był od 2026-08-27 zmergowany na `main` (`086854e`, `ba3ab7e`, merge `37c0dc4`), po przeglądzie implementacji z naniesionymi F1–F8 (`6018398`) i z 10 z 14 kryteriów ręcznych odhaczonymi (`c11b0cc`). Body wciąż mówiło `Status: proposed`, proponowało `/10x-plan` (plan powstał w `c29c894`) i wymieniało jako otwarte pytanie o kształt list, rozstrzygnięte w `change.md` na dwie strony (`/` i `/materials`). Etykieta → `status:verifying`, body przepisane. Issue **zostaje otwarty** — 2.6, 2.7, 2.10 i 2.12 wymagają świeżego i drugiego konta. |
 
 ### Rozbicie S-01 (2026-08-13)
 
@@ -260,6 +263,22 @@ Issues opened after the migration run. Same conventions: English body, `MVP` mil
 - **Closing a change closes its issue** — verified on #6 (F-01) and #7 (F-02).
 - **A closed issue carries no `status:*` label.** `status:*` describes work in flight; once the issue is closed the state lives in `state: CLOSED`, and a leftover `status:ready` reads as "still actionable" in `gh issue list --label status:ready`. #7 kept `status:ready` after closing and was corrected on 2026-08-02; #6 was already clean.
 - Check with `gh issue list --state closed --json number,labels` after archiving a change.
+- **Nic tego nie synchronizuje automatycznie.** Skille 10x piszą do `context/`, nie do GitHuba; etykiety i zamknięcia są ruchem ręcznym. Stąd audyt poniżej.
+
+## Audyt zgodności 2026-09-08
+
+Porównanie 14 issues (`gh issue list --state all`) z `context/changes/`, `context/archive/`, `roadmap.md` i historią `main`. Wynik: zgodne 13/14.
+
+| Znalezisko | Kierunek rozjazdu | Rozstrzygnięcie |
+| --- | --- | --- |
+| #10 (S-03) miał `status:planning` mimo zmergowanej i przejrzanej implementacji | GitHub za stary | Etykieta → `status:verifying`, body przepisane; issue zostaje otwarty do domknięcia weryfikacji ręcznej |
+| F-03 (`auth-session-hardening`) nie istniał w `roadmap.md` mimo issue #22, archiwum i dwóch zmergowanych PR-ów (#23, #24) | roadmapa za stara | Dopisany wstecz: wiersz w „At a glance", sekcja pod Foundations, wpis w `## Done`, łańcuch strumienia A |
+| `persistence-baseline` (#6, zamknięty 2026-07-27) siedział w `context/changes/` ze statusem `impl_reviewed` | `context/` za stary | Zarchiwizowany → `context/archive/2026-07-27-persistence-baseline/`, wpis w `## Done` przepisany na formę kanoniczną |
+| `Backlog Handoff` w roadmapie opisywał stan z 2026-07-02 bez ostrzeżenia | roadmapa myląca | Dopisana nota, że to migawka; żywy status wskazany na „At a glance" / `## Done` / GitHub Issues |
+| Etykiety `status:planning` i `status:verifying` nieudokumentowane | ten plik za stary | Dopisane do tabeli etykiet |
+| `bootstrap-verification/` i `deployment/` w `context/changes/` bez `change.md` i bez issue | — | Zostawione bez zmian: to artefakty sprzed roadmapy, nie zmiany — nie mają czego odzwierciedlać w Issues |
+
+Zgodne bez uwag: #6, #7, #8, #9, #11, #12, #13, #14, #15, #22, #25, #26, #27.
 
 ## Not created (out of scope of current token)
 

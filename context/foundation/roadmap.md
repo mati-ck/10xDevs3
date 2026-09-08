@@ -33,6 +33,7 @@ Sam przepływ pozostaje niepodzielny jako **cel**, ale jest dostarczany w trzech
 | ----- | -------------------------- | ---------------------------------------------------------------- | ------------- | ------------------------------- | -------- |
 | F-01  | persistence-baseline       | (foundation) trwałe dane per użytkownik (DB + EF + migracje)      | —             | NFR: trwałość, NFR: prywatność  | done     |
 | F-02  | email-password-auth        | (foundation) rejestracja/logowanie e-mail+hasło, ochrona tras     | F-01          | FR-001, FR-002, Access Control  | done     |
+| F-03  | auth-session-hardening     | (foundation) rewalidacja sesji + kontrakt właściciela przy zapisie | F-01, F-02    | Access Control, NFR: prywatność | done     |
 | S-01a | markdown-import            | zaimportować plik Markdown i mieć go zapisanym na koncie          | F-01, F-02    | FR-004                          | done     |
 | S-01b | ai-note-generation         | wygenerować notatkę AI obok materiału (jeszcze bez zapisu)        | S-01a         | US-01 (część), FR-005           | done     |
 | S-01c | note-review-save           | poprawić wygenerowaną notatkę i zapisać ją (zapis = akceptacja)   | S-01b         | US-01 (domknięcie), FR-006, FR-008 | done     |
@@ -50,7 +51,7 @@ Navigation aid — grupuje elementy dzielące łańcuch zależności. Kanoniczna
 
 | Stream | Theme                              | Chain                                   | Note                                                                          |
 | ------ | ---------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------- |
-| A      | Fundamenty i rdzeń (gwiazda)       | `F-01` → `F-02` → `S-01a` → `S-01b` → `S-01c` | Ścisła ścieżka must-have do walidacji; wszystko inne zależy od jakiegoś kawałka `S-01` (cel: speed). |
+| A      | Fundamenty i rdzeń (gwiazda)       | `F-01` → `F-02` → `F-03` → `S-01a` → `S-01b` → `S-01c` | Ścisła ścieżka must-have do walidacji; wszystko inne zależy od jakiegoś kawałka `S-01` (cel: speed). `F-03` doszedł w trakcie — patrz jego sekcja. |
 | B      | Warianty importu                   | `S-02`                                  | Dołącza do Strumienia A po `S-01c`; drugie wejście (wklejanie tekstu) do gotowej pętli. |
 | C      | Przeglądanie i cykl życia treści   | `S-03` / `S-05` (po `S-01c`) · `S-04` / `S-06` (po `S-01a`, czekają na decyzje) | Odgałęziają od różnych kawałków `S-01` i biegną równolegle; `S-04`/`S-06` blokują otwarte pytania. Cykl życia materiału źródłowego zaczepia się już o `S-01a`, więc nie czeka na całą gwiazdę. |
 
@@ -92,6 +93,21 @@ Fundamenty poniżej zakładają obecność tych warstw i ich NIE odtwarzają.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Sekwencjonowany zaraz po trwałości, bo prywatność (NFR) blokuje premierę i gwiazda wymaga „zapisu na koncie"; ryzyko to rozrost w stronę pełnego systemu ról — trzymamy płaski model z PRD.
+- **Status:** done
+
+### F-03: Domknięcie sesji i kontraktu właściciela
+
+> **Dopisany do roadmapy 2026-09-08, wstecz.** Nie pochodzi z pierwotnej generacji — powstał 2026-08-02 z read-only przeglądu planu F-02 plus pozycji przeniesionych z przeglądu F-01, został zaplanowany, zaimplementowany i zarchiwizowany poza roadmapą. Issue [#22](https://github.com/mati-ck/10xDevs3/issues/22) istniał od początku; brakowało wyłącznie wpisu tutaj.
+
+- **Outcome:** (foundation) stan sesji i kontrakt właściciela przy zapisie są domknięte, zanim S-01 zapisze pierwszą encję należącą do użytkownika: obwód SignalR rewaliduje tożsamość, rejestracja nie wystawia ciasteczka bez sesji z GoTrue, `OwnerId` jest tokenem współbieżności (więc `owner_id` wchodzi do `WHERE` przy `UPDATE`/`DELETE`), a strażnicy zapisu mają testy. Bez nowego zachowania widocznego dla użytkownika.
+- **Change ID:** auth-session-hardening
+- **PRD refs:** Access Control, NFR (prywatność)
+- **Unlocks:** S-01a — zdejmuje dwa przeniesione ryzyka blokujące czysty start gwiazdy
+- **Prerequisites:** F-01, F-02
+- **Parallel with:** —
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** Fundament wstawiony między F-02 a S-01a właśnie dlatego, że jego koszt rośnie z każdą encją zapisaną pod starym kontraktem; ryzyko to rozrost w stronę pełnego hardeningu HTTP (rate limiting na logowaniu został świadomie poza zakresem).
 - **Status:** done
 
 ## Slices
@@ -204,6 +220,8 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 
 ## Backlog Handoff
 
+> **Migawka z 2026-07-02, nieaktualizowana.** Kolumna „Ready for `/10x-plan`" opisuje stan w dniu przekazania backlogu do GitHuba i nie odzwierciedla dzisiejszego postępu — nie ma tu też F-03 ani rozbicia S-01. Żywy status trzymają: kolumna Status w „At a glance", sekcja `## Done` i GitHub Issues (mapowanie w `task-github.md`).
+
 | Roadmap ID | Change ID                  | Suggested issue title                                   | Ready for `/10x-plan` | Notes                                  |
 | ---------- | -------------------------- | ------------------------------------------------------- | --------------------- | -------------------------------------- |
 | F-01       | persistence-baseline       | Trwała warstwa danych per użytkownik (DB + EF + migracje)| yes                   | Run `/10x-plan persistence-baseline`   |
@@ -235,6 +253,7 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
 
 - **F-01: (foundation) baza jest połączona, EF Core i migracje działają, a rekordy da się przypisać i odpytać w zakresie jednego użytkownika.** — Archived 2026-09-08 → `context/archive/2026-07-27-persistence-baseline/`. Issue [#6](https://github.com/mati-ck/10xDevs3/issues/6) closed 2026-07-27; status w tabeli był przerzucony ręcznie 2026-08-13, folder doarchiwizowany dopiero przy porządkach 2026-09-08. Lesson: —.
 - **F-02: (foundation) użytkownik może się zarejestrować, zalogować i wylogować; aplikacja rozpoznaje zalogowanego użytkownika i chroni trasy tak, że niezalogowany nie widzi żadnych danych. Płaski model, bez ról.** — Archived 2026-08-02 → `context/archive/2026-07-27-email-password-auth/`. Lesson: —.
+- **F-03: (foundation) stan sesji i kontrakt właściciela przy zapisie są domknięte, zanim S-01 zapisze pierwszą encję należącą do użytkownika. Bez nowego zachowania widocznego dla użytkownika.** — Archived 2026-08-02 → `context/archive/2026-08-02-auth-session-hardening/`. Wpis dopisany 2026-09-08 wstecz: `/10x-archive` go nie napisał, bo pozycji F-03 nie było wtedy w roadmapie. Lesson: —.
 - **S-01a: użytkownik wgrywa plik `.md` i widzi go zapisanego na swoim koncie — materiał przetrwa wylogowanie i nie jest widoczny dla nikogo innego. Bez generowania.** — Archived 2026-08-17 → `context/archive/2026-08-17-markdown-import/`. Lesson: —.
 - **S-01b: jednym kliknięciem użytkownik generuje notatkę z zapisanego materiału i widzi ją obok źródła, z ciągłą, widoczną informacją zwrotną w trakcie. Notatka jest na tym etapie ulotna (nie trafia jeszcze na konto), materiał źródłowy pozostaje niezmieniony.** — Archived 2026-08-17 → `context/archive/2026-08-17-ai-note-generation/`. Lesson: —.
 - **S-01c: użytkownik poprawia wygenerowaną notatkę i zapisuje ją — zapis wiąże notatkę z kontem i liczy się jako akceptacja; porzucenie bez zapisu nie pozostawia jej na koncie; materiał źródłowy zostaje nietknięty. Ten kawałek domyka gwiazdę.** — Archived 2026-08-17 → `context/archive/2026-08-17-note-review-save/`. Lesson: „An advertised limit must be one every layer beneath it can carry" (`lessons.md`).

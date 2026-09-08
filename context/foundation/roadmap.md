@@ -4,7 +4,7 @@ version: 1
 status: draft
 created: 2026-07-02
 updated: 2026-09-08
-prd_version: 1
+prd_version: 2
 main_goal: speed
 top_blocker: capacity
 ---
@@ -42,6 +42,7 @@ Sam przepływ pozostaje niepodzielny jako **cel**, ale jest dostarczany w trzech
 | S-04  | edit-source-material       | edytować zapisany materiał źródłowy                               | S-01a         | FR-009                          | blocked  |
 | S-05  | delete-note                | usunąć własną notatkę                                             | S-01c         | FR-010                          | proposed |
 | S-06  | delete-source-material     | usunąć materiał źródłowy                                          | S-01a         | FR-011                          | blocked  |
+| S-07  | user-profile               | zarządzać kontem: nazwa wyświetlana, hasło, usunięcie konta       | F-02          | FR-012, FR-013, FR-014          | planning |
 
 > **S-01 (gwiazda przewodnia)** nie jest już pojedynczym plasterkiem — pakował cztery rzeczy naraz (model domenowy, import pliku, integrację z AI, edytor + zapis), a zależało od niego wszystko pozostałe. Rozbity 2026-08-13 na `S-01a` → `S-01b` → `S-01c`; gwiazda jest dowiedziona dopiero po `S-01c`. Wycofany change ID: `import-generation-review-save`.
 
@@ -54,6 +55,7 @@ Navigation aid — grupuje elementy dzielące łańcuch zależności. Kanoniczna
 | A      | Fundamenty i rdzeń (gwiazda)       | `F-01` → `F-02` → `F-03` → `S-01a` → `S-01b` → `S-01c` | Ścisła ścieżka must-have do walidacji; wszystko inne zależy od jakiegoś kawałka `S-01` (cel: speed). `F-03` doszedł w trakcie — patrz jego sekcja. |
 | B      | Warianty importu                   | `S-02`                                  | Dołącza do Strumienia A po `S-01c`; drugie wejście (wklejanie tekstu) do gotowej pętli. |
 | C      | Przeglądanie i cykl życia treści   | `S-03` / `S-05` (po `S-01c`) · `S-04` / `S-06` (po `S-01a`, czekają na decyzje) | Odgałęziają od różnych kawałków `S-01` i biegną równolegle; `S-04`/`S-06` blokują otwarte pytania. Cykl życia materiału źródłowego zaczepia się już o `S-01a`, więc nie czeka na całą gwiazdę. |
+| D      | Zarządzanie kontem                 | `S-07`                                  | Dołączony 2026-09-08. Odgałęzia od `F-02` i nie dotyka pętli generowania, więc biegnie równolegle do całej reszty. Osobny tor, bo żaden istniejący nie opisuje konta: A to fundamenty i gwiazda, B warianty wejścia, C cykl życia **treści** — konto to inny obiekt. Miejsce na przyszłe zmiany konta (reset hasła, zmiana e-maila). |
 
 ## Baseline
 
@@ -217,6 +219,22 @@ Gwiazda przewodnia to nadal ta jedna pętla end-to-end i to ona odpowiada na pyt
   - Co dzieje się z notatkami powiązanymi z materiałem źródłowym przy jego usunięciu (kaskadowe usunięcie vs osierocenie notatki)? — Owner: użytkownik. Block: yes. (PRD Open Question 2.)
 - **Risk:** Zachowanie kaskady jest nierozstrzygnięte; zła domyślna decyzja (kaskada vs osierocenie) mogłaby nieodwracalnie usunąć zaakceptowane notatki, więc plasterek czeka na decyzję.
 - **Status:** blocked
+
+### S-07: Zarządzanie kontem
+
+> **Dopisany do roadmapy 2026-09-08.** Nie pochodzi z pierwotnej generacji — powstał z decyzji produktowej podjętej przy planowaniu, a odpowiadające mu FR-012…FR-014 zostały dopisane do PRD (v2) w tej samej rundzie. Kolejność jest zatem odwrotna niż u pozostałych plasterków: tam PRD poprzedzał roadmapę, tu roadmapa i plan wymusiły uzupełnienie PRD.
+
+- **Outcome:** użytkownik wchodzi na `/profile` i zarządza swoim kontem: ustawia albo czyści nazwę wyświetlaną (która zastępuje e-mail w nawigacji), zmienia hasło podając dotychczasowe, oraz usuwa konto wraz ze wszystkimi swoimi danymi — potwierdzając to hasłem.
+- **Change ID:** user-profile
+- **PRD refs:** FR-012, FR-013, FR-014, Access Control
+- **Prerequisites:** F-02 (bez kont nie ma czym zarządzać), F-03 (kontrakt właściciela i kaskady, na których opiera się usunięcie konta)
+- **Parallel with:** S-02, S-03, S-04, S-05, S-06 — nie dotyka pętli generowania ani modelu treści
+- **Blockers:** —
+- **Unknowns:**
+  - ~~Czy usunięcie konta wymaga klucza `service_role`?~~ — Rozstrzygnięte 2026-09-08 w `plan.md`: **nie**. Zweryfikowano na projekcie, że rola `postgres` ma `DELETE` na `auth.users`, więc kasowanie idzie po istniejącym połączeniu, a kaskady FK robią resztę.
+  - ~~Jak zmienić hasło, skoro `AuthCookie` świadomie porzuca tokeny GoTrue?~~ — Rozstrzygnięte 2026-09-08 w `plan.md`: **ponowne uwierzytelnienie** dotychczasowym hasłem; token żyje wyłącznie wewnątrz jednej metody, więc ciasteczko pozostaje jedynym pojęciem sesji.
+- **Risk:** Jedyny plasterek z operacją nieodwracalną — usunięcie konta kasuje kaskadowo pięć tabel, w tym `note_events`, czyli wkład tego konta w metrykę 75% akceptacji. Kaskady nie da się dowieść zestawem testów (żyje w kluczach obcych do `auth.users`, a harness SQLite nie ma takiej tabeli), więc dowodem jest weryfikacja ręczna na koncie jednorazowym. Drugie ryzyko to rozrost w stronę pełnego zarządzania kontem — zmiana e-maila, reset hasła dla wylogowanego i unieważnianie sesji są świadomie poza zakresem.
+- **Status:** planning
 
 ## Backlog Handoff
 

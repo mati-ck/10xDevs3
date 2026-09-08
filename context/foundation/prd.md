@@ -1,6 +1,6 @@
 ---
 project: "10xNotes"
-version: 1
+version: 2
 status: draft
 created: 2026-05-28
 context_type: greenfield
@@ -61,6 +61,11 @@ Pojedynczy użytkownik, który gromadzi własne długie materiały (wykłady, do
   > Socrates: Rozważono kontrargument „konto = tarcie / własne hasła to ciężar". Rozstrzygnięcie: zostaje — dane muszą być wiązane z użytkownikiem.
 - FR-002: Użytkownik może się zalogować i wylogować. Priority: must-have
   > Socrates: Rozważono „wylogowanie zbędne w MVP". Rozstrzygnięcie: zostaje — podstawa dostępu do własnych danych.
+- FR-012: Użytkownik może ustawić i wyczyścić nazwę wyświetlaną swojego konta. Priority: nice-to-have
+- FR-013: Zalogowany użytkownik może zmienić swoje hasło, podając hasło dotychczasowe. Priority: must-have
+- FR-014: Użytkownik może usunąć swoje konto wraz ze wszystkimi swoimi danymi. Priority: must-have
+
+> **FR-012…FR-014 dopisane 2026-09-08**, po pierwotnej redakcji PRD (v1) i poza rundą Sokratesa, której poddane były FR-001…FR-011 — stąd brak przy nich linii `> Socrates:`. Numeracja jest ciągła względem całego dokumentu, a nie względem sekcji: FR-003…FR-011 mają stabilne identyfikatory, do których odwołuje się `roadmap.md`, więc przenumerowanie ich byłoby gorsze niż skok numeracji w tej sekcji. Źródło: decyzja produktowa przy planowaniu `user-profile` (S-07), nie pierwotne odkrycie potrzeb.
 
 ### Import materiału źródłowego
 - FR-003: Użytkownik może wkleić tekst jako materiał źródłowy. Priority: must-have

@@ -709,12 +709,12 @@ No data, schema or configuration change. Rollback = revert the phase commits; ea
 
 #### Automated
 
-- [x] 1.1 Solution builds: `dotnet build`
-- [x] 1.2 Test suite passes: `dotnet test` (incl. `DataAccessBoundaryTests` — `Icon` injects nothing)
-- [x] 1.3 `Components/App.razor` contains `lang="pl"`, `data-bs-theme="dark"` and the `fonts.googleapis.com/css2?family=Geist` link
-- [x] 1.4 `grep -rn "(MarkupString)" Components` matches only `Components/Notes/NoteEditor.razor`
-- [x] 1.5 `grep -n "<title" Components/Shared/Icon.razor` returns nothing and `Icon.razor` has no `@inject`
-- [x] 1.6 `grep -c "\-\-bs-btn-bg" wwwroot/app.css` ≥ 6 (every variant in the table is mapped)
+- [x] 1.1 Solution builds: `dotnet build` — 9ee7f32
+- [x] 1.2 Test suite passes: `dotnet test` (incl. `DataAccessBoundaryTests` — `Icon` injects nothing) — 9ee7f32
+- [x] 1.3 `Components/App.razor` contains `lang="pl"`, `data-bs-theme="dark"` and the `fonts.googleapis.com/css2?family=Geist` link — 9ee7f32
+- [x] 1.4 `grep -rn "(MarkupString)" Components` matches only `Components/Notes/NoteEditor.razor` — 9ee7f32
+- [x] 1.5 `grep -n "<title" Components/Shared/Icon.razor` returns nothing and `Icon.razor` has no `@inject` — 9ee7f32
+- [x] 1.6 `grep -c "\-\-bs-btn-bg" wwwroot/app.css` ≥ 6 (every variant in the table is mapped) — 9ee7f32
 
 #### Manual
 
@@ -728,14 +728,14 @@ No data, schema or configuration change. Rollback = revert the phase commits; ea
 
 #### Automated
 
-- [ ] 2.1 Solution builds: `dotnet build`
-- [ ] 2.2 Test suite passes: `dotnet test`
-- [ ] 2.3 Hook check: the `feature/test-plan` suite passes in the throwaway worktree — `AccountLoginTests` and `AccountRegisterTests` included
-- [ ] 2.4 `#blazor-error-ui` is in `App.razor` and no longer in `MainLayout.razor`
-- [ ] 2.5 `@layout AuthLayout` appears in exactly `Login.razor` and `Register.razor`
-- [ ] 2.6 `grep -rn "@onclick" Components/Layout Components/Pages/Account` returns nothing
-- [ ] 2.7 `navbar-toggler` immediately precedes `nav-scrollable` in `NavMenu.razor`, and `NavLinkMatch.All` appears twice
-- [ ] 2.8 ReconnectModal still carries its three element ids
+- [x] 2.1 Solution builds: `dotnet build`
+- [x] 2.2 Test suite passes: `dotnet test`
+- [x] 2.3 Hook check: the `feature/test-plan` suite passes in the throwaway worktree — `AccountLoginTests` and `AccountRegisterTests` included
+- [x] 2.4 `#blazor-error-ui` is in `App.razor` and no longer in `MainLayout.razor`
+- [x] 2.5 `@layout AuthLayout` appears in exactly `Login.razor` and `Register.razor`
+- [x] 2.6 `grep -rn "@onclick" Components/Layout Components/Pages/Account` returns nothing
+- [x] 2.7 `navbar-toggler` immediately precedes `nav-scrollable` in `NavMenu.razor`, and `NavLinkMatch.All` appears twice
+- [x] 2.8 ReconnectModal still carries its three element ids
 
 #### Manual
 
@@ -746,6 +746,8 @@ No data, schema or configuration change. Rollback = revert the phase commits; ea
 - [ ] 2.13 `/login` and `/register` match `Login.dc.html`, collapse to the brand row at ~400 px, and show dark alerts, red validation and a working sign-in
 - [ ] 2.14 The reconnect dialog appears in the dark design when the server stops and recovers on Retry
 - [ ] 2.15 The un-hidden `#blazor-error-ui` shows the dark error bar with the X icon
+
+> P2 implementation notes (non-interactive run): manual rows 2.9–2.15 are left for a browser pass. Hook check 2.3 ran before the commit instead of after it: a detached worktree at `/tmp/10xDevs3-hookcheck` (not `../10xDevs3-hookcheck`, which is outside the repo) at the P1 tip, `feature/test-plan` merged in (no conflicts), the P2 working-tree files copied over — `feature/test-plan` touches none of them — then `dotnet test`: 387 passed (9 `AccountLogin`/`AccountRegister`); worktree removed. Same result as the post-commit recipe without needing an amend. Small additions to the P2 contract: AuthLayout groups the art and copy as `div.auth-hero-body > (div.auth-art + div.auth-hero-copy)` (the artboard's own grouping: brand / body / hint with `space-between`), the bars are `span.bar` with inline widths, the draft card reuses the global `.dot`; the auth submit spacing is `.auth-panel .form-actions { margin-top: 10px; padding-top: 0 }` in `app.css` (18 + 10 = the artboard's 28 px); `.brand` and the nav links get the soft violet `:focus-visible` ring; the mobile drawer's transition is dropped under `prefers-reduced-motion`; NavMenu gains a comment above the checkbox worded without the class names so check 2.7's grep stays two lines; the kept `.nav` comment now says 248px (the sidebar width) instead of 250px; `MainLayout.razor` lost its UTF-8 BOM in the rewrite. Per the run's one-commit rule the P2 rows carry no SHA suffix; the P3 commit may back-fill it.
 
 ### Phase 3: Lists and import
 

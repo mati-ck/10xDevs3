@@ -1,0 +1,52 @@
+@inherits LayoutComponentBase
+
+@* Sign-in and registration only (Login.dc.html): a decorative hero on the left, the page's form
+   centred on the right. The hero headline is a <p>, not an h1 — FocusOnNavigate (Routes.razor)
+   focuses the first h1, which must be the page's own. *@
+<div class="auth">
+    <section class="auth-hero">
+        <a class="brand" href="/login">
+            <span class="logo"><Icon Name="IconName.Logo" StrokeWidth="2.4" /></span>
+            <span>10xnotes</span>
+        </a>
+
+        <div class="auth-hero-body">
+            <div class="auth-art" aria-hidden="true">
+                <div class="card auth-art-source">
+                    <div class="auth-art-file"><Icon Name="IconName.Layers" Size="13" /><span>wyklad-04-modmono.md</span></div>
+                    <span class="bar" style="width: 92%"></span>
+                    <span class="bar" style="width: 100%"></span>
+                    <span class="bar" style="width: 84%"></span>
+                    <span class="bar" style="width: 97%"></span>
+                    <span class="bar" style="width: 60%"></span>
+                    <span class="bar" style="width: 0%"></span>
+                    <span class="bar" style="width: 88%"></span>
+                    <span class="bar" style="width: 95%"></span>
+                    <span class="bar" style="width: 70%"></span>
+                </div>
+                <div class="card auth-art-draft">
+                    <div class="auth-art-label"><Icon Name="IconName.Sparkle" Size="14" /><span>Szkic notatki</span></div>
+                    <div class="auth-art-heading">Streszczenie</div>
+                    <span class="bar bar-thin" style="width: 96%"></span>
+                    <span class="bar bar-thin" style="width: 78%"></span>
+                    <div class="auth-art-heading auth-art-heading--next">Konspekt</div>
+                    <div class="auth-art-point"><span class="dot"></span><span class="bar bar-thin" style="width: 70%"></span></div>
+                    <div class="auth-art-point"><span class="dot"></span><span class="bar bar-thin" style="width: 56%"></span></div>
+                </div>
+            </div>
+
+            <div class="auth-hero-copy">
+                <p class="auth-hero-title">Nie pisz notatek od zera. Popraw gotowy szkic.</p>
+                <p class="auth-hero-lead">Wklej wykład, artykuł albo dokument — AI przygotuje streszczenie i konspekt, a Ty tylko je poprawiasz i zatwierdzasz.</p>
+            </div>
+        </div>
+
+        <p class="auth-hero-hint">Twoje materiały i notatki są widoczne tylko dla Ciebie.</p>
+    </section>
+
+    <main class="auth-main">
+        <div class="auth-panel">
+            @Body
+        </div>
+    </main>
+</div>

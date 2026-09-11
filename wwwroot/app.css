@@ -1085,8 +1085,105 @@ input[type=file].form-control {
 }
 
 
-/* --- Error UI (P2) ----------------------------------------------------------------------------
-   #blazor-error-ui moves here from MainLayout.razor.css in Phase 2. */
+/* Brand row (sidebar and auth hero). Global because NavMenu and AuthLayout both render it and
+   scoped CSS cannot be shared between components. */
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 2px 8px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--tx);
+}
+
+    .brand:hover {
+        color: var(--tx);
+    }
+
+    .brand:focus-visible {
+        outline: 0;
+        border-radius: 8px;
+        box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+.logo {
+    width: 28px;
+    height: 28px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--on-accent);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 6px 18px -6px var(--accent);
+}
+
+/* Login / Register heading block: the h1 and the cross-link under it (AuthLayout). Here rather
+   than in AuthLayout's scoped sheet because the pages render these elements, not the layout. */
+.auth-head {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 28px;
+}
+
+    .auth-head .sub {
+        margin: 0;
+    }
+
+/* 18px field gap + 10px = the artboard's 28px between the fields and the submit button. */
+.auth-panel .form-actions {
+    margin-top: 10px;
+    padding-top: 0;
+}
+
+
+/* --- Error UI ---------------------------------------------------------------------------------
+   Rendered by App.razor so both layouts have it; blazor.web.js shows it and wires .reload and
+   .dismiss by class inside the id. */
+
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1060;
+    box-sizing: border-box;
+    padding: 12px 48px 12px 20px;
+    background: color-mix(in oklch, var(--bad) 8%, var(--panel-2));
+    border-top: 1px solid color-mix(in oklch, var(--bad) 26%, transparent);
+    color: var(--tx);
+    font-size: 13.5px;
+    box-shadow: 0 -12px 32px -16px rgba(0, 0, 0, .8);
+}
+
+    #blazor-error-ui .reload {
+        margin-left: 12px;
+        font-weight: 500;
+        color: var(--accent);
+    }
+
+        #blazor-error-ui .reload:hover {
+            text-decoration: underline;
+        }
+
+    #blazor-error-ui .dismiss {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: grid;
+        place-items: center;
+        color: var(--tx-3);
+        cursor: pointer;
+    }
+
+        #blazor-error-ui .dismiss:hover {
+            color: var(--tx);
+        }
 
 
 /* --- Responsive ------------------------------------------------------------------------------

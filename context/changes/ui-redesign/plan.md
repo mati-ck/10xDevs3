@@ -709,18 +709,20 @@ No data, schema or configuration change. Rollback = revert the phase commits; ea
 
 #### Automated
 
-- [ ] 1.1 Solution builds: `dotnet build`
-- [ ] 1.2 Test suite passes: `dotnet test` (incl. `DataAccessBoundaryTests` — `Icon` injects nothing)
-- [ ] 1.3 `Components/App.razor` contains `lang="pl"`, `data-bs-theme="dark"` and the `fonts.googleapis.com/css2?family=Geist` link
-- [ ] 1.4 `grep -rn "(MarkupString)" Components` matches only `Components/Notes/NoteEditor.razor`
-- [ ] 1.5 `grep -n "<title" Components/Shared/Icon.razor` returns nothing and `Icon.razor` has no `@inject`
-- [ ] 1.6 `grep -c "\-\-bs-btn-bg" wwwroot/app.css` ≥ 6 (every variant in the table is mapped)
+- [x] 1.1 Solution builds: `dotnet build`
+- [x] 1.2 Test suite passes: `dotnet test` (incl. `DataAccessBoundaryTests` — `Icon` injects nothing)
+- [x] 1.3 `Components/App.razor` contains `lang="pl"`, `data-bs-theme="dark"` and the `fonts.googleapis.com/css2?family=Geist` link
+- [x] 1.4 `grep -rn "(MarkupString)" Components` matches only `Components/Notes/NoteEditor.razor`
+- [x] 1.5 `grep -n "<title" Components/Shared/Icon.razor` returns nothing and `Icon.razor` has no `@inject`
+- [x] 1.6 `grep -c "\-\-bs-btn-bg" wwwroot/app.css` ≥ 6 (every variant in the table is mapped)
 
 #### Manual
 
 - [ ] 1.7 Every route renders on the dark background in Geist, with no light-theme remnant on buttons, inputs, alerts, list groups, the btn-group toggles or the delete modal
 - [ ] 1.8 Focus rings on buttons and inputs are the violet soft ring; disabled buttons and inputs are visibly dimmed
 - [ ] 1.9 A failed login shows the dark red alert; an invalid field shows the red ring and red message
+
+> P1 implementation notes (non-interactive run): manual rows 1.7–1.9 are left for a logged-in browser pass. Small additions to the P1 contract, all inside `wwwroot/app.css`: the alert child rule is `.alert > :not(svg):not(.btn-close):not(.btn)` so the legacy direct-child buttons of the Materials/Detail warning alert keep their width until P4; `pre code` reset (Markdig fenced code in the preview must not get the inline-chip look); `--bs-modal-header-padding: 24px 24px 0` and `.modal-footer { gap }` with child margins zeroed; list-group action hover vars; `.seg-item` disabled/focus states; `prefers-reduced-motion` stops `.stream-bar`/`.caret`; the 640 px `.page-head` rule uses a 999:1 grow ratio so actions stretch only once wrapped; file-input selector button sized to the 40 px field. Icon's comment avoids the literal `<title` so check 1.5 stays empty. Per the run's one-commit rule the P1 rows carry no SHA suffix; the P2 commit may back-fill it.
 
 ### Phase 2: App shell and auth layout
 

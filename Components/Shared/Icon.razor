@@ -1,0 +1,121 @@
+@* Inline SVG icons on a 24 grid, stroked in currentColor so they take the colour of the text around
+   them. Decorative by contract: aria-hidden, no title element, no text node — the label always sits in
+   the markup next to the icon, so a test reading TextContent never sees one. Every path is literal
+   Razor markup below, never MarkupString: NoteEditor's preview stays the project's only raw-HTML
+   seam. StrokeWidth is a string on purpose — formatting a double would render "1,7" on a pl-PL
+   machine, which SVG ignores. *@
+<svg width="@Size" height="@Size" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+     stroke-width="@StrokeWidth" stroke-linecap="round" stroke-linejoin="round"
+     aria-hidden="true" focusable="false" class="@Class">
+    @switch (Name)
+    {
+        case IconName.Logo:
+            <path d="M6 7h12" />
+            <path d="M6 12h12" />
+            <path d="M6 17h7" />
+            break;
+        case IconName.FileText:
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+            <path d="M14 3v5h5" />
+            <path d="M9 13h6M9 17h4" />
+            break;
+        case IconName.File:
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+            <path d="M14 3v5h5" />
+            break;
+        case IconName.Layers:
+            <path d="M12 3 3 8l9 5 9-5-9-5z" />
+            <path d="m3 13 9 5 9-5" />
+            break;
+        case IconName.Plus:
+            <path d="M12 5v14M5 12h14" />
+            break;
+        case IconName.User:
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21a8 8 0 0 1 16 0" />
+            break;
+        case IconName.Logout:
+            <path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3" />
+            <path d="m16 17 5-5-5-5" />
+            <path d="M21 12H9" />
+            break;
+        case IconName.Login:
+            <path d="M15 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3" />
+            <path d="m10 17 5-5-5-5" />
+            <path d="M15 12H3" />
+            break;
+        case IconName.UserPlus:
+            <circle cx="10" cy="8" r="4" />
+            <path d="M3 21a7 7 0 0 1 14 0" />
+            <path d="M19 8v6M16 11h6" />
+            break;
+        case IconName.Clock:
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 2" />
+            break;
+        case IconName.ArrowRight:
+            <path d="M5 12h14M13 6l6 6-6 6" />
+            break;
+        case IconName.ArrowUpRight:
+            <path d="M7 17 17 7M8 7h9v9" />
+            break;
+        case IconName.ChevronRight:
+            <path d="m9 6 6 6-6 6" />
+            break;
+        case IconName.Clipboard:
+            <rect x="8" y="3" width="8" height="4" rx="1" />
+            <path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2" />
+            break;
+        case IconName.Upload:
+            <path d="M12 15V4M7 9l5-5 5 5" />
+            <path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+            break;
+        case IconName.Sparkle:
+            <path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9-1.9 5.1-1.9-5.1L5 10.5l5.1-1.9z" />
+            <path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" />
+            break;
+        case IconName.Check:
+            <path d="m5 12.5 4.5 4.5L19 7.5" />
+            break;
+        case IconName.Pencil:
+            <path d="M4 20h4L19 9l-4-4L4 16z" />
+            <path d="m13.5 6.5 4 4" />
+            break;
+        case IconName.Eye:
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+            <circle cx="12" cy="12" r="3" />
+            break;
+        case IconName.Trash:
+            <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+            break;
+        case IconName.Mail:
+            <rect x="3" y="5" width="18" height="14" rx="2" />
+            <path d="m3 7 9 6 9-6" />
+            break;
+        case IconName.Lock:
+            <rect x="5" y="11" width="14" height="10" rx="2" />
+            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+            break;
+        case IconName.Alert:
+            <path d="M12 4 2.5 20h19z" />
+            <path d="M12 10v4M12 17.3v.2" />
+            break;
+        case IconName.X:
+            <path d="M6 6l12 12M18 6 6 18" />
+            break;
+    }
+</svg>
+
+@code {
+    /// <summary>Which icon to draw.</summary>
+    [Parameter, EditorRequired] public IconName Name { get; set; }
+
+    /// <summary>Width and height in CSS pixels; the artboards use 13–26.</summary>
+    [Parameter] public int Size { get; set; } = 16;
+
+    /// <summary>Stroke width in SVG user units, culture-invariant ("1.7", "2", "2.4").</summary>
+    [Parameter] public string StrokeWidth { get; set; } = "1.7";
+
+    /// <summary>Optional class on the &lt;svg&gt;, for sizing or colour hooks in CSS.</summary>
+    [Parameter] public string? Class { get; set; }
+}

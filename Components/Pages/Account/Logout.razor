@@ -8,14 +8,23 @@
 
 <PageTitle>Wylogowanie</PageTitle>
 
-<h1>Wyloguj się</h1>
+<div class="page-head">
+    <div>
+        <h1>Wyloguj się</h1>
+    </div>
+</div>
 
-<p>Czy na pewno chcesz się wylogować?</p>
+<div class="card narrow-card">
+    <p>Czy na pewno chcesz się wylogować?</p>
 
-<form method="post" @formname="logout" @onsubmit="SignOutAsync">
-    <AntiforgeryToken />
-    <button type="submit" class="btn btn-primary">Wyloguj się</button>
-</form>
+    <form method="post" @formname="logout" @onsubmit="SignOutAsync">
+        <AntiforgeryToken />
+        <button type="submit" class="btn btn-primary">
+            <Icon Name="IconName.Logout" />
+            Wyloguj się
+        </button>
+    </form>
+</div>
 
 @code {
     [CascadingParameter]

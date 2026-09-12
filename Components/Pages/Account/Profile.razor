@@ -21,107 +21,150 @@
 
 <PageTitle>Moje konto</PageTitle>
 
-<h1>Moje konto</h1>
+<div class="page-head">
+    <div>
+        <h1>Moje konto</h1>
+        <p class="sub">Dane logowania, nazwa w menu i ustawienia bezpieczeństwa.</p>
+    </div>
+</div>
 
-<section class="mb-5">
-    <h2 class="h5">Dane konta</h2>
-    <dl class="row mb-0">
-        <dt class="col-sm-3">Adres e-mail</dt>
-        <dd class="col-sm-9">@Email</dd>
-    </dl>
-    <div class="form-text">Adresu e-mail nie można zmienić.</div>
+<section class="settings-row">
+    <div class="settings-intro">
+        <h2 class="settings-title">Dane konta</h2>
+        <p class="settings-hint">Adres, którym logujesz się do aplikacji.</p>
+    </div>
+
+    <div class="card settings-card">
+        <div class="field">
+            @* A value, not a control: there is nothing to submit, so this is a div, not an input. *@
+            <div class="form-label">Adres e-mail</div>
+            <div class="readonly-field">
+                <Icon Name="IconName.Mail" />
+                <span>@Email</span>
+            </div>
+            <div class="form-text">Adresu e-mail nie można zmienić.</div>
+        </div>
+    </div>
 </section>
 
-<section class="mb-5">
-    <h2 class="h5">Nazwa wyświetlana</h2>
+<section class="settings-row">
+    <div class="settings-intro">
+        <h2 class="settings-title">Nazwa wyświetlana</h2>
+        <p class="settings-hint">
+            Nazwa pojawi się w menu zamiast adresu e-mail. Zostaw pole puste, aby wrócić do adresu.
+        </p>
+    </div>
 
-    @if (displayNameError is not null)
-    {
-        <div class="alert alert-danger" role="alert">@displayNameError</div>
-    }
+    <div class="card settings-card">
+        @if (displayNameError is not null)
+        {
+            <div class="alert alert-danger" role="alert"><Icon Name="IconName.Alert" /><span>@displayNameError</span></div>
+        }
 
-    <p class="text-body-secondary">
-        Nazwa pojawi się w menu zamiast adresu e-mail. Zostaw pole puste, aby wrócić do adresu.
-    </p>
+        <EditForm Model="DisplayNameInput" method="post" OnValidSubmit="SaveDisplayNameAsync" FormName="display-name">
+            <DataAnnotationsValidator />
 
-    <EditForm Model="DisplayNameInput" method="post" OnValidSubmit="SaveDisplayNameAsync" FormName="display-name">
-        <DataAnnotationsValidator />
+            <div class="field">
+                <label for="display-name" class="form-label">Nazwa wyświetlana</label>
+                <InputText id="display-name" class="form-control" @bind-Value="DisplayNameInput!.DisplayName"
+                           autocomplete="nickname" maxlength="@DisplayNameValidator.MaxLength" />
+                <div class="form-text">Maksymalnie @DisplayNameValidator.MaxLength znaków.</div>
+                <ValidationMessage For="() => DisplayNameInput!.DisplayName" class="text-danger" />
+            </div>
 
-        <div class="mb-3">
-            <label for="display-name" class="form-label">Nazwa wyświetlana</label>
-            <InputText id="display-name" class="form-control" @bind-Value="DisplayNameInput!.DisplayName"
-                       autocomplete="nickname" maxlength="@DisplayNameValidator.MaxLength" />
-            <div class="form-text">Maksymalnie @DisplayNameValidator.MaxLength znaków.</div>
-            <ValidationMessage For="() => DisplayNameInput!.DisplayName" class="text-danger" />
-        </div>
-
-        <button type="submit" class="btn btn-primary">Zapisz nazwę</button>
-    </EditForm>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-secondary">Zapisz nazwę</button>
+            </div>
+        </EditForm>
+    </div>
 </section>
 
-<section class="mb-5">
-    <h2 class="h5">Zmiana hasła</h2>
+<section class="settings-row">
+    <div class="settings-intro">
+        <h2 class="settings-title">Zmiana hasła</h2>
+        <p class="settings-hint">Hasło, którym logujesz się do aplikacji.</p>
+    </div>
 
-    @if (passwordError is not null)
-    {
-        <div class="alert alert-danger" role="alert">@passwordError</div>
-    }
-    else if (passwordChanged)
-    {
-        <div class="alert alert-success" role="alert">
-            Hasło zostało zmienione. Użyj go przy następnym logowaniu.
-        </div>
-    }
+    <div class="card settings-card">
+        @if (passwordError is not null)
+        {
+            <div class="alert alert-danger" role="alert"><Icon Name="IconName.Alert" /><span>@passwordError</span></div>
+        }
+        else if (passwordChanged)
+        {
+            <div class="alert alert-success" role="alert">
+                <Icon Name="IconName.Check" StrokeWidth="2" />
+                <span>Hasło zostało zmienione. Użyj go przy następnym logowaniu.</span>
+            </div>
+        }
 
-    <EditForm Model="PasswordInput" method="post" OnValidSubmit="ChangePasswordAsync" FormName="change-password">
-        <DataAnnotationsValidator />
+        <EditForm Model="PasswordInput" method="post" OnValidSubmit="ChangePasswordAsync" FormName="change-password">
+            <DataAnnotationsValidator />
 
-        <div class="mb-3">
-            <label for="current-password" class="form-label">Obecne hasło</label>
-            <InputText id="current-password" type="password" class="form-control"
-                       @bind-Value="PasswordInput!.CurrentPassword" autocomplete="current-password" />
-            <ValidationMessage For="() => PasswordInput!.CurrentPassword" class="text-danger" />
-        </div>
+            <div class="field">
+                <label for="current-password" class="form-label">Obecne hasło</label>
+                <InputText id="current-password" type="password" class="form-control"
+                           @bind-Value="PasswordInput!.CurrentPassword" autocomplete="current-password" />
+                <ValidationMessage For="() => PasswordInput!.CurrentPassword" class="text-danger" />
+            </div>
 
-        <div class="mb-3">
-            <label for="new-password" class="form-label">Nowe hasło</label>
-            <InputText id="new-password" type="password" class="form-control"
-                       @bind-Value="PasswordInput!.NewPassword" autocomplete="new-password" />
-            <div class="form-text">@PasswordRequirementAttribute.Hint</div>
-            <ValidationMessage For="() => PasswordInput!.NewPassword" class="text-danger" />
-        </div>
+            <div class="field">
+                <label for="new-password" class="form-label">Nowe hasło</label>
+                <InputText id="new-password" type="password" class="form-control"
+                           @bind-Value="PasswordInput!.NewPassword" autocomplete="new-password" />
+                <div class="form-text">@PasswordRequirementAttribute.Hint</div>
+                <ValidationMessage For="() => PasswordInput!.NewPassword" class="text-danger" />
+            </div>
 
-        <button type="submit" class="btn btn-primary">Zmień hasło</button>
-    </EditForm>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-secondary">Zmień hasło</button>
+            </div>
+        </EditForm>
+    </div>
 </section>
 
-<section class="mb-5 border border-danger rounded p-3">
-    <h2 class="h5 text-danger">Usunięcie konta</h2>
+<section class="settings-row">
+    <div class="settings-intro">
+        <h2 class="settings-title text-danger">Usunięcie konta</h2>
+        <p class="settings-hint">Znikną wszystkie Twoje notatki, materiały źródłowe i samo konto.</p>
+    </div>
 
-    @if (deleteError is not null)
-    {
-        <div class="alert alert-danger" role="alert">@deleteError</div>
-    }
+    <div class="card settings-card settings-card--danger">
+        @if (deleteError is not null)
+        {
+            <div class="alert alert-danger" role="alert"><Icon Name="IconName.Alert" /><span>@deleteError</span></div>
+        }
 
-    <p>
-        Usunięcie konta jest nieodwracalne. Znikną wszystkie Twoje notatki, materiały źródłowe
-        i samo konto. Nie da się tego cofnąć ani odzyskać danych.
-    </p>
+        <div class="settings-copy">
+            <p>
+                Usunięcie konta jest nieodwracalne. Znikną wszystkie Twoje notatki, materiały źródłowe
+                i samo konto. Nie da się tego cofnąć ani odzyskać danych.
+            </p>
 
-    <p>Potwierdź hasłem, że chcesz usunąć konto.</p>
-
-    <EditForm Model="DeleteInput" method="post" OnValidSubmit="DeleteAccountAsync" FormName="delete-account">
-        <DataAnnotationsValidator />
-
-        <div class="mb-3">
-            <label for="delete-password" class="form-label">Hasło</label>
-            <InputText id="delete-password" type="password" class="form-control"
-                       @bind-Value="DeleteInput!.Password" autocomplete="current-password" />
-            <ValidationMessage For="() => DeleteInput!.Password" class="text-danger" />
+            <p>Potwierdź hasłem, że chcesz usunąć konto.</p>
         </div>
 
-        <button type="submit" class="btn btn-danger">Usuń konto na zawsze</button>
-    </EditForm>
+        <EditForm Model="DeleteInput" method="post" OnValidSubmit="DeleteAccountAsync" FormName="delete-account">
+            <DataAnnotationsValidator />
+
+            <div class="field">
+                <label for="delete-password" class="form-label">Hasło</label>
+                <div class="input-icon">
+                    <Icon Name="IconName.Lock" />
+                    <InputText id="delete-password" type="password" class="form-control"
+                               @bind-Value="DeleteInput!.Password" autocomplete="current-password" />
+                </div>
+                <ValidationMessage For="() => DeleteInput!.Password" class="text-danger" />
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-danger">
+                    <Icon Name="IconName.Trash" Size="15" />
+                    Usuń konto na zawsze
+                </button>
+            </div>
+        </EditForm>
+    </div>
 </section>
 
 @code {

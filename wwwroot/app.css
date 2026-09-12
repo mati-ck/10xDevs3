@@ -123,6 +123,7 @@ h1 {
     font-weight: 600;
     letter-spacing: -0.025em;
     text-wrap: balance;
+    overflow-wrap: anywhere;
 }
 
 /* FocusOnNavigate (Routes.razor) moves focus to the page's h1; it is not an interactive control. */
@@ -531,6 +532,7 @@ input[type=file].form-control {
     --bs-modal-footer-bg: var(--panel);
     --bs-modal-footer-border-color: var(--line);
     --bs-modal-footer-gap: 10px;
+    --bs-modal-margin: 16px;
 }
 
 .modal-content {
@@ -760,6 +762,7 @@ input[type=file].form-control {
 /* Segmented switch (edit/preview, paste/file). Items are <button>s, deliberately not .btn. */
 .seg {
     display: inline-flex;
+    max-width: 100%;
     gap: 2px;
     padding: 3px;
     background: var(--field);
@@ -832,6 +835,13 @@ input[type=file].form-control {
    FocusOnNavigate targets it, and it must stay the first h1 on the page. */
 .empty-state h1 {
     font-size: 22px;
+}
+
+.empty-state h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--tx);
 }
 
 .empty-state-title {
@@ -1066,6 +1076,10 @@ input[type=file].form-control {
     border-top: 1px solid var(--line);
 }
 
+.settings-intro {
+    min-width: 0;
+}
+
 .settings-title {
     margin: 0;
     font-size: 15px;
@@ -1097,6 +1111,36 @@ input[type=file].form-control {
     border-color: color-mix(in oklch, var(--bad) 30%, transparent);
 }
 
+    /* The card spaces its own blocks, so the alert drops the margin Bootstrap gives it. */
+    .settings-card > .alert {
+        margin-bottom: 0;
+    }
+
+    /* EditForm renders the <form>, which is one of those blocks: it carries the same rhythm
+       inside, so fields and the action row sit 18px apart like everything else in the card. */
+    .settings-card form {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .settings-card .form-actions {
+        padding-top: 0;
+    }
+
+    .settings-card p {
+        margin: 0;
+        line-height: 1.6;
+        color: var(--tx-2);
+    }
+
+/* Two short paragraphs the danger zone reads as one block, tighter than the card's own gap. */
+.settings-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 /* Small single-purpose card (logout, error, not found). */
 .narrow-card {
     display: flex;
@@ -1105,6 +1149,35 @@ input[type=file].form-control {
     max-width: 460px;
     padding: 24px;
 }
+
+    .narrow-card p {
+        margin: 0;
+        line-height: 1.6;
+        color: var(--tx-2);
+    }
+
+/* The framework's Error page. Bootstrap's h2/h3 would dwarf the h1 above them, so both come
+   down to the card's own scale; the copy itself is untouched. */
+.system-card {
+    max-width: 640px;
+}
+
+    .system-card h2 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .system-card h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    /* A trace id has no spaces and is longer than a phone screen. */
+    .system-card code {
+        overflow-wrap: anywhere;
+    }
 
 /* One labelled form field. Containers that space their children with gap zero the margin;
    the auth forms keep it, which is the artboard's field gap. */
@@ -1501,7 +1574,8 @@ input[type=file].form-control {
 
 
 /* --- Responsive ------------------------------------------------------------------------------
-   Later phases append to these two blocks rather than adding breakpoints. */
+   Three breakpoints only — 992px (panes, settings, auth), 768px (material rows) and 641px (the
+   shell). The cross-page narrow-width pass appends to these blocks rather than adding more. */
 
 @media (max-width: 991.98px) {
     .detail-grid {
@@ -1520,7 +1594,7 @@ input[type=file].form-control {
     }
 
     .material-row {
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr) minmax(0, auto);
         grid-template-areas:
             "title title"
             "source note"
@@ -1559,6 +1633,38 @@ input[type=file].form-control {
 
     .page-head > :not(:first-child) {
         flex: 1 0 auto;
+    }
+
+    /* A long material or note title and the pane's own button no longer share a line. */
+    .pane-head {
+        flex-wrap: wrap;
+    }
+
+    .pane-link {
+        max-width: 100%;
+    }
+
+    /* Cards give back the padding the 16px page gutter already spends. */
+    .settings-card,
+    .import-card,
+    .narrow-card {
+        padding: 18px;
+    }
+
+    .dropzone {
+        padding: 18px;
+    }
+
+    .empty-state {
+        padding: 40px 18px;
+    }
+
+    .pane-empty {
+        padding: 36px 18px;
+    }
+
+    #blazor-error-ui {
+        padding: 12px 44px 12px 16px;
     }
 }
 

@@ -18,6 +18,11 @@
 }
 
 .content {
+    /* The mockups are drawn at 1440px with a 248px sidebar; capping the column here keeps their
+       proportions (and the grid's three cards) on wider displays instead of stretching a table
+       across an ultrawide monitor. */
+    max-width: 1192px;
+    margin-inline: auto;
     padding: 40px 48px 64px;
 }
 

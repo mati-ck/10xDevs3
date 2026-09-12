@@ -24,7 +24,7 @@
     --line-2: #2B3040;
     --tx: #ECEEF3;
     --tx-2: #A2A8B7;
-    --tx-3: #697083;
+    --tx-3: #7A8194;
     --ok: #3ECF8E;
     --warn: #F2B84B;
     --bad: #F07474;
@@ -1583,6 +1583,28 @@ textarea.form-control {
 /* --- Responsive ------------------------------------------------------------------------------
    Three breakpoints only — 992px (panes, settings, auth), 768px (material rows) and 641px (the
    shell). The cross-page narrow-width pass appends to these blocks rather than adding more. */
+
+/* From the two-pane width up, the panes share one row height (the editor's 60vh sets it) and the
+   source fills its pane, as in the mockups; below it they stack and each keeps its own height. */
+@media (min-width: 992px) {
+    .detail-grid {
+        align-items: stretch;
+    }
+
+    .pane {
+        display: flex;
+        flex-direction: column;
+    }
+
+        .pane > .src {
+            flex: 1;
+            max-height: none;
+        }
+
+    .pane-empty {
+        flex: 1;
+    }
+}
 
 @media (max-width: 991.98px) {
     .detail-grid {

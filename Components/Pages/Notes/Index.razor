@@ -18,7 +18,17 @@
 
 <PageTitle>Moje notatki</PageTitle>
 
-<h1>Moje notatki</h1>
+<div class="page-head">
+    <div>
+        <h1>Moje notatki</h1>
+        <p class="sub">Notatki zatwierdzone z Twoich materiałów.</p>
+    </div>
+
+    <a class="btn btn-primary" href="/materials/import">
+        <Icon Name="IconName.Plus" StrokeWidth="2" />
+        Dodaj materiał
+    </a>
+</div>
 
 @if (loadFailed)
 {
@@ -26,34 +36,58 @@
        the product's front door. Unhandled it would unwind to UseExceptionHandler("/Error") and
        render the stock, English Error page in a Polish app — same posture the detail pages take
        for saves, applied to the read that now greets everyone. *@
-    <p class="text-danger">
-        Nie udało się wczytać notatek. Odśwież stronę za chwilę.
-    </p>
+    <div class="alert alert-danger" role="alert">
+        <Icon Name="IconName.Alert" />
+        <span>Nie udało się wczytać notatek. Odśwież stronę za chwilę.</span>
+    </div>
 }
 else if (notes.Count == 0)
 {
     @* The link answers both cases at once — no materials yet, or materials with nothing
        generated from them — so the page never has to guess which one this is. *@
-    <p class="text-secondary">
-        Nie masz jeszcze żadnej zapisanej notatki. Wybierz materiał i wygeneruj z niego notatkę.
-    </p>
+    <div class="card empty-state">
+        <div class="icon-tile icon-tile--lg"><Icon Name="IconName.FileText" Size="24" /></div>
 
-    <a href="/materials">Przejdź do moich materiałów</a>
+        <div>
+            <p class="empty-state-title">Nie masz jeszcze żadnej zapisanej notatki.</p>
+            <p>Wybierz materiał i wygeneruj z niego notatkę.</p>
+        </div>
+
+        <a class="btn btn-secondary" href="/materials">
+            <Icon Name="IconName.Layers" />
+            Przejdź do moich materiałów
+        </a>
+    </div>
 }
 else
 {
-    <ul class="list-group">
+    <ul class="note-grid">
         @foreach (var note in notes)
         {
-            <li class="list-group-item">
-                @* Plain interpolation, never MarkupString: the title comes from the user. *@
-                <a href="/notes/@note.Id" class="fw-semibold">@note.Title</a>
+            <li class="card note-card">
+                <div class="note-card-top">
+                    <div class="icon-tile"><Icon Name="IconName.FileText" /></div>
 
-                <div class="text-secondary small">
-                    @* ToDisplayTime, not ToLocalTime: "local" on the server is the container's
-                       UTC. The culture is named so the month renders in Polish. *@
-                    Zapisano @TimeProvider.ToDisplayTime(note.UpdatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)
-                    · <a href="/materials/@note.SourceMaterialId">Materiał źródłowy</a>
+                    @* Lifted above the card-wide title link (.note-card-source is positioned), so the
+                       source stays clickable inside a card that is otherwise one big link. *@
+                    <a class="note-card-source" href="/materials/@note.SourceMaterialId">
+                        <Icon Name="IconName.Layers" Size="14" />
+                        Materiał źródłowy
+                    </a>
+                </div>
+
+                @* Plain interpolation, never MarkupString: the title comes from the user. *@
+                <a class="note-card-title stretched-link" href="/notes/@note.Id">@note.Title</a>
+
+                <div class="note-card-foot">
+                    <span class="meta">
+                        <Icon Name="IconName.Clock" Size="14" />
+                        @* ToDisplayTime, not ToLocalTime: "local" on the server is the container's
+                           UTC. The culture is named so the month renders in Polish. *@
+                        Zapisano @TimeProvider.ToDisplayTime(note.UpdatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)
+                    </span>
+
+                    <span class="note-card-arrow"><Icon Name="IconName.ArrowRight" /></span>
                 </div>
             </li>
         }

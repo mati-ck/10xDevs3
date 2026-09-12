@@ -502,7 +502,7 @@ input[type=file].form-control {
 }
 
 
-/* --- Cards & list groups ---------------------------------------------------------------------- */
+/* --- Cards ----------------------------------------------------------------------------------- */
 
 .card {
     --bs-card-bg: var(--panel);
@@ -510,19 +510,6 @@ input[type=file].form-control {
     --bs-card-border-radius: 14px;
     --bs-card-inner-border-radius: 13px;
     --bs-card-color: var(--tx);
-}
-
-/* Still used by the list pages until P3. */
-.list-group {
-    --bs-list-group-bg: var(--panel);
-    --bs-list-group-color: var(--tx);
-    --bs-list-group-border-color: var(--line);
-    --bs-list-group-border-radius: 14px;
-    --bs-list-group-item-padding-x: 20px;
-    --bs-list-group-item-padding-y: 14px;
-    --bs-list-group-action-color: var(--tx-2);
-    --bs-list-group-action-hover-color: var(--tx);
-    --bs-list-group-action-hover-bg: var(--panel-2);
 }
 
 
@@ -820,6 +807,14 @@ input[type=file].form-control {
     max-width: 420px;
     margin: 0;
     color: var(--tx-2);
+}
+
+/* The copy block between the tile and the button; the tile is a div too, hence the :not(). */
+.empty-state > div:not(.icon-tile) {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 420px;
 }
 
 /* Two-pane detail pages: source | note. */
@@ -1140,6 +1135,273 @@ input[type=file].form-control {
 }
 
 
+/* --- Notes index (Main.dc.html) ----------------------------------------------------------------
+   The whole card is the note's link (Bootstrap's .stretched-link over .card's position: relative);
+   the source link is lifted above it so it stays clickable. */
+
+.note-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.note-card {
+    gap: 16px;
+    min-height: 184px;
+    padding: 20px;
+    transition: border-color .15s ease-in-out, background-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+    .note-card:hover,
+    .note-card:focus-within {
+        border-color: var(--accent-line);
+        background: var(--panel-2);
+        box-shadow: 0 0 0 1px var(--accent-line), 0 20px 44px -24px var(--accent);
+    }
+
+        .note-card:hover .note-card-arrow,
+        .note-card:focus-within .note-card-arrow {
+            color: var(--accent);
+        }
+
+.note-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.note-card-source {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+    .note-card-source svg {
+        flex: none;
+    }
+
+.note-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.38;
+    letter-spacing: -0.01em;
+    color: var(--tx);
+    text-wrap: pretty;
+    overflow-wrap: anywhere;
+}
+
+    .note-card-title:hover {
+        color: var(--tx);
+    }
+
+.note-card-foot {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+}
+
+    .note-card-foot .meta {
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+.note-card-arrow {
+    display: flex;
+    flex: none;
+    color: var(--tx-3);
+    transition: color .15s ease-in-out;
+}
+
+
+/* --- Materials index (Materials.dc.html) -------------------------------------------------------
+   A table look built from CSS grid rows: the head and the rows share one column template. */
+
+.material-table {
+    overflow: hidden;
+}
+
+.material-head,
+.material-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, .95fr) 168px;
+    gap: 20px;
+    align-items: center;
+    padding: 0 20px;
+}
+
+.material-head {
+    height: 44px;
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--tx-3);
+}
+
+    .material-head > span:last-child {
+        text-align: right;
+    }
+
+.material-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.material-row {
+    min-height: 62px;
+    border-top: 1px solid var(--line);
+    transition: background-color .15s ease-in-out;
+}
+
+    .material-row:hover {
+        background: var(--panel-2);
+    }
+
+        .material-row:hover .material-title {
+            color: var(--accent);
+        }
+
+.material-cell-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.material-icon {
+    display: flex;
+    flex: none;
+    color: var(--tx-3);
+}
+
+.material-title {
+    min-width: 0;
+    font-weight: 500;
+    color: var(--tx);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.material-cell-source {
+    display: flex;
+    min-width: 0;
+}
+
+/* Overrides .meta's inline-flex so the verb + date can ellipsis as one text line. */
+.material-cell-date {
+    display: block;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--tx-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.material-cell-note {
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+}
+
+
+/* --- Import (Import.dc.html) -------------------------------------------------------------------
+   The dropzone is pure CSS around the native <input type="file">, which is stretched transparently
+   over the whole zone: click and native drop both work, with no JavaScript. */
+
+.import-card {
+    max-width: 840px;
+    gap: 22px;
+    padding: 24px;
+}
+
+    .import-card > .seg {
+        align-self: flex-start;
+    }
+
+.import-form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.import-paste {
+    min-height: 292px;
+    resize: vertical;
+}
+
+.dropzone {
+    position: relative;
+    min-height: 220px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: center;
+    background: var(--field);
+    border: 1.5px dashed var(--line-2);
+    border-radius: 12px;
+    transition: border-color .15s ease-in-out, background-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+    .dropzone:hover,
+    .dropzone:focus-within {
+        border-color: var(--accent-line);
+        background: color-mix(in oklch, var(--accent) 4%, var(--field));
+    }
+
+    .dropzone:focus-within {
+        box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .dropzone .form-text {
+        margin: 0;
+    }
+
+.dropzone-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.dropzone-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 100%;
+}
+
+.dropzone-prompt {
+    font-weight: 500;
+}
+
+.dropzone-link {
+    color: var(--accent);
+}
+
+
 /* --- Error UI ---------------------------------------------------------------------------------
    Rendered by App.razor so both layouts have it; blazor.web.js shows it and wires .reload and
    .dismiss by class inside the id. */
@@ -1197,6 +1459,38 @@ input[type=file].form-control {
     .settings-row {
         grid-template-columns: minmax(0, 1fr);
         gap: 16px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .material-head {
+        display: none;
+    }
+
+    .material-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "title title"
+            "source note"
+            "date  date";
+        gap: 8px 20px;
+        padding: 14px 16px;
+    }
+
+    .material-cell-title {
+        grid-area: title;
+    }
+
+    .material-cell-source {
+        grid-area: source;
+    }
+
+    .material-cell-note {
+        grid-area: note;
+    }
+
+    .material-cell-date {
+        grid-area: date;
     }
 }
 

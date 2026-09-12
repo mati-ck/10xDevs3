@@ -13,67 +13,106 @@
 
 <PageTitle>Moje materiały</PageTitle>
 
-<h1>Moje materiały</h1>
+<div class="page-head">
+    <div>
+        <h1>Moje materiały</h1>
+        <p class="sub">Wykłady, artykuły i dokumenty, z których generujesz notatki.</p>
+    </div>
+
+    <a class="btn btn-primary" href="/materials/import">
+        <Icon Name="IconName.Plus" StrokeWidth="2" />
+        Dodaj materiał
+    </a>
+</div>
 
 @if (loadFailed)
 {
     @* Same posture as the note list: a transient read failure says so in Polish rather than
        unwinding to the stock Error page. *@
-    <p class="text-danger">
-        Nie udało się wczytać materiałów. Odśwież stronę za chwilę.
-    </p>
+    <div class="alert alert-danger" role="alert">
+        <Icon Name="IconName.Alert" />
+        <span>Nie udało się wczytać materiałów. Odśwież stronę za chwilę.</span>
+    </div>
 }
 else if (materials.Count == 0)
 {
-    <p class="text-secondary">Nie masz jeszcze żadnego materiału.</p>
+    <div class="card empty-state">
+        <div class="icon-tile icon-tile--lg"><Icon Name="IconName.Layers" Size="24" /></div>
 
-    <a href="/materials/import">Dodaj materiał</a>
+        <p class="empty-state-title">Nie masz jeszcze żadnego materiału.</p>
+
+        <a class="btn btn-secondary" href="/materials/import">
+            <Icon Name="IconName.Plus" />
+            Dodaj materiał
+        </a>
+    </div>
 }
 else
 {
-    <ul class="list-group">
-        @foreach (var material in materials)
-        {
-            <li class="list-group-item">
-                @* Plain interpolation, never MarkupString: both the title and the file name come
-                   from the user. *@
-                <a href="/materials/@material.Id" class="fw-semibold">@material.Title</a>
+    <div class="card material-table">
+        @* Column labels, not a table: the rows are a list of links, and every fact a label names is
+           already carried by the row's own text, so the labels are hidden from assistive tech. *@
+        <div class="material-head" aria-hidden="true">
+            <span>Materiał</span>
+            <span>Źródło</span>
+            <span>Dodano</span>
+            <span>Notatka</span>
+        </div>
 
-                <div class="text-secondary small">
+        <ul class="material-list">
+            @foreach (var material in materials)
+            {
+                <li class="material-row">
+                    <div class="material-cell-title">
+                        <span class="material-icon"><Icon Name="IconName.Layers" /></span>
+
+                        @* Plain interpolation, never MarkupString: both the title and the file name come
+                           from the user. *@
+                        <a class="material-title" href="/materials/@material.Id">@material.Title</a>
+                    </div>
+
                     @* Branched on Kind, exactly as Components/Pages/Materials/Detail.razor is, and for
                        the same reason: provenance is a fact the row states, not something read off an
                        absent file name — a future bug in the import path would otherwise render as a
                        paste. Same two verbs as the detail page, so the two views cannot disagree about
                        what a pasted material is called; the date is in both branches, because it is
                        the one thing every material has. *@
-                    @if (material.Kind == SourceMaterialKind.Paste)
-                    {
-                        <text>Wklejono @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)</text>
-                    }
-                    else
-                    {
-                        <text>
-                            Zaimportowano @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)
-                            z pliku <code>@material.OriginalFileName</code>
-                        </text>
-                    }
+                    <div class="material-cell-source">
+                        @if (material.Kind == SourceMaterialKind.Paste)
+                        {
+                            <span class="badge"><Icon Name="IconName.Clipboard" Size="13" /><span>Wklejony tekst</span></span>
+                        }
+                        else
+                        {
+                            <span class="badge mono" title="@material.OriginalFileName"><Icon Name="IconName.File" Size="13" /><span>@material.OriginalFileName</span></span>
+                        }
+                    </div>
 
-                    @* The leading space lives inside <text> on purpose: Razor drops whitespace at
-                       the boundary of a <text> block, so without it the separator renders flush
-                       against the date — "14:24· Otwórz notatkę". The note list has no <text> here
-                       and so does not need it. *@
-                    @if (material.NoteId is { } noteId)
-                    {
-                        <text> · <a href="/notes/@noteId">Otwórz notatkę</a></text>
-                    }
-                    else
-                    {
-                        <text> · Brak notatki</text>
-                    }
-                </div>
-            </li>
-        }
-    </ul>
+                    <div class="material-cell-date meta">
+                        @if (material.Kind == SourceMaterialKind.Paste)
+                        {
+                            <text>Wklejono @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)</text>
+                        }
+                        else
+                        {
+                            <text>Zaimportowano @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)</text>
+                        }
+                    </div>
+
+                    <div class="material-cell-note">
+                        @if (material.NoteId is { } noteId)
+                        {
+                            <a class="badge st-ok" href="/notes/@noteId"><span class="dot"></span>Otwórz notatkę</a>
+                        }
+                        else
+                        {
+                            <span class="badge st-none"><span class="dot"></span>Brak notatki</span>
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+    </div>
 }
 
 @code {

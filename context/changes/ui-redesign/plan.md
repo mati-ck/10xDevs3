@@ -728,14 +728,14 @@ No data, schema or configuration change. Rollback = revert the phase commits; ea
 
 #### Automated
 
-- [x] 2.1 Solution builds: `dotnet build`
-- [x] 2.2 Test suite passes: `dotnet test`
-- [x] 2.3 Hook check: the `feature/test-plan` suite passes in the throwaway worktree — `AccountLoginTests` and `AccountRegisterTests` included
-- [x] 2.4 `#blazor-error-ui` is in `App.razor` and no longer in `MainLayout.razor`
-- [x] 2.5 `@layout AuthLayout` appears in exactly `Login.razor` and `Register.razor`
-- [x] 2.6 `grep -rn "@onclick" Components/Layout Components/Pages/Account` returns nothing
-- [x] 2.7 `navbar-toggler` immediately precedes `nav-scrollable` in `NavMenu.razor`, and `NavLinkMatch.All` appears twice
-- [x] 2.8 ReconnectModal still carries its three element ids
+- [x] 2.1 Solution builds: `dotnet build` — 4cbcb7f
+- [x] 2.2 Test suite passes: `dotnet test` — 4cbcb7f
+- [x] 2.3 Hook check: the `feature/test-plan` suite passes in the throwaway worktree — `AccountLoginTests` and `AccountRegisterTests` included — 4cbcb7f
+- [x] 2.4 `#blazor-error-ui` is in `App.razor` and no longer in `MainLayout.razor` — 4cbcb7f
+- [x] 2.5 `@layout AuthLayout` appears in exactly `Login.razor` and `Register.razor` — 4cbcb7f
+- [x] 2.6 `grep -rn "@onclick" Components/Layout Components/Pages/Account` returns nothing — 4cbcb7f
+- [x] 2.7 `navbar-toggler` immediately precedes `nav-scrollable` in `NavMenu.razor`, and `NavLinkMatch.All` appears twice — 4cbcb7f
+- [x] 2.8 ReconnectModal still carries its three element ids — 4cbcb7f
 
 #### Manual
 
@@ -753,13 +753,13 @@ No data, schema or configuration change. Rollback = revert the phase commits; ea
 
 #### Automated
 
-- [ ] 3.1 Solution builds: `dotnet build`
-- [ ] 3.2 Test suite passes: `dotnet test`
-- [ ] 3.3 Hook check: the `feature/test-plan` suite passes in the throwaway worktree, and its merge of `Import.razor` completes without conflicts
-- [ ] 3.4 The three `#title` merge-seam lines in `Import.razor` are unchanged against `main`
-- [ ] 3.5 `#file`, `#paste` and `#title` are present in `Import.razor`, and `d-none` appears twice
-- [ ] 3.6 Neither index page declares a `@rendermode`
-- [ ] 3.7 `grep -rn "list-group" Components` returns nothing
+- [x] 3.1 Solution builds: `dotnet build`
+- [x] 3.2 Test suite passes: `dotnet test`
+- [x] 3.3 Hook check: the `feature/test-plan` suite passes in the throwaway worktree, and its merge of `Import.razor` completes without conflicts
+- [x] 3.4 The three `#title` merge-seam lines in `Import.razor` are unchanged against `main`
+- [x] 3.5 `#file`, `#paste` and `#title` are present in `Import.razor`, and `d-none` appears twice
+- [x] 3.6 Neither index page declares a `@rendermode`
+- [x] 3.7 `grep -rn "list-group" Components` returns nothing
 
 #### Manual
 
@@ -770,6 +770,8 @@ No data, schema or configuration change. Rollback = revert the phase commits; ea
 - [ ] 3.12 `/materials/import` matches `Import.dc.html` in both modes; switching modes keeps the paste text and the chosen file
 - [ ] 3.13 The dropzone opens the picker on click, accepts a dropped `.md`, shows the file-name badge, auto-fills the title and shows a focus ring
 - [ ] 3.14 Empty title shows the red ring and message; a valid save shows the spinner and lands on the material page
+
+> P3 implementation notes (non-interactive run): manual rows 3.8–3.14 are left for a browser pass. Contract additions, all in `wwwroot/app.css`: `.empty-state > div:not(.icon-tile)` carries the artboard's 6 px copy block (the icon tile is a `div` too); `.material-table { overflow: hidden }` so a hovered first/last row keeps the card's radius; `.material-cell-date` overrides `.meta`'s `inline-flex` with `display: block` so the verb + date ellipsis as one line; `.note-card-title:hover` restates `--tx` (Bootstrap's `a:hover` would otherwise light it); `.import-card > .seg { align-self: flex-start }` (the artboard's inline style), and the materials stacking rules needed a new `max-width: 767.98px` block in the Responsive section — the plan pins that breakpoint, so it is a third block rather than an append to the two P1 left. The now-unused `.list-group` mapping was deleted from `app.css` (its own comment scoped it to P3) and the "Cards & list groups" heading renamed. In `Import.razor` the `EditForm` keeps its old indentation inside the new `.card` wrapper, with a comment saying why: re-indenting the `#title` block would break the merge seam (check 3.4 verifies the three lines are untouched against `main`). Per the run's one-commit rule the P3 rows carry no SHA suffix; the P4 commit may back-fill it.
 
 ### Phase 4: Detail pages and the note editor
 

@@ -1,72 +1,106 @@
+@using System.Security.Claims
 @using _10xnotes.Auth
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">10xnotes</a>
-    </div>
+<div class="side-top">
+    <a class="brand" href="">
+        <span class="logo"><Icon Name="IconName.Logo" StrokeWidth="2.4" /></span>
+        <span>10xnotes</span>
+    </a>
 </div>
 
+@* The checkbox below must stay the immediately preceding sibling of the drawer div after it:
+   the CSS opens the mobile drawer with a `:checked ~` sibling selector. The drawer's inline
+   onclick closes it again after a tap on a link or on the dimmed scrim (a pseudo-element of the
+   drawer), and works on static-SSR pages because it is plain DOM, not a Blazor event. *@
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
+    <nav class="nav flex-column side-nav">
         <AuthorizeView>
             <Authorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                        <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Moje notatki
-                    </NavLink>
+                <div class="side-main">
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                            <Icon Name="IconName.FileText" />
+                            <span>Moje notatki</span>
+                        </NavLink>
+                    </div>
+
+                    @* Match.All, not the default prefix match: "materials" is a prefix of both
+                       /materials/import and /materials/{id}, so prefix matching would light this
+                       entry up together with the import one. *@
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="materials" Match="NavLinkMatch.All">
+                            <Icon Name="IconName.Layers" />
+                            <span>Moje materiały</span>
+                        </NavLink>
+                    </div>
+
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="materials/import">
+                            <Icon Name="IconName.Plus" />
+                            <span>Dodaj materiał</span>
+                        </NavLink>
+                    </div>
                 </div>
 
-                @* Match.All, not the default prefix match: "materials" is a prefix of both
-                   /materials/import and /materials/{id}, so prefix matching would light this
-                   entry up together with the import one. *@
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="materials" Match="NavLinkMatch.All">
-                        <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Moje materiały
-                    </NavLink>
-                </div>
+                <div class="side-foot">
+                    @* The display name when the user set one, the email otherwise. The rule is
+                       AuthCookie's rather than this markup's so it is testable, and it reads a claim
+                       rather than the database so the nav costs no query on any render. *@
+                    <div class="nav-user" title="@AuthCookie.DisplayNameOrEmail(context.User)">
+                        <span class="avatar" aria-hidden="true">@Initial(AuthCookie.DisplayNameOrEmail(context.User))</span>
+                        <span class="nav-user-text">
+                            <span class="user-name">@AuthCookie.DisplayNameOrEmail(context.User)</span>
+                            @if (context.User.FindFirstValue(ClaimTypes.Email) is { Length: > 0 } email
+                                 && !string.Equals(email, AuthCookie.DisplayNameOrEmail(context.User), StringComparison.Ordinal))
+                            {
+                                <span class="user-mail">@email</span>
+                            }
+                        </span>
+                    </div>
 
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="materials/import">
-                        <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Dodaj materiał
-                    </NavLink>
-                </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="profile">
+                            <Icon Name="IconName.User" />
+                            <span>Moje konto</span>
+                        </NavLink>
+                    </div>
 
-                @* The display name when the user set one, the email otherwise. The rule is
-                   AuthCookie's rather than this markup's so it is testable, and it reads a claim
-                   rather than the database so the nav costs no query on any render. *@
-                <div class="nav-item px-3 nav-user" title="@AuthCookie.DisplayNameOrEmail(context.User)">
-                    @AuthCookie.DisplayNameOrEmail(context.User)
-                </div>
-
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="profile">
-                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> Moje konto
-                    </NavLink>
-                </div>
-
-                @* A link, not a form: signing out must be a POST carrying an antiforgery token,
-                   and /logout is the static-SSR page that already owns exactly that form. *@
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="logout">
-                        <span class="bi bi-box-arrow-right-nav-menu" aria-hidden="true"></span> Wyloguj się
-                    </NavLink>
+                    @* A link, not a form: signing out must be a POST carrying an antiforgery token,
+                       and /logout is the static-SSR page that already owns exactly that form. *@
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="logout">
+                            <Icon Name="IconName.Logout" />
+                            <span>Wyloguj się</span>
+                        </NavLink>
+                    </div>
                 </div>
             </Authorized>
             <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="login">
-                        <span class="bi bi-box-arrow-in-right-nav-menu" aria-hidden="true"></span> Zaloguj się
-                    </NavLink>
-                </div>
+                <div class="side-main">
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="login">
+                            <Icon Name="IconName.Login" />
+                            <span>Zaloguj się</span>
+                        </NavLink>
+                    </div>
 
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="register">
-                        <span class="bi bi-person-plus-fill-nav-menu" aria-hidden="true"></span> Zarejestruj się
-                    </NavLink>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="register">
+                            <Icon Name="IconName.UserPlus" />
+                            <span>Zarejestruj się</span>
+                        </NavLink>
+                    </div>
                 </div>
             </NotAuthorized>
         </AuthorizeView>
     </nav>
 </div>
+
+@code {
+    // Presentational only. By rune rather than by char, so an emoji or another non-BMP first
+    // character is not split into half a surrogate pair.
+    private static string Initial(string? name) =>
+        string.IsNullOrEmpty(name) ? "?" : name.EnumerateRunes().First().ToString().ToUpperInvariant();
+}

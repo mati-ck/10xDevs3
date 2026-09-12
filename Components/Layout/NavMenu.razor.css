@@ -1,109 +1,21 @@
-.navbar-toggler {
-    appearance: none;
-    cursor: pointer;
-    width: 3.5rem;
-    height: 2.5rem;
-    color: white;
-    position: absolute;
-    top: 0.5rem;
-    right: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.55%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") no-repeat center/1.75rem rgba(255, 255, 255, 0.1);
-}
+/* Sidebar navigation (Main.dc.html). NavLink renders the <a> and Icon renders the <svg>, neither
+   carries this component's scope attribute, so both are reached with ::deep under an element
+   rendered here. The brand row's .brand / .logo live in app.css because AuthLayout shares them. */
 
-.navbar-toggler:checked {
-    background-color: rgba(255, 255, 255, 0.5);
-}
-
-.top-row {
-    min-height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
-}
-
-.navbar-brand {
-    font-size: 1.1rem;
-}
-
-.bi {
-    display: inline-block;
-    position: relative;
-    width: 1.25rem;
-    height: 1.25rem;
-    margin-right: 0.75rem;
-    top: -1px;
-    background-size: cover;
-}
-
-.bi-house-door-fill-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-house-door-fill' viewBox='0 0 16 16'%3E%3Cpath d='M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5Z'/%3E%3C/svg%3E");
-}
-
-.bi-plus-square-fill-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-plus-square-fill' viewBox='0 0 16 16'%3E%3Cpath d='M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm6.5 4.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3a.5.5 0 0 1 1 0z'/%3E%3C/svg%3E");
-}
-
-.bi-list-nested-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-list-nested' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M4.5 11.5A.5.5 0 0 1 5 11h10a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm-2-4A.5.5 0 0 1 3 7h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm-2-4A.5.5 0 0 1 1 3h10a.5.5 0 0 1 0 1H1a.5.5 0 0 1-.5-.5z'/%3E%3C/svg%3E");
-}
-
-.bi-box-arrow-right-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-box-arrow-right' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z'/%3E%3Cpath fill-rule='evenodd' d='M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z'/%3E%3C/svg%3E");
-}
-
-.bi-box-arrow-in-right-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-box-arrow-in-right' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M6 3.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 0-1 0v2A1.5 1.5 0 0 0 6.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-8A1.5 1.5 0 0 0 5 3.5v2a.5.5 0 0 0 1 0v-2z'/%3E%3Cpath fill-rule='evenodd' d='M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z'/%3E%3C/svg%3E");
-}
-
-.bi-person-plus-fill-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-person-plus-fill' viewBox='0 0 16 16'%3E%3Cpath d='M1 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'/%3E%3Cpath fill-rule='evenodd' d='M13.5 5a.5.5 0 0 1 .5.5V7h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V8h-1.5a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5z'/%3E%3C/svg%3E");
-}
-
-.bi-person-fill-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-person-fill' viewBox='0 0 16 16'%3E%3Cpath d='M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'/%3E%3C/svg%3E");
-}
-
-.nav-item {
-    font-size: 0.9rem;
-    padding-bottom: 0.5rem;
-}
-
-    .nav-item:first-of-type {
-        padding-top: 1rem;
-    }
-
-    .nav-item:last-of-type {
-        padding-bottom: 1rem;
-    }
-
-    .nav-item ::deep .nav-link {
-        color: #d7d7d7;
-        background: none;
-        border: none;
-        border-radius: 4px;
-        height: 3rem;
-        display: flex;
-        align-items: center;
-        line-height: 3rem;
-        width: 100%;
-    }
-
-.nav-item ::deep a.active {
-    background-color: rgba(255,255,255,0.37);
-    color: white;
-}
-
-.nav-item ::deep .nav-link:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: white;
+.side-top {
+    display: flex;
+    align-items: center;
+    height: 56px;
+    padding: 0 14px;
 }
 
 /* Bootstrap's .nav sets flex-wrap: wrap, and this one is flex-column. A *wrapping* column
    flex container sizes its line's cross axis — here the width — from its content, so items are
-   not stretched to the 250px sidebar and .nav-user below has no width to truncate against: its
+   not stretched to the 248px sidebar and .nav-user below has no width to truncate against: its
    ellipsis never appears, the line grows past the sidebar, and .nav-scrollable (overflow-y:
    auto, which forces overflow-x: auto with it) answers with a horizontal scrollbar.
 
-   nowrap makes it a single line whose cross size is the container's own 250px, which is what
+   nowrap makes it a single line whose cross size is the container's own 248px, which is what
    makes the truncation below work. Do not remove it as redundant — no email is long enough to
    show the difference, which is why this went unnoticed until S-07 added a 200-character
    display name. */
@@ -111,35 +23,210 @@
     flex-wrap: nowrap;
 }
 
+.side-nav {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    min-height: 100%;
+    padding: 22px 14px 16px;
+    gap: 22px;
+}
+
+.side-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.side-foot {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+}
+
+.nav-item ::deep .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 8px;
+    color: var(--tx-2);
+    font-weight: 500;
+    font-size: 13.5px;
+    line-height: 1.2;
+    white-space: nowrap;
+    transition: background-color .12s ease, color .12s ease;
+}
+
+    .nav-item ::deep .nav-link svg {
+        color: var(--tx-3);
+        flex: none;
+    }
+
+    .nav-item ::deep .nav-link:hover {
+        background: color-mix(in oklch, var(--raise) 70%, transparent);
+        color: var(--tx);
+    }
+
+    .nav-item ::deep .nav-link:focus-visible {
+        outline: 0;
+        box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .nav-item ::deep a.active {
+        background: var(--accent-soft);
+        color: var(--tx);
+    }
+
+        .nav-item ::deep a.active svg {
+            color: var(--accent);
+        }
+
 /* The signed-in name is a label, not a link — it must not read as one, and a long one must
    truncate rather than widen the sidebar. Depends on the nowrap above for its width. */
 .nav-user {
-    color: #9a9a9a;
-    padding-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 10px 12px;
+    min-width: 0;
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid var(--accent-line);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.nav-user-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.user-name,
+.user-mail {
+    line-height: 1.3;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.nav-scrollable {
-    display: none;
+.user-name {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--tx);
 }
 
-.navbar-toggler:checked ~ .nav-scrollable {
-    display: block;
+.user-mail {
+    font-size: 12px;
+    color: var(--tx-3);
 }
+
+/* --- Mobile: top bar + slide-out drawer ------------------------------------------------------ */
+
+@media (max-width: 640.98px) {
+    .navbar-toggler {
+        appearance: none;
+        cursor: pointer;
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        width: 40px;
+        height: 36px;
+        margin: 0;
+        border-radius: 8px;
+        border: 1px solid var(--line-2);
+        background: var(--raise) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A2A8B7' stroke-width='1.7' stroke-linecap='round'%3E%3Cpath d='M4 7h16M4 12h16M4 17h16'/%3E%3C/svg%3E") no-repeat center / 20px;
+    }
+
+        .navbar-toggler:checked {
+            background-color: var(--accent-soft);
+            border-color: var(--accent-line);
+        }
+
+        .navbar-toggler:focus-visible {
+            outline: 0;
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+
+    /* overflow stays visible: overflow-y: auto here would force overflow-x: auto with it and clip
+       the scrim below into a sideways-scrolling strip. The drawer scrolls on .side-nav instead. */
+    .nav-scrollable {
+        position: fixed;
+        top: 56px;
+        left: 0;
+        bottom: 0;
+        width: min(280px, 85vw);
+        background: var(--side);
+        border-right: 1px solid var(--line);
+        overflow: visible;
+        z-index: 1040;
+        transform: translateX(-100%);
+        visibility: hidden;
+        transition: transform .2s ease, visibility .2s;
+    }
+
+    .navbar-toggler:checked ~ .nav-scrollable {
+        transform: none;
+        visibility: visible;
+    }
+
+        /* The dimmed page. Absolute to the drawer's right rather than fixed, because the drawer's
+           transform makes it the containing block. A tap on it lands on the drawer's inline
+           onclick, which closes the drawer. */
+        .navbar-toggler:checked ~ .nav-scrollable::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 100%;
+            width: 100vw;
+            background: rgba(5, 6, 9, .6);
+        }
+
+    .side-nav {
+        height: 100%;
+        overflow-y: auto;
+    }
+}
+
+@media (max-width: 640.98px) and (prefers-reduced-motion: reduce) {
+    .nav-scrollable {
+        transition: none;
+    }
+}
+
+/* --- Desktop: fixed sidebar ------------------------------------------------------------------ */
 
 @media (min-width: 641px) {
+    .side-top {
+        height: auto;
+        padding: 20px 14px 0;
+    }
+
     .navbar-toggler {
         display: none;
     }
 
+    /* MainLayout's .sidebar is a flex column here, so the nav fills the height under the brand
+       row and scrolls on its own when the window is short. */
     .nav-scrollable {
-        /* Never collapse the sidebar for wide screens */
-        display: block;
-
-        /* Allow sidebar to scroll for tall menus */
-        height: calc(100vh - 3.5rem);
+        flex: 1;
+        min-height: 0;
         overflow-y: auto;
     }
 }

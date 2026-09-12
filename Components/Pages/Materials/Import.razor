@@ -20,40 +20,52 @@
 
 <PageTitle>Dodaj materiał</PageTitle>
 
-<h1>Dodaj materiał</h1>
-
-<p class="text-secondary">
-    Wklej tekst albo wybierz plik Markdown (.md) — zapiszemy go na Twoim koncie
-    i wygenerujesz z niego notatkę.
-</p>
+<div class="page-head">
+    <div>
+        <h1>Dodaj materiał</h1>
+        <p class="sub">
+            Wklej tekst albo wybierz plik Markdown (.md) — zapiszemy go na Twoim koncie
+            i wygenerujesz z niego notatkę.
+        </p>
+    </div>
+</div>
 
 @if (errorMessage is not null)
 {
-    <div class="alert alert-danger" role="alert">@errorMessage</div>
+    <div class="alert alert-danger" role="alert"><Icon Name="IconName.Alert" /><span>@errorMessage</span></div>
 }
 
-@* Same btn-group switch NoteEditor uses for edit/preview, so the two toggles in the app look and
-   behave alike. Paste is the default: it is the lower-effort entry point, which is the whole
-   reason FR-003 exists beside FR-004. *@
-<div class="btn-group btn-group-sm mb-3" role="group" aria-label="Sposób dodania materiału">
-    <button type="button" class="btn @(mode == InputMode.Paste ? "btn-secondary" : "btn-outline-secondary")"
-            @onclick="() => SelectMode(InputMode.Paste)">
-        Wklej tekst
-    </button>
-    <button type="button" class="btn @(mode == InputMode.File ? "btn-secondary" : "btn-outline-secondary")"
-            @onclick="() => SelectMode(InputMode.File)">
-        Plik .md
-    </button>
-</div>
+<div class="card import-card">
+    @* Same segmented switch NoteEditor uses for edit/preview, so the two toggles in the app look and
+       behave alike. Paste is the default: it is the lower-effort entry point, which is the whole
+       reason FR-003 exists beside FR-004. aria-pressed is written out as a string because Blazor
+       drops a boolean attribute whose value is false. *@
+    <div class="seg" role="group" aria-label="Sposób dodania materiału">
+        <button type="button" class="seg-item @(mode == InputMode.Paste ? "on" : "")"
+                aria-pressed="@(mode == InputMode.Paste ? "true" : "false")"
+                @onclick="() => SelectMode(InputMode.Paste)">
+            <Icon Name="IconName.Clipboard" Size="15" />
+            Wklej tekst
+        </button>
+        <button type="button" class="seg-item @(mode == InputMode.File ? "on" : "")"
+                aria-pressed="@(mode == InputMode.File ? "true" : "false")"
+                @onclick="() => SelectMode(InputMode.File)">
+            <Icon Name="IconName.File" Size="15" />
+            Plik .md
+        </button>
+    </div>
 
-<EditForm Model="Input" OnValidSubmit="SaveAsync">
+    @* The form below keeps the indentation it had before the card wrapped it. The three #title lines
+       must stay byte-identical to main: feature/test-plan rewrites the InputText line, and re-indenting
+       its neighbours would turn the hook-check merge into a conflict (plan, "Import merge seam"). *@
+<EditForm Model="Input" OnValidSubmit="SaveAsync" class="import-form">
     <DataAnnotationsValidator />
 
     @* Both panels stay in the DOM and the inactive one is hidden, rather than being rendered
        conditionally. Re-rendering the file input would reset what the browser shows as the chosen
        file even though the server still holds it, and a user who glanced at the other tab would be
        told they had picked nothing. Hiding costs one CSS class and keeps both entries intact. *@
-    <div class="mb-3 @(mode == InputMode.Paste ? "" : "d-none")">
+    <div class="field @(mode == InputMode.Paste ? "" : "d-none")">
         <label for="paste" class="form-label">Tekst materiału</label>
 
         @* Committed on change rather than on input, exactly as NoteEditor's body is: every
@@ -65,26 +77,45 @@
            value crosses the wire in one hub invocation. HubWireLimits is the other half of that
            guarantee, and PasteValidator re-checks the length server-side because an attribute is
            a convenience, not a control. *@
-        <textarea id="paste" class="form-control" rows="14"
+        <textarea id="paste" class="form-control import-paste" rows="14"
                   maxlength="@PasteValidator.MaxContentLength"
                   value="@pasteContent" @onchange="OnPasteChanged" disabled="@isSaving"></textarea>
 
-        <div class="form-text">
+        <div class="form-text mono text-end">
             @* Characters, not kilobytes — the limit this counter counts up to is a character
                count, and showing KB here would promise a different unit than the one enforced. *@
             @pasteContent.Length.ToString("N0", PolishCulture) / @PasteValidator.MaxContentLength.ToString("N0", PolishCulture) znaków
         </div>
     </div>
 
-    <div class="mb-3 @(mode == InputMode.File ? "" : "d-none")">
+    <div class="field @(mode == InputMode.File ? "" : "d-none")">
         <label for="file" class="form-label">Plik Markdown</label>
-        <InputFile id="file" class="form-control" accept=".md,.markdown" OnChange="OnFileSelected" />
-        <div class="form-text">
-            Maksymalny rozmiar to @(MarkdownImportValidator.MaxFileSizeBytes / 1024) KB.
+
+        @* The zone is pure CSS around the native input: the input is stretched transparently over it,
+           so a click anywhere opens the picker and a dropped file lands in it without any JavaScript.
+           It comes first and unconditionally — Blazor must never recreate it, or the browser would
+           forget the chosen file, which is the same reason the panels are hidden and not removed. *@
+        <div class="dropzone">
+            <InputFile id="file" class="dropzone-input" accept=".md,.markdown" OnChange="OnFileSelected" />
+
+            <div class="icon-tile icon-tile--lg"><Icon Name="IconName.Upload" Size="20" /></div>
+
+            <div class="dropzone-text">
+                <span class="dropzone-prompt">Upuść plik .md tutaj albo <span class="dropzone-link">wybierz z dysku</span></span>
+                <div class="form-text">
+                    Maksymalny rozmiar to @(MarkdownImportValidator.MaxFileSizeBytes / 1024) KB.
+                </div>
+            </div>
+
+            @* The transparent input hides the browser's own "chosen file" label, so the page says it. *@
+            @if (selectedFile is not null)
+            {
+                <span class="badge mono"><Icon Name="IconName.File" Size="13" /><span>@selectedFile.Name</span></span>
+            }
         </div>
     </div>
 
-    <div class="mb-3">
+    <div class="field">
         <label for="title" class="form-label">Tytuł</label>
         <InputText id="title" class="form-control" @bind-Value="Input.Title" />
         <div class="form-text">
@@ -95,10 +126,17 @@
         <ValidationMessage For="() => Input.Title" class="text-danger" />
     </div>
 
-    <button type="submit" class="btn btn-primary" disabled="@isSaving">
-        @(isSaving ? "Zapisywanie…" : "Zapisz materiał")
-    </button>
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-lg" disabled="@isSaving">
+            @if (isSaving)
+            {
+                <span class="spin"></span>
+            }
+            @(isSaving ? "Zapisywanie…" : "Zapisz materiał")
+        </button>
+    </div>
 </EditForm>
+</div>
 
 @code {
     // Same culture the material and note pages format their dates with, so the character counter

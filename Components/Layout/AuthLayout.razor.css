@@ -1,0 +1,193 @@
+/* Login.dc.html: hero | form. Everything in the hero is decorative except its copy. The brand's
+   .brand / .logo and the page's .auth-head come from app.css. */
+
+.auth {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 100vh;
+    background: var(--bg);
+}
+
+.auth-hero {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 40px;
+    padding: 44px 64px;
+    border-right: 1px solid var(--line);
+    background:
+        radial-gradient(700px 420px at 30% 70%, color-mix(in oklch, var(--accent) 16%, transparent), transparent 70%),
+        radial-gradient(circle at 1px 1px, rgba(255, 255, 255, .06) 1px, transparent 0) 0 0 / 22px 22px,
+        var(--side);
+    overflow: hidden;
+}
+
+    .auth-hero .brand {
+        align-self: flex-start;
+        padding: 0;
+    }
+
+.auth-hero-body {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+/* --- The two illustrative cards --- */
+
+.auth-art {
+    position: relative;
+    width: 460px;
+    max-width: 100%;
+    height: 250px;
+}
+
+    .auth-art .card {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        padding: 18px;
+    }
+
+.auth-art-source {
+    left: 0;
+    top: 0;
+    width: 280px;
+    gap: 9px;
+    background: var(--panel);
+    transform: rotate(-3deg);
+}
+
+.auth-art-draft {
+    right: 0;
+    top: 56px;
+    width: 250px;
+    gap: 10px;
+    background: var(--panel-2);
+    border-color: var(--accent-line);
+    box-shadow: 0 30px 60px -24px var(--accent);
+}
+
+.auth-art-file,
+.auth-art-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.auth-art-file {
+    margin-bottom: 4px;
+    color: var(--tx-3);
+    font-family: var(--font-mono);
+}
+
+.auth-art-label {
+    color: var(--accent);
+    font-weight: 500;
+}
+
+    .auth-art-file ::deep svg,
+    .auth-art-label ::deep svg {
+        flex: none;
+    }
+
+.auth-art-heading {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.auth-art-heading--next {
+    margin-top: 4px;
+}
+
+.auth-art-point {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--accent);
+}
+
+.bar {
+    display: block;
+    height: 7px;
+    border-radius: 4px;
+    background: var(--line-2);
+}
+
+.bar-thin {
+    height: 6px;
+    border-radius: 3px;
+}
+
+/* --- Copy --- */
+
+.auth-hero-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 520px;
+}
+
+    .auth-hero-copy p {
+        margin: 0;
+    }
+
+.auth-hero-title {
+    font-size: 38px;
+    line-height: 1.12;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+    color: var(--tx);
+}
+
+.auth-hero-lead {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--tx-2);
+}
+
+.auth-hero-hint {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--tx-3);
+}
+
+/* --- Form column --- */
+
+.auth-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+}
+
+.auth-panel {
+    width: min(380px, 100%);
+}
+
+/* One column below 992px: the hero shrinks to its brand row, the form starts at the top. */
+@media (max-width: 991.98px) {
+    .auth {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto 1fr;
+    }
+
+    .auth-hero {
+        padding: 20px 16px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .auth-hero-body,
+    .auth-hero-hint {
+        display: none;
+    }
+
+    .auth-main {
+        align-items: flex-start;
+        padding: 32px 16px;
+    }
+}

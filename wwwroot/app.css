@@ -1,60 +1,1705 @@
-html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+/* ==========================================================================
+   10xNotes — global stylesheet
+   Dark-only design (context/changes/ui-redesign/design). Loaded after Bootstrap 5.3.3 and before
+   the scoped-CSS bundle, so a rule here beats Bootstrap at equal specificity and loses to a
+   component's own .razor.css. Values are lifted from the artboards' shared <style>; class names
+   are mapped onto Bootstrap's (.btn-*, .form-control, .alert-*, .card, .badge, .modal-*) or onto
+   the non-colliding primitives at the bottom — never copied verbatim, because the mockups'
+   .nav / .btn / .card / .fade / .input would collide with Bootstrap's.
+   ========================================================================== */
+
+
+/* --- Tokens ----------------------------------------------------------------------------------- */
+
+:root {
+    --accent: #8C7BFF;
+    --on-accent: #0B0B12;
+    --bg: #0A0B0F;
+    --side: #0C0D12;
+    --panel: #111319;
+    --panel-2: #161922;
+    --raise: #1C202B;
+    --field: #0D0F14;
+    --line: #1F2330;
+    --line-2: #2B3040;
+    --tx: #ECEEF3;
+    --tx-2: #A2A8B7;
+    --tx-3: #7A8194;
+    --ok: #3ECF8E;
+    --warn: #F2B84B;
+    --bad: #F07474;
+    --accent-soft: color-mix(in oklch, var(--accent) 14%, transparent);
+    --accent-line: color-mix(in oklch, var(--accent) 38%, transparent);
+    --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    --sidebar-w: 248px;
+    --control-h: 36px;
+    --control-h-sm: 30px;
+    --control-h-lg: 42px;
+    --input-h: 40px;
 }
 
-a, .btn-link {
-    color: #006bb7;
+
+/* --- Bootstrap theme -------------------------------------------------------------------------
+   Same selector list as Bootstrap's own blocks, so this one wins by source order. Bootstrap's
+   dark block still supplies color-scheme: dark (native scrollbars, the file input). */
+
+:root,
+[data-bs-theme=dark] {
+    --bs-font-sans-serif: var(--font-sans);
+    --bs-body-font-family: var(--font-sans);
+    --bs-font-monospace: var(--font-mono);
+    --bs-body-font-size: 14px;
+    --bs-body-line-height: 1.5;
+    --bs-body-color: var(--tx);
+    --bs-body-color-rgb: 236, 238, 243;
+    --bs-body-bg: var(--bg);
+    --bs-body-bg-rgb: 10, 11, 15;
+    --bs-emphasis-color: var(--tx);
+    --bs-emphasis-color-rgb: 236, 238, 243;
+    --bs-heading-color: var(--tx);
+    --bs-secondary-color: var(--tx-2);
+    --bs-tertiary-color: var(--tx-3);
+    --bs-secondary-bg: var(--raise);
+    --bs-tertiary-bg: var(--panel-2);
+    --bs-border-color: var(--line);
+    --bs-border-color-translucent: var(--line-2);
+    --bs-border-radius: 8px;
+    --bs-border-radius-sm: 7px;
+    --bs-border-radius-lg: 10px;
+    --bs-border-radius-xl: 14px;
+    --bs-border-radius-xxl: 16px;
+    --bs-primary: var(--accent);
+    --bs-primary-rgb: 140, 123, 255;
+    --bs-secondary-rgb: 162, 168, 183;
+    --bs-success: var(--ok);
+    --bs-success-rgb: 62, 207, 142;
+    --bs-warning: var(--warn);
+    --bs-warning-rgb: 242, 184, 75;
+    --bs-danger: var(--bad);
+    --bs-danger-rgb: 240, 116, 116;
+    --bs-link-color: var(--accent);
+    --bs-link-color-rgb: 140, 123, 255;
+    --bs-link-hover-color: #A598FF;
+    --bs-link-hover-color-rgb: 165, 152, 255;
+    --bs-code-color: var(--tx);
+    --bs-form-invalid-color: var(--bad);
+    --bs-form-invalid-border-color: var(--bad);
+    --bs-form-valid-color: var(--ok);
+    --bs-form-valid-border-color: var(--ok);
+    --bs-focus-ring-color: var(--accent-soft);
+    --bs-success-bg-subtle: color-mix(in oklch, var(--ok) 8%, var(--panel));
+    --bs-success-border-subtle: color-mix(in oklch, var(--ok) 24%, transparent);
+    --bs-success-text-emphasis: var(--tx);
+    --bs-warning-bg-subtle: color-mix(in oklch, var(--warn) 8%, var(--panel));
+    --bs-warning-border-subtle: color-mix(in oklch, var(--warn) 26%, transparent);
+    --bs-warning-text-emphasis: var(--tx);
+    --bs-danger-bg-subtle: color-mix(in oklch, var(--bad) 8%, var(--panel));
+    --bs-danger-border-subtle: color-mix(in oklch, var(--bad) 26%, transparent);
+    --bs-danger-text-emphasis: var(--tx);
 }
 
-.btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+
+/* --- Base ------------------------------------------------------------------------------------- */
+
+body {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--tx);
+    background-color: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+a {
+    text-decoration: none;
 }
 
-.content {
-    padding-top: 1.1rem;
+/* The artboards underline nothing, which is fine for links that are their own control (a nav
+   item, a card, a row, a badge, a breadcrumb): shape and position already say "link". Inside
+   running prose there is no such cue, and the accent against --tx-2 is a 1.4:1 difference — a
+   colour-only distinction (WCAG 1.4.1). So prose links, and only those, keep an underline.
+   Delete this block to go back to the artboards' bare links. */
+.sub a,
+.pane-hint a,
+.alert a,
+.empty-state p a,
+.narrow-card p a,
+.settings-card p a,
+.delete-dialog-body p a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
 }
 
+h1 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+}
+
+/* FocusOnNavigate (Routes.razor) moves focus to the page's h1; it is not an interactive control. */
 h1:focus {
     outline: none;
 }
 
-.valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
+code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--tx);
+    background: var(--raise);
+    border: 1px solid var(--line-2);
+    border-radius: 5px;
+    padding: 1px 6px;
 }
 
-.invalid {
-    outline: 1px solid #e50000;
+/* Fenced code in the note preview is <pre><code>: the block, not the inline chip. */
+pre code {
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: inherit;
+}
+
+.mono {
+    font-family: var(--font-mono);
+}
+
+::selection {
+    background: var(--accent-soft);
+}
+
+
+/* --- Buttons ---------------------------------------------------------------------------------
+   Bootstrap 5.3.3 hard-codes --bs-btn-* per variant, so each variant restates them all.
+   Active = hover; disabled = normal, dimmed by --bs-btn-disabled-opacity. */
+
+.btn {
+    --bs-btn-padding-x: 14px;
+    --bs-btn-padding-y: 0;
+    --bs-btn-font-family: var(--font-sans);
+    --bs-btn-font-size: 13.5px;
+    --bs-btn-font-weight: 500;
+    --bs-btn-line-height: 1;
+    --bs-btn-border-radius: 8px;
+    --bs-btn-focus-box-shadow: 0 0 0 3px var(--accent-soft);
+    --bs-btn-disabled-opacity: .5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: var(--control-h);
+    white-space: nowrap;
+}
+
+.btn-sm {
+    --bs-btn-padding-x: 11px;
+    --bs-btn-padding-y: 0;
+    --bs-btn-font-size: 12.5px;
+    --bs-btn-border-radius: 7px;
+    gap: 6px;
+    height: var(--control-h-sm);
+}
+
+.btn-lg {
+    --bs-btn-padding-x: 18px;
+    --bs-btn-padding-y: 0;
+    --bs-btn-font-size: 14px;
+    --bs-btn-border-radius: 10px;
+    height: var(--control-h-lg);
+}
+
+.btn-primary {
+    --bs-btn-color: var(--on-accent);
+    --bs-btn-bg: var(--accent);
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-color: var(--on-accent);
+    --bs-btn-hover-bg: color-mix(in oklch, var(--accent) 88%, white);
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-color: var(--on-accent);
+    --bs-btn-active-bg: color-mix(in oklch, var(--accent) 88%, white);
+    --bs-btn-active-border-color: transparent;
+    --bs-btn-disabled-color: var(--on-accent);
+    --bs-btn-disabled-bg: var(--accent);
+    --bs-btn-disabled-border-color: transparent;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), 0 8px 22px -10px var(--accent);
+}
+
+.btn-secondary {
+    --bs-btn-color: var(--tx);
+    --bs-btn-bg: var(--raise);
+    --bs-btn-border-color: var(--line-2);
+    --bs-btn-hover-color: var(--tx);
+    --bs-btn-hover-bg: color-mix(in oklch, var(--raise) 80%, white 6%);
+    --bs-btn-hover-border-color: var(--line-2);
+    --bs-btn-active-color: var(--tx);
+    --bs-btn-active-bg: color-mix(in oklch, var(--raise) 80%, white 6%);
+    --bs-btn-active-border-color: var(--line-2);
+    --bs-btn-disabled-color: var(--tx);
+    --bs-btn-disabled-bg: var(--raise);
+    --bs-btn-disabled-border-color: var(--line-2);
+}
+
+/* "Ghost" in the mockups. */
+.btn-outline-secondary {
+    --bs-btn-color: var(--tx-2);
+    --bs-btn-bg: transparent;
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-color: var(--tx);
+    --bs-btn-hover-bg: var(--raise);
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-color: var(--tx);
+    --bs-btn-active-bg: var(--raise);
+    --bs-btn-active-border-color: transparent;
+    --bs-btn-disabled-color: var(--tx-2);
+    --bs-btn-disabled-bg: transparent;
+    --bs-btn-disabled-border-color: transparent;
+}
+
+.btn-danger {
+    --bs-btn-color: #170808;
+    --bs-btn-bg: var(--bad);
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-color: #170808;
+    --bs-btn-hover-bg: color-mix(in oklch, var(--bad) 88%, white);
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-color: #170808;
+    --bs-btn-active-bg: color-mix(in oklch, var(--bad) 88%, white);
+    --bs-btn-active-border-color: transparent;
+    --bs-btn-disabled-color: #170808;
+    --bs-btn-disabled-bg: var(--bad);
+    --bs-btn-disabled-border-color: transparent;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25);
+}
+
+/* "Danger-soft" in the mockups. */
+.btn-outline-danger {
+    --bs-btn-color: var(--bad);
+    --bs-btn-bg: color-mix(in oklch, var(--bad) 9%, transparent);
+    --bs-btn-border-color: color-mix(in oklch, var(--bad) 28%, transparent);
+    --bs-btn-hover-color: var(--bad);
+    --bs-btn-hover-bg: color-mix(in oklch, var(--bad) 16%, transparent);
+    --bs-btn-hover-border-color: color-mix(in oklch, var(--bad) 28%, transparent);
+    --bs-btn-active-color: var(--bad);
+    --bs-btn-active-bg: color-mix(in oklch, var(--bad) 16%, transparent);
+    --bs-btn-active-border-color: color-mix(in oklch, var(--bad) 28%, transparent);
+    --bs-btn-disabled-color: var(--bad);
+    --bs-btn-disabled-bg: color-mix(in oklch, var(--bad) 9%, transparent);
+    --bs-btn-disabled-border-color: color-mix(in oklch, var(--bad) 28%, transparent);
+}
+
+.btn-warning {
+    --bs-btn-color: #1A1204;
+    --bs-btn-bg: var(--warn);
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-color: #1A1204;
+    --bs-btn-hover-bg: color-mix(in oklch, var(--warn) 88%, white);
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-color: #1A1204;
+    --bs-btn-active-bg: color-mix(in oklch, var(--warn) 88%, white);
+    --bs-btn-active-border-color: transparent;
+    --bs-btn-disabled-color: #1A1204;
+    --bs-btn-disabled-bg: var(--warn);
+    --bs-btn-disabled-border-color: transparent;
+}
+
+.btn-primary:disabled,
+.btn-danger:disabled {
+    box-shadow: none;
+}
+
+/* Busy indicator inside a button; takes the button's text colour. */
+.spin {
+    display: inline-block;
+    flex: none;
+    width: 13px;
+    height: 13px;
+    border-radius: 999px;
+    border: 2px solid color-mix(in oklch, currentColor 25%, transparent);
+    border-top-color: currentColor;
+    animation: rot .8s linear infinite;
+}
+
+@keyframes rot {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Bootstrap's dark filter already inverts the glyph. */
+.btn-close {
+    --bs-btn-close-opacity: .6;
+    --bs-btn-close-focus-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+
+/* --- Forms & validation ----------------------------------------------------------------------- */
+
+.form-label {
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--tx);
+}
+
+.form-control {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--tx);
+    background-color: var(--field);
+    border: 1px solid var(--line-2);
+    border-radius: 9px;
+}
+
+input.form-control {
+    height: var(--input-h);
+    padding: 0 12px;
+}
+
+textarea.form-control {
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    line-height: 1.65;
+}
+
+.form-control::placeholder {
+    color: var(--tx-3);
+}
+
+/* Bootstrap's .form-control:focus resets the background to --bs-body-bg; restate the field's. */
+.form-control:focus {
+    color: var(--tx);
+    background-color: var(--field);
+    border-color: var(--accent);
+    outline: 0;
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.form-control:disabled {
+    color: var(--tx-3);
+    background-color: var(--panel);
+    opacity: .7;
+}
+
+/* Blazor's field-state classes. No green "valid" outline: only problems are signalled. */
+.invalid,
+.form-control.invalid,
+.form-control.invalid:focus {
+    border-color: color-mix(in oklch, var(--bad) 70%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--bad) 14%, transparent);
 }
 
 .validation-message {
-    color: #e50000;
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: var(--bad);
 }
 
-.blazor-error-boundary {
-    background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzk4NyAyNjcuNTM5IDUzLjYyODMgMjkwLjE4NSA5Mi4xODMxIDI5MC41NDUgOTIuNzk1IDI5MC42NTYgOTIuOTk2QzI5MC44NzcgOTMuNTEzIDI5MSA5NC4wODE1IDI5MSA5NC42NzgyIDI5MSA5Ny4wNjUxIDI4OS4wMzggOTkgMjg2LjYxNyA5OUwyNDAuMzgzIDk5QzIzNy45NjMgOTkgMjM2IDk3LjA2NTEgMjM2IDk0LjY3ODIgMjM2IDk0LjM3OTkgMjM2LjAzMSA5NC4wODg2IDIzNi4wODkgOTMuODA3MkwyMzYuMzM4IDkzLjAxNjIgMjM2Ljg1OCA5Mi4xMzE0IDI1OS40NzMgNTMuNjI5NCAyNTkuOTYxIDUyLjc5ODUgMjYwLjQwNyA1Mi4yNjU4QzI2MS4yIDUxLjQ4MzcgMjYyLjI5NiA1MSAyNjMuNTA2IDUxWk0yNjMuNTg2IDY2LjAxODNDMjYwLjczNyA2Ni4wMTgzIDI1OS4zMTMgNjcuMTI0NSAyNTkuMzEzIDY5LjMzNyAyNTkuMzEzIDY5LjYxMDIgMjU5LjMzMiA2OS44NjA4IDI1OS4zNzEgNzAuMDg4N0wyNjEuNzk1IDg0LjAxNjEgMjY1LjM4IDg0LjAxNjEgMjY3LjgyMSA2OS43NDc1QzI2Ny44NiA2OS43MzA5IDI2Ny44NzkgNjkuNTg3NyAyNjcuODc5IDY5LjMxNzkgMjY3Ljg3OSA2Ny4xMTgyIDI2Ni40NDggNjYuMDE4MyAyNjMuNTg2IDY2LjAxODNaTTI2My41NzYgODYuMDU0N0MyNjEuMDQ5IDg2LjA1NDcgMjU5Ljc4NiA4Ny4zMDA1IDI1OS43ODYgODkuNzkyMSAyNTkuNzg2IDkyLjI4MzcgMjYxLjA0OSA5My41Mjk1IDI2My41NzYgOTMuNTI5NSAyNjYuMTE2IDkzLjUyOTUgMjY3LjM4NyA5Mi4yODM3IDI2Ny4zODcgODkuNzkyMSAyNjcuMzg3IDg3LjMwMDUgMjY2LjExNiA4Ni4wNTQ3IDI2My41NzYgODYuMDU0N1oiIGZpbGw9IiNGRkU1MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=) no-repeat 1rem/1.8rem, #b32121;
-    padding: 1rem 1rem 1rem 3.7rem;
-    color: white;
+.form-text {
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: var(--tx-3);
 }
 
-    .blazor-error-boundary::after {
-        content: "An error has occurred."
+/* A leading icon inside a text input: wrap the control, put an <Icon> before it. */
+.input-icon {
+    position: relative;
+}
+
+    .input-icon > svg {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--tx-3);
+        pointer-events: none;
     }
 
-.darker-border-checkbox.form-check-input {
-    border-color: #929292;
+    .input-icon > .form-control {
+        padding-left: 38px;
+    }
+
+
+/* --- Alerts ----------------------------------------------------------------------------------
+   Optional leading <Icon>, then the message (and, where an alert asks something, an .alert-actions
+   row inside it). The close button keeps its own width; everything else takes the rest of the line. */
+
+.alert {
+    --bs-alert-padding-x: 14px;
+    --bs-alert-padding-y: 12px;
+    --bs-alert-border-radius: 10px;
+    --bs-alert-color: var(--tx);
+    --bs-alert-margin-bottom: 16px;
+    display: flex;
+    gap: 11px;
+    align-items: flex-start;
+    font-size: 13.5px;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-    color: var(--bs-secondary-color);
-    text-align: end;
+    .alert > svg {
+        flex: none;
+        margin-top: 2px;
+    }
+
+    .alert > :not(svg):not(.btn-close) {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .alert p:last-child {
+        margin-bottom: 0;
+    }
+
+.alert-success {
+    --bs-alert-color: var(--tx);
+    --bs-alert-bg: color-mix(in oklch, var(--ok) 8%, var(--panel));
+    --bs-alert-border-color: color-mix(in oklch, var(--ok) 24%, transparent);
+    --bs-alert-link-color: var(--tx);
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-    text-align: start;
+    .alert-success > svg {
+        color: var(--ok);
+    }
+
+.alert-danger {
+    --bs-alert-color: var(--tx);
+    --bs-alert-bg: color-mix(in oklch, var(--bad) 8%, var(--panel));
+    --bs-alert-border-color: color-mix(in oklch, var(--bad) 26%, transparent);
+    --bs-alert-link-color: var(--tx);
+}
+
+    .alert-danger > svg {
+        color: var(--bad);
+    }
+
+.alert-warning {
+    --bs-alert-color: var(--tx);
+    --bs-alert-bg: color-mix(in oklch, var(--warn) 8%, var(--panel));
+    --bs-alert-border-color: color-mix(in oklch, var(--warn) 26%, transparent);
+    --bs-alert-link-color: var(--tx);
+}
+
+    .alert-warning > svg {
+        color: var(--warn);
+    }
+
+.alert-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+
+/* --- Cards ----------------------------------------------------------------------------------- */
+
+.card {
+    --bs-card-bg: var(--panel);
+    --bs-card-border-color: var(--line);
+    --bs-card-border-radius: 14px;
+    --bs-card-inner-border-radius: 13px;
+    --bs-card-color: var(--tx);
+}
+
+
+/* --- Modal -----------------------------------------------------------------------------------
+   Rendered by Blazor, not by Bootstrap JS (Notes/Detail). Z-indexes stay Bootstrap's
+   (backdrop 1050, modal 1055), above the sidebar and the mobile drawer. */
+
+.modal {
+    --bs-modal-width: 460px;
+    --bs-modal-color: var(--tx);
+    --bs-modal-bg: var(--panel-2);
+    --bs-modal-border-color: var(--line-2);
+    --bs-modal-border-radius: 16px;
+    --bs-modal-inner-border-radius: 15px;
+    --bs-modal-box-shadow: 0 40px 90px -24px rgba(0, 0, 0, .8);
+    --bs-modal-padding: 24px;
+    --bs-modal-header-padding: 24px 24px 0;
+    --bs-modal-header-border-width: 0;
+    --bs-modal-footer-bg: var(--panel);
+    --bs-modal-footer-border-color: var(--line);
+    --bs-modal-footer-gap: 10px;
+    --bs-modal-margin: 16px;
+}
+
+.modal-content {
+    overflow: hidden;
+    box-shadow: var(--bs-modal-box-shadow);
+}
+
+.modal-footer {
+    padding: 14px 24px;
+    gap: var(--bs-modal-footer-gap);
+}
+
+    .modal-footer > * {
+        margin: 0;
+    }
+
+/* The delete dialog leads with an icon rather than a header bar, so it renders no .modal-header
+   and spaces the body itself. */
+.delete-dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 24px 24px 20px;
+}
+
+    .delete-dialog-body .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+    }
+
+    .delete-dialog-body p {
+        margin: 0;
+        line-height: 1.6;
+        color: var(--tx-2);
+        overflow-wrap: anywhere;
+    }
+
+.modal-icon {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    color: var(--bad);
+    background: color-mix(in oklch, var(--bad) 12%, transparent);
+    border: 1px solid color-mix(in oklch, var(--bad) 30%, transparent);
+    border-radius: 11px;
+}
+
+.modal-backdrop {
+    --bs-backdrop-bg: rgb(5, 6, 9);
+    --bs-backdrop-opacity: .68;
+    backdrop-filter: blur(3px);
+}
+
+
+/* --- Primitives ------------------------------------------------------------------------------
+   Non-colliding building blocks the pages are composed from. Page-specific ones (note grid,
+   material list, dropzone, import card) are appended here by the phase that uses them. */
+
+/* Page header: title block on the left, actions on the right. */
+.page-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px 24px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+}
+
+.page-head--detail {
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.page-head > div {
+    min-width: 0;
+}
+
+.sub {
+    max-width: 620px;
+    margin: 6px 0 0;
+    font-size: 14px;
+    color: var(--tx-2);
+}
+
+.crumbs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: var(--tx-3);
+}
+
+    .crumbs a {
+        color: var(--tx-2);
+    }
+
+        .crumbs a:hover {
+            color: var(--tx);
+        }
+
+    .crumbs svg {
+        flex: none;
+    }
+
+    .crumbs > span:last-child {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+.meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--tx-3);
+}
+
+    .meta svg {
+        flex: none;
+    }
+
+.meta-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+/* Replaces Bootstrap's badge look entirely (pill, raised, bordered). */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    height: 24px;
+    padding: 0 9px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    vertical-align: middle;
+    color: var(--tx-2);
+    background: var(--raise);
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
+}
+
+    .badge svg {
+        flex: none;
+        color: var(--tx-3);
+    }
+
+    .badge > span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .badge.mono {
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+    }
+
+    .badge.st-ok {
+        gap: 7px;
+        color: var(--ok);
+        background: color-mix(in oklch, var(--ok) 9%, transparent);
+        border-color: color-mix(in oklch, var(--ok) 24%, transparent);
+    }
+
+    a.badge.st-ok:hover {
+        color: var(--ok);
+        background: color-mix(in oklch, var(--ok) 14%, transparent);
+    }
+
+    .badge.st-none {
+        gap: 7px;
+        color: var(--tx-3);
+        background: transparent;
+        border-color: var(--line-2);
+    }
+
+        .badge.st-ok svg,
+        .badge.st-none svg {
+            color: currentColor;
+        }
+
+.dot {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+}
+
+.icon-tile {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-line);
+}
+
+.icon-tile--lg {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+}
+
+.icon-tile--xl {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    box-shadow: 0 0 0 6px color-mix(in oklch, var(--accent) 6%, transparent), 0 14px 40px -12px var(--accent);
+}
+
+/* Segmented switch (edit/preview, paste/file). Items are <button>s, deliberately not .btn. */
+.seg {
+    display: inline-flex;
+    max-width: 100%;
+    gap: 2px;
+    padding: 3px;
+    background: var(--field);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+}
+
+.seg-item {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 30px;
+    margin: 0;
+    padding: 0 12px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--tx-3);
+    background: none;
+    border: 0;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: color .15s ease-in-out, background-color .15s ease-in-out;
+}
+
+    .seg-item:hover {
+        color: var(--tx-2);
+    }
+
+    .seg-item.on {
+        color: var(--tx);
+        background: var(--raise);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 1px 2px rgba(0, 0, 0, .45);
+    }
+
+        .seg-item.on svg {
+            color: var(--accent);
+        }
+
+    .seg-item:focus-visible {
+        outline: 0;
+        box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .seg-item.on:focus-visible {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 1px 2px rgba(0, 0, 0, .45), 0 0 0 3px var(--accent-soft);
+    }
+
+    .seg-item:disabled {
+        opacity: .5;
+        cursor: default;
+    }
+
+/* Empty list, on a .card. */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 56px 24px;
+    text-align: center;
+    border-style: dashed;
+    background: color-mix(in oklch, var(--panel) 60%, transparent);
+}
+
+/* On the detail pages this card is the not-found branch, so its heading is the page's own h1 —
+   FocusOnNavigate targets it, and it must stay the first h1 on the page. */
+.empty-state h1 {
+    font-size: 22px;
+}
+
+.empty-state h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--tx);
+}
+
+.empty-state-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--tx);
+}
+
+.empty-state p {
+    max-width: 420px;
+    margin: 0;
+    color: var(--tx-2);
+}
+
+/* The copy block between the tile and the button; the tile is a div too, hence the :not(). */
+.empty-state > div:not(.icon-tile) {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 420px;
+}
+
+/* Two-pane detail pages: source | note. */
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+}
+
+.pane {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.pane--note {
+    border-color: var(--line-2);
+}
+
+.pane-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 54px;
+    padding: 8px 14px 8px 18px;
+    border-bottom: 1px solid var(--line);
+}
+
+.pane-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--tx);
+}
+
+    .pane-title svg {
+        flex: none;
+        color: var(--tx-3);
+    }
+
+.pane-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 50%;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 12.5px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+    .pane-link svg {
+        flex: none;
+    }
+
+.pane-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px;
+}
+
+/* A line of explanation inside a pane, where a paragraph would otherwise inherit body size. */
+.pane-hint {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--tx-2);
+}
+
+.pane-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 18px;
+    border-top: 1px solid var(--line);
+}
+
+.pane-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 48px 32px;
+    text-align: center;
+    background: radial-gradient(360px 220px at 50% 42%, var(--accent-soft), transparent 70%);
+}
+
+    .pane-empty p {
+        max-width: 340px;
+        margin: 0;
+        line-height: 1.6;
+        color: var(--tx-2);
+    }
+
+/* Source material (and the streaming note) as plain text in a <pre>: long lines wrap, a tall
+   document scrolls inside its own box. */
+.src {
+    max-height: 60vh;
+    margin: 0;
+    padding: 18px 20px 56px;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.8;
+    color: var(--tx-2);
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: transparent;
+    border: 0;
+}
+
+.src--live {
+    color: var(--tx);
+}
+
+/* The streaming note is the last thing in the note pane's body and reaches its edges, while the
+   draft editor and the empty state keep the body's padding. */
+.pane-body > pre.src {
+    margin: 0 -18px -18px;
+}
+
+/* Named pane-fade, not fade: Bootstrap's .fade is a transition utility. */
+.pane-fade {
+    position: absolute;
+    left: 1px;
+    right: 1px;
+    bottom: 1px;
+    height: 72px;
+    border-radius: 0 0 13px 13px;
+    background: linear-gradient(to bottom, transparent, var(--panel));
+    pointer-events: none;
+}
+
+.stream-bar {
+    flex: none;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    background-size: 40% 100%;
+    background-repeat: no-repeat;
+    animation: slide 1.5s ease-in-out infinite;
+}
+
+@keyframes slide {
+    from {
+        background-position: -60% 0;
+    }
+
+    to {
+        background-position: 160% 0;
+    }
+}
+
+.caret {
+    display: inline-block;
+    width: 8px;
+    height: 15px;
+    margin-left: 2px;
+    vertical-align: -3px;
+    background: var(--accent);
+    border-radius: 1px;
+    animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+/* A value the user can see but not change (the profile e-mail). */
+.readonly-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    height: 40px;
+    padding: 0 12px;
+    color: var(--tx-2);
+    background: transparent;
+    border: 1px dashed var(--line-2);
+    border-radius: 9px;
+}
+
+    .readonly-field svg {
+        flex: none;
+        color: var(--tx-3);
+    }
+
+    .readonly-field > span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+/* Settings page: section title + hint on the left, a card with the form on the right. */
+.settings-row {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 40px;
+    padding: 28px 0;
+    border-top: 1px solid var(--line);
+}
+
+.settings-intro {
+    min-width: 0;
+}
+
+.settings-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--tx);
+}
+
+    .settings-title.text-danger {
+        color: var(--bad) !important;
+    }
+
+.settings-hint {
+    margin: 6px 0 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--tx-3);
+}
+
+.settings-card {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    max-width: 560px;
+    padding: 22px;
+}
+
+.settings-card--danger {
+    background: color-mix(in oklch, var(--bad) 4%, var(--panel));
+    border-color: color-mix(in oklch, var(--bad) 30%, transparent);
+}
+
+    /* The card spaces its own blocks, so the alert drops the margin Bootstrap gives it. */
+    .settings-card > .alert {
+        margin-bottom: 0;
+    }
+
+    /* EditForm renders the <form>, which is one of those blocks: it carries the same rhythm
+       inside, so fields and the action row sit 18px apart like everything else in the card. */
+    .settings-card form {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .settings-card .form-actions {
+        padding-top: 0;
+    }
+
+    .settings-card p {
+        margin: 0;
+        line-height: 1.6;
+        color: var(--tx-2);
+    }
+
+/* Two short paragraphs the danger zone reads as one block, tighter than the card's own gap. */
+.settings-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Small single-purpose card (logout, error, not found). */
+.narrow-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 460px;
+    padding: 24px;
+}
+
+    .narrow-card p {
+        margin: 0;
+        line-height: 1.6;
+        color: var(--tx-2);
+    }
+
+/* The framework's Error page. Bootstrap's h2/h3 would dwarf the h1 above them, so both come
+   down to the card's own scale; the copy itself is untouched. */
+.system-card {
+    max-width: 640px;
+}
+
+    .system-card h2 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .system-card h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    /* A trace id has no spaces and is longer than a phone screen. */
+    .system-card code {
+        overflow-wrap: anywhere;
+    }
+
+/* One labelled form field. Containers that space their children with gap zero the margin;
+   the auth forms keep it, which is the artboard's field gap. */
+.field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 18px;
+}
+
+    .field > .form-label {
+        margin-bottom: 8px;
+    }
+
+.import-form .field,
+.note-editor .field,
+.settings-card .field {
+    margin-bottom: 0;
+}
+
+.form-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-top: 4px;
+}
+
+
+/* Brand row (sidebar and auth hero). Global because NavMenu and AuthLayout both render it and
+   scoped CSS cannot be shared between components. */
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 2px 8px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--tx);
+}
+
+    .brand:hover {
+        color: var(--tx);
+    }
+
+    .brand:focus-visible {
+        outline: 0;
+        border-radius: 8px;
+        box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+.logo {
+    width: 28px;
+    height: 28px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--on-accent);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 6px 18px -6px var(--accent);
+}
+
+/* Login / Register heading block: the h1 and the cross-link under it (AuthLayout). Here rather
+   than in AuthLayout's scoped sheet because the pages render these elements, not the layout. */
+.auth-head {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 28px;
+}
+
+    .auth-head .sub {
+        margin: 0;
+    }
+
+/* 18px field gap + 10px = the artboard's 28px between the fields and the submit button. */
+.auth-panel .form-actions {
+    margin-top: 10px;
+    padding-top: 0;
+}
+
+
+/* --- Notes index (Main.dc.html) ----------------------------------------------------------------
+   The whole card is the note's link (Bootstrap's .stretched-link over .card's position: relative);
+   the source link is lifted above it so it stays clickable. */
+
+.note-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.note-card {
+    gap: 16px;
+    min-height: 184px;
+    padding: 20px;
+    transition: border-color .15s ease-in-out, background-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+    .note-card:hover,
+    .note-card:focus-within {
+        border-color: var(--accent-line);
+        background: var(--panel-2);
+        box-shadow: 0 0 0 1px var(--accent-line), 0 20px 44px -24px var(--accent);
+    }
+
+        .note-card:hover .note-card-arrow,
+        .note-card:focus-within .note-card-arrow {
+            color: var(--accent);
+        }
+
+.note-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.note-card-source {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+    .note-card-source svg {
+        flex: none;
+    }
+
+.note-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.38;
+    letter-spacing: -0.01em;
+    color: var(--tx);
+    text-wrap: pretty;
+    overflow-wrap: anywhere;
+}
+
+    .note-card-title:hover {
+        color: var(--tx);
+    }
+
+.note-card-foot {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+}
+
+    .note-card-foot .meta {
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+.note-card-arrow {
+    display: flex;
+    flex: none;
+    color: var(--tx-3);
+    transition: color .15s ease-in-out;
+}
+
+
+/* --- Materials index (Materials.dc.html) -------------------------------------------------------
+   A table look built from CSS grid rows: the head and the rows share one column template. */
+
+.material-table {
+    overflow: hidden;
+}
+
+.material-head,
+.material-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, .95fr) 168px;
+    gap: 20px;
+    align-items: center;
+    padding: 0 20px;
+}
+
+.material-head {
+    height: 44px;
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--tx-3);
+}
+
+    .material-head > span:last-child {
+        text-align: right;
+    }
+
+.material-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.material-row {
+    min-height: 62px;
+    border-top: 1px solid var(--line);
+    transition: background-color .15s ease-in-out;
+}
+
+    .material-row:hover {
+        background: var(--panel-2);
+    }
+
+        .material-row:hover .material-title {
+            color: var(--accent);
+        }
+
+.material-cell-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.material-icon {
+    display: flex;
+    flex: none;
+    color: var(--tx-3);
+}
+
+.material-title {
+    min-width: 0;
+    font-weight: 500;
+    color: var(--tx);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.material-cell-source {
+    display: flex;
+    min-width: 0;
+}
+
+/* Overrides .meta's inline-flex so the verb + date can ellipsis as one text line. */
+.material-cell-date {
+    display: block;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--tx-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.material-cell-note {
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+}
+
+
+/* --- Import (Import.dc.html) -------------------------------------------------------------------
+   The dropzone is pure CSS around the native <input type="file">, which is stretched transparently
+   over the whole zone: click and native drop both work, with no JavaScript. */
+
+.import-card {
+    max-width: 840px;
+    gap: 22px;
+    padding: 24px;
+}
+
+    .import-card > .seg {
+        align-self: flex-start;
+    }
+
+.import-form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.import-paste {
+    min-height: 292px;
+    resize: vertical;
+}
+
+.dropzone {
+    position: relative;
+    min-height: 220px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: center;
+    background: var(--field);
+    border: 1.5px dashed var(--line-2);
+    border-radius: 12px;
+    transition: border-color .15s ease-in-out, background-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+    .dropzone:hover,
+    .dropzone:focus-within {
+        border-color: var(--accent-line);
+        background: color-mix(in oklch, var(--accent) 4%, var(--field));
+    }
+
+    .dropzone:focus-within {
+        box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .dropzone .form-text {
+        margin: 0;
+    }
+
+.dropzone-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.dropzone-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 100%;
+}
+
+.dropzone-prompt {
+    font-weight: 500;
+}
+
+.dropzone-link {
+    color: var(--accent);
+}
+
+
+/* --- Error UI ---------------------------------------------------------------------------------
+   Rendered by App.razor so both layouts have it; blazor.web.js shows it and wires .reload and
+   .dismiss by class inside the id. */
+
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1060;
+    box-sizing: border-box;
+    padding: 12px 48px 12px 20px;
+    background: color-mix(in oklch, var(--bad) 8%, var(--panel-2));
+    border-top: 1px solid color-mix(in oklch, var(--bad) 26%, transparent);
+    color: var(--tx);
+    font-size: 13.5px;
+    box-shadow: 0 -12px 32px -16px rgba(0, 0, 0, .8);
+}
+
+    #blazor-error-ui .reload {
+        margin-left: 12px;
+        font-weight: 500;
+        color: var(--accent);
+    }
+
+        #blazor-error-ui .reload:hover {
+            text-decoration: underline;
+        }
+
+    /* A <button>, not a span with role="button": the framework wires it by class, and a real
+       button is the only version a keyboard can reach. */
+    #blazor-error-ui .dismiss {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: grid;
+        place-items: center;
+        padding: 4px;
+        color: var(--tx-3);
+        background: none;
+        border: 0;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+        #blazor-error-ui .dismiss:hover {
+            color: var(--tx);
+        }
+
+        #blazor-error-ui .dismiss:focus-visible {
+            outline: 0;
+            color: var(--tx);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+
+
+/* --- Responsive ------------------------------------------------------------------------------
+   Three breakpoints only — 992px (panes, settings, auth), 768px (material rows) and 641px (the
+   shell). The cross-page narrow-width pass appends to these blocks rather than adding more. */
+
+/* From the two-pane width up, the panes share one row height (the editor's 60vh sets it) and the
+   source fills its pane, as in the mockups; below it they stack and each keeps its own height. */
+@media (min-width: 992px) {
+    .detail-grid {
+        align-items: stretch;
+    }
+
+    .pane {
+        display: flex;
+        flex-direction: column;
+    }
+
+        .pane > .src {
+            flex: 1;
+            max-height: none;
+        }
+
+    .pane-empty {
+        flex: 1;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .detail-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .settings-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .material-head {
+        display: none;
+    }
+
+    .material-row {
+        grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+        grid-template-areas:
+            "title title"
+            "source note"
+            "date  date";
+        gap: 8px 20px;
+        padding: 14px 16px;
+    }
+
+    .material-cell-title {
+        grid-area: title;
+    }
+
+    .material-cell-source {
+        grid-area: source;
+    }
+
+    .material-cell-note {
+        grid-area: note;
+    }
+
+    .material-cell-date {
+        grid-area: date;
+    }
+}
+
+@media (max-width: 640.98px) {
+    h1 {
+        font-size: 24px;
+    }
+
+    /* Actions stretch only once they wrap under the title: on a shared line the title's
+       grow factor takes (almost) all the free space. */
+    .page-head > :first-child {
+        flex: 999 1 auto;
+    }
+
+    .page-head > :not(:first-child) {
+        flex: 1 0 auto;
+    }
+
+    /* A long material or note title and the pane's own button no longer share a line. */
+    .pane-head {
+        flex-wrap: wrap;
+    }
+
+    .pane-link {
+        max-width: 100%;
+    }
+
+    /* Cards give back the padding the 16px page gutter already spends. */
+    .settings-card,
+    .import-card,
+    .narrow-card {
+        padding: 18px;
+    }
+
+    .dropzone {
+        padding: 18px;
+    }
+
+    .empty-state {
+        padding: 40px 18px;
+    }
+
+    .pane-empty {
+        padding: 36px 18px;
+    }
+
+    #blazor-error-ui {
+        padding: 12px 44px 12px 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .stream-bar,
+    .caret {
+        animation: none;
+    }
 }

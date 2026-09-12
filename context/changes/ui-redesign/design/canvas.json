@@ -1,0 +1,100 @@
+{
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Ekrany"
+    },
+    {
+      "id": "page-2",
+      "name": "System wizualny"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Login.dc.html",
+      "title": "Logowanie",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "Main.dc.html",
+      "title": "Moje notatki",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "Materials.dc.html",
+      "title": "Moje materiały",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "Import.dc.html",
+      "title": "Dodaj materiał",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "Material.dc.html",
+      "title": "Materiał — generowanie notatki",
+      "x": 0,
+      "y": 1080,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "Note.dc.html",
+      "title": "Notatka — podgląd i edycja",
+      "x": 1560,
+      "y": 1080,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "Profile.dc.html",
+      "title": "Moje konto",
+      "x": 3120,
+      "y": 1080,
+      "w": 1440,
+      "h": 1340,
+      "page": "page-1"
+    },
+    {
+      "file": "System.dc.html",
+      "title": "System wizualny",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1060,
+      "page": "page-2"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -440,
+      "w": 560,
+      "page": "page-1",
+      "text": "10xnotes — nowy wygląd\n\nKierunek: nowoczesny SaaS, tylko ciemny motyw, jeden akcent (fiolet). Fonty: Geist + Geist Mono.\nStruktura, nawigacja i teksty 1:1 z obecnych komponentów Razor.\n\nChipy nad ekranami: „akcent” zmienia kolor marki, a „stan / tryb / pustaLista / dialogUsuwania” przełączają stany ekranu."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
+}

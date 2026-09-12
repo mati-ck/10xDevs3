@@ -26,71 +26,116 @@
 {
     @* A note that is not yours renders exactly like a note that does not exist. Telling the two
        apart would turn this page into a probe for which ids are real. *@
-    <h1>Nie znaleziono notatki</h1>
-    <p>Ta notatka nie istnieje albo nie należy do Twojego konta.</p>
-    <a href="/materials/import">Dodaj nowy materiał</a>
+    <div class="card empty-state">
+        <div class="icon-tile icon-tile--lg"><Icon Name="IconName.Alert" Size="24" /></div>
+
+        <div>
+            <h1>Nie znaleziono notatki</h1>
+            <p>Ta notatka nie istnieje albo nie należy do Twojego konta.</p>
+        </div>
+
+        <a class="btn btn-secondary" href="/materials/import">
+            <Icon Name="IconName.Plus" StrokeWidth="2" />
+            Dodaj nowy materiał
+        </a>
+    </div>
 }
 else
 {
-    <h1>@note.Title</h1>
+    <div class="page-head page-head--detail">
+        <div>
+            <nav class="crumbs" aria-label="Ścieżka">
+                <a href="/">Moje notatki</a>
+                <Icon Name="IconName.ChevronRight" Size="13" />
+                @* Plain interpolation, never MarkupString: the title comes from the user. *@
+                <span>@note.Title</span>
+            </nav>
 
-    <p class="text-secondary">
-        @* ToDisplayTime, not ToLocalTime: "local" resolves against the container's clock, which
-           is UTC. The culture is named explicitly so the month renders in Polish. *@
-        Zapisano @TimeProvider.ToDisplayTime(note.UpdatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture).
-    </p>
+            <h1>@note.Title</h1>
+
+            <div class="meta-row">
+                <span class="meta">
+                    <Icon Name="IconName.Clock" Size="14" />
+                    @* ToDisplayTime, not ToLocalTime: "local" resolves against the container's clock, which
+                       is UTC. The culture is named explicitly so the month renders in Polish. *@
+                    Zapisano @TimeProvider.ToDisplayTime(note.UpdatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture).
+                </span>
+            </div>
+        </div>
+
+        @* In the page head rather than beside "Zapisz zmiany", which now sits in the note pane's
+           footer: this is the only irreversible action on the page, so it belongs as far from the
+           save button as the layout allows. *@
+        <button type="button" class="btn btn-outline-danger"
+                disabled="@(isSaving || isDeleting)" @onclick="OpenDeleteDialog">
+            <Icon Name="IconName.Trash" Size="15" />
+            Usuń notatkę
+        </button>
+    </div>
 
     @* The same two columns as the material page, and for the same PRD guardrail: the source stays
        available beside the note. Correcting a note without its material in front of you is
        exactly the thing the guardrail exists to prevent. *@
-    <div class="row g-4">
-        <div class="col-lg-6">
-            <h2 class="h5">Materiał źródłowy</h2>
+    <div class="detail-grid">
+        <section class="card pane">
+            <div class="pane-head">
+                <h2 class="pane-title">
+                    <Icon Name="IconName.Layers" />
+                    Materiał źródłowy
+                </h2>
+
+                @if (material is not null)
+                {
+                    <a class="pane-link" href="/materials/@note.SourceMaterialId">
+                        @material.Title
+                        <Icon Name="IconName.ArrowUpRight" Size="13" />
+                    </a>
+                }
+            </div>
 
             @if (material is null)
             {
-                <p class="text-secondary">Materiał źródłowy nie jest już dostępny.</p>
+                <div class="pane-body">
+                    <p class="pane-hint">Materiał źródłowy nie jest już dostępny.</p>
+                </div>
             }
             else
             {
-                <p class="text-secondary">
-                    <a href="/materials/@note.SourceMaterialId">@material.Title</a>
-                </p>
-
                 @* Raw text, never rendered as Markdown or markup — identical treatment to the
                    material page, so the source is provably unchanged wherever it is shown. *@
-                <pre class="source-content border rounded p-3">@material.Content</pre>
+                <pre class="source-content src">@material.Content</pre>
+                <div class="pane-fade"></div>
             }
-        </div>
+        </section>
 
-        <div class="col-lg-6">
-            <h2 class="h5">Notatka</h2>
+        <section class="card pane pane--note">
+            <div class="pane-head">
+                <h2 class="pane-title">
+                    <Icon Name="IconName.FileText" />
+                    Notatka
+                </h2>
 
-            @if (savedMessage is not null)
-            {
-                <div class="alert alert-success" role="alert">@savedMessage</div>
-            }
+                @if (savedMessage is not null)
+                {
+                    <span class="badge st-ok" role="status">
+                        <Icon Name="IconName.Check" Size="13" StrokeWidth="2.2" />
+                        @savedMessage
+                    </span>
+                }
+            </div>
 
-            @* No replace confirmation here, unlike the material page: this is the same note being
-               corrected, not a fresh draft overwriting somebody's accepted work. No ledger event
-               either — re-saving is not a new acceptance. *@
-            <NoteEditor @bind-Title="editorTitle"
-                        @bind-Content="editorContent"
-                        SaveLabel="Zapisz zmiany"
-                        IsBusy="@isSaving"
-                        ErrorMessage="@saveErrorMessage"
-                        OnSave="SaveAsync" />
-
-            @* Below the editor and behind a rule, deliberately not beside "Zapisz zmiany": this
-               is the only irreversible action on the page, so it should not sit where a mis-aimed
-               click at the save button can land. *@
-            <hr class="my-4" />
-
-            <button type="button" class="btn btn-outline-danger"
-                    disabled="@(isSaving || isDeleting)" @onclick="OpenDeleteDialog">
-                Usuń notatkę
-            </button>
-        </div>
+            <div class="pane-body">
+                @* No replace confirmation here, unlike the material page: this is the same note being
+                   corrected, not a fresh draft overwriting somebody's accepted work. No ledger event
+                   either — re-saving is not a new acceptance. *@
+                <NoteEditor @bind-Title="editorTitle"
+                            @bind-Content="editorContent"
+                            SaveLabel="Zapisz zmiany"
+                            IsBusy="@isSaving"
+                            ErrorMessage="@saveErrorMessage"
+                            OnSave="SaveAsync" />
+            </div>
+        </section>
     </div>
 
     @if (isConfirmingDelete)
@@ -99,7 +144,7 @@ else
            loop, cannot be styled and cannot be written in Polish, which is why the material page
            rejected it too. Bootstrap ships the modal CSS but App.razor loads none of its JS, so
            the open/closed state is Blazor's rather than data-bs-toggle's, and the backdrop is
-           rendered by hand. Placed outside the two-column row so it overlays the whole page. *@
+           rendered by hand. Placed outside the two-pane grid so it overlays the whole page. *@
         <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true"
              aria-labelledby="delete-note-dialog-title"
              @onkeydown="OnDeleteDialogKeyDown">
@@ -115,11 +160,11 @@ else
 
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h2 class="modal-title h5" id="delete-note-dialog-title">Usunąć notatkę?</h2>
-                    </div>
+                    <div class="modal-body delete-dialog-body">
+                        <div class="modal-icon"><Icon Name="IconName.Trash" Size="19" /></div>
 
-                    <div class="modal-body">
+                        <h2 class="modal-title" id="delete-note-dialog-title">Usunąć notatkę?</h2>
+
                         @* The title is quoted back so the dialog names what is about to go, rather
                            than asking about "the note" while the page behind it is dimmed. Plain
                            interpolation, never MarkupString: the title comes from the user. *@
@@ -132,14 +177,17 @@ else
                         {
                             @* Inside the dialog, because the dialog stays open when the delete
                                fails — an error behind the backdrop would be unreadable. *@
-                            <div class="alert alert-danger mb-0" role="alert">@deleteErrorMessage</div>
+                            <div class="alert alert-danger mb-0" role="alert">
+                                <Icon Name="IconName.Alert" />
+                                <span>@deleteErrorMessage</span>
+                            </div>
                         }
                     </div>
 
                     <div class="modal-footer">
                         @* Cancel first, and the one that takes focus: the safe choice should be
                            where a reflexive Enter or click lands. *@
-                        <button type="button" class="btn btn-outline-secondary"
+                        <button type="button" class="btn btn-secondary"
                                 @ref="cancelButton"
                                 disabled="@isDeleting" @onclick="() => isConfirmingDelete = false">
                             Anuluj
@@ -147,6 +195,14 @@ else
                         <button type="button" class="btn btn-danger"
                                 @ref="confirmButton"
                                 disabled="@isDeleting" @onclick="DeleteAsync">
+                            @if (!isDeleting)
+                            {
+                                <Icon Name="IconName.Trash" Size="15" />
+                            }
+                            else
+                            {
+                                <span class="spin"></span>
+                            }
                             @(isDeleting ? "Usuwam…" : "Usuń notatkę")
                         </button>
                     </div>

@@ -1,5 +1,6 @@
 @page "/register"
 @attribute [AllowAnonymous]
+@layout AuthLayout
 @using System.ComponentModel.DataAnnotations
 @using _10xnotes.Auth
 @inject SupabaseAuthClient AuthClient
@@ -9,33 +10,42 @@
 
 <PageTitle>Rejestracja</PageTitle>
 
-<h1>Utwórz konto</h1>
+<div class="auth-head">
+    <h1>Utwórz konto</h1>
+    <p class="sub">Masz już konto? <a href="/login">Zaloguj się</a></p>
+</div>
 
 @if (errorMessage is not null)
 {
-    <div class="alert alert-danger" role="alert">@errorMessage</div>
+    <div class="alert alert-danger" role="alert"><Icon Name="IconName.Alert" /><span>@errorMessage</span></div>
 }
 
 <EditForm Model="Input" method="post" OnValidSubmit="RegisterAsync" FormName="register">
     <DataAnnotationsValidator />
 
-    <div class="mb-3">
+    <div class="field">
         <label for="email" class="form-label">Adres e-mail</label>
-        <InputText id="email" class="form-control" @bind-Value="Input!.Email" autocomplete="username" />
+        <div class="input-icon">
+            <Icon Name="IconName.Mail" />
+            <InputText id="email" class="form-control" @bind-Value="Input!.Email" autocomplete="username" />
+        </div>
         <ValidationMessage For="() => Input!.Email" class="text-danger" />
     </div>
 
-    <div class="mb-3">
+    <div class="field">
         <label for="password" class="form-label">Hasło</label>
-        <InputText id="password" type="password" class="form-control" @bind-Value="Input!.Password" autocomplete="new-password" />
+        <div class="input-icon">
+            <Icon Name="IconName.Lock" />
+            <InputText id="password" type="password" class="form-control" @bind-Value="Input!.Password" autocomplete="new-password" />
+        </div>
         <div class="form-text">@PasswordRequirementAttribute.Hint</div>
         <ValidationMessage For="() => Input!.Password" class="text-danger" />
     </div>
 
-    <button type="submit" class="btn btn-primary">Zarejestruj się</button>
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-lg w-100">Zarejestruj się<Icon Name="IconName.ArrowRight" StrokeWidth="2" /></button>
+    </div>
 </EditForm>
-
-<p class="mt-3">Masz już konto? <a href="/login">Zaloguj się</a></p>
 
 @code {
     [CascadingParameter]

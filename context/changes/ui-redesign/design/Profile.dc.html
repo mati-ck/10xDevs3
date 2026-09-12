@@ -1,0 +1,254 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+  <style>
+* { box-sizing: border-box; }
+body { margin: 0; background: #0A0B0F; }
+.app {
+  --accent: #8C7BFF;
+  --bg: #0A0B0F; --side: #0C0D12; --panel: #111319; --panel-2: #161922; --raise: #1C202B;
+  --field: #0D0F14; --line: #1F2330; --line-2: #2B3040;
+  --tx: #ECEEF3; --tx-2: #A2A8B7; --tx-3: #697083;
+  --ok: #3ECF8E; --warn: #F2B84B; --bad: #F07474; --on-accent: #0B0B12;
+  --accent-soft: color-mix(in oklch, var(--accent) 14%, transparent);
+  --accent-line: color-mix(in oklch, var(--accent) 38%, transparent);
+  font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 14px; line-height: 1.5; color: var(--tx); background: var(--bg);
+  -webkit-font-smoothing: antialiased; position: relative; overflow: hidden;
+}
+.mono { font-family: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: color-mix(in oklch, var(--accent) 78%, white); }
+h1 { margin: 0; font-size: 28px; line-height: 1.2; font-weight: 600; letter-spacing: -0.025em; text-wrap: balance; }
+p { margin: 0; text-wrap: pretty; }
+
+.shell { display: flex; height: 100%; }
+.side { width: 248px; flex: none; background: var(--side); border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 22px; padding: 20px 14px 16px; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 2px 8px; font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
+.logo { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); color: var(--on-accent);
+  display: grid; place-items: center; box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 6px 18px -6px var(--accent); }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-item { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px;
+  color: var(--tx-2); font-weight: 500; font-size: 13.5px; }
+.nav-item svg { color: var(--tx-3); flex: none; }
+.nav-item.active { background: var(--accent-soft); color: var(--tx); }
+.nav-item.active svg { color: var(--accent); }
+.side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--line); padding-top: 14px; }
+.user { display: flex; align-items: center; gap: 10px; padding: 4px 10px 12px; min-width: 0; }
+.avatar { width: 32px; height: 32px; flex: none; border-radius: 999px; background: var(--accent-soft); color: var(--accent);
+  border: 1px solid var(--accent-line); display: grid; place-items: center; font-weight: 600; font-size: 13px; }
+.user-name { font-weight: 500; font-size: 13.5px; line-height: 1.3; }
+.user-mail { font-size: 12px; color: var(--tx-3); line-height: 1.3; }
+
+.main { flex: 1; min-width: 0; position: relative; overflow: hidden;
+  background: radial-gradient(900px 360px at 28% -140px, color-mix(in oklch, var(--accent) 10%, transparent), transparent 70%), var(--bg); }
+.content { padding: 40px 48px; display: flex; flex-direction: column; gap: 28px; height: 100%; }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.sub { margin-top: 6px; color: var(--tx-2); font-size: 14px; }
+.crumbs { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--tx-3); margin-bottom: 12px; }
+.crumbs a { color: var(--tx-2); }
+.meta { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--tx-3); }
+.meta svg { flex: none; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px;
+  border-radius: 8px; font-family: inherit; font-weight: 500; font-size: 13.5px; line-height: 1; border: 1px solid transparent; white-space: nowrap; }
+.btn-primary { background: var(--accent); color: var(--on-accent); box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 8px 22px -10px var(--accent); }
+.btn-secondary { background: var(--raise); color: var(--tx); border-color: var(--line-2); }
+.btn-ghost { background: transparent; color: var(--tx-2); }
+.btn-danger { background: var(--bad); color: #170808; box-shadow: inset 0 1px 0 rgba(255,255,255,.25); }
+.btn-danger-soft { background: color-mix(in oklch, var(--bad) 9%, transparent); color: var(--bad); border-color: color-mix(in oklch, var(--bad) 28%, transparent); }
+.btn-sm { height: 30px; padding: 0 11px; font-size: 12.5px; border-radius: 7px; gap: 6px; }
+.btn-lg { height: 42px; padding: 0 18px; font-size: 14px; border-radius: 10px; }
+.btn.busy { opacity: .7; }
+.spin { width: 13px; height: 13px; border-radius: 999px; border: 2px solid color-mix(in oklch, var(--on-accent) 25%, transparent);
+  border-top-color: var(--on-accent); animation: rot .8s linear infinite; }
+@keyframes rot { to { transform: rotate(360deg); } }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.label { font-size: 13px; font-weight: 500; color: var(--tx); }
+.input { height: 40px; background: var(--field); border: 1px solid var(--line-2); border-radius: 9px; padding: 0 12px;
+  color: var(--tx); display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.input svg { color: var(--tx-3); flex: none; }
+.input.focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.input.invalid { border-color: color-mix(in oklch, var(--bad) 70%, transparent); box-shadow: 0 0 0 3px color-mix(in oklch, var(--bad) 14%, transparent); }
+.input .ph { color: var(--tx-3); }
+.textarea { background: var(--field); border: 1px solid var(--line-2); border-radius: 10px; padding: 14px 16px;
+  color: var(--tx-2); white-space: pre-wrap; overflow: hidden; line-height: 1.65; font-size: 13.5px; position: relative; }
+.hint { font-size: 12.5px; color: var(--tx-3); }
+.err { font-size: 12.5px; color: var(--bad); }
+
+.seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--field); border: 1px solid var(--line); border-radius: 10px; }
+.seg-item { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 7px;
+  font-size: 13px; font-weight: 500; color: var(--tx-3); }
+.seg-item.on { background: var(--raise); color: var(--tx); box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 1px 2px rgba(0,0,0,.45); }
+.seg-item.on svg { color: var(--accent); }
+
+.badge { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 999px;
+  font-size: 12px; font-weight: 500; background: var(--raise); color: var(--tx-2); border: 1px solid var(--line-2); white-space: nowrap; }
+.badge svg { color: var(--tx-3); }
+.badge.mono { font-size: 11.5px; }
+.dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; flex: none; }
+.st-ok { color: var(--ok); background: color-mix(in oklch, var(--ok) 9%, transparent); border-color: color-mix(in oklch, var(--ok) 24%, transparent); }
+.st-none { color: var(--tx-3); background: transparent; border-color: var(--line-2); }
+
+.alert { display: flex; gap: 11px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; font-size: 13.5px; border: 1px solid; color: var(--tx); }
+.alert svg { flex: none; margin-top: 2px; }
+.alert-ok { background: color-mix(in oklch, var(--ok) 8%, var(--panel)); border-color: color-mix(in oklch, var(--ok) 24%, transparent); }
+.alert-ok svg { color: var(--ok); }
+.alert-bad { background: color-mix(in oklch, var(--bad) 8%, var(--panel)); border-color: color-mix(in oklch, var(--bad) 26%, transparent); }
+.alert-bad svg { color: var(--bad); }
+.alert-warn { background: color-mix(in oklch, var(--warn) 8%, var(--panel)); border-color: color-mix(in oklch, var(--warn) 26%, transparent); }
+.alert-warn svg { color: var(--warn); }
+
+.icon-tile { width: 34px; height: 34px; flex: none; border-radius: 9px; display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-line); }
+
+.pane { display: flex; flex-direction: column; min-height: 0; overflow: hidden; position: relative; }
+.pane-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 54px; flex: none;
+  padding: 0 14px 0 18px; border-bottom: 1px solid var(--line); }
+.pane-title { display: flex; align-items: center; gap: 9px; font-size: 13.5px; font-weight: 600; }
+.pane-title svg { color: var(--tx-3); }
+.src { font-family: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.8;
+  color: var(--tx-2); white-space: pre-wrap; margin: 0; padding: 18px 20px; }
+.fade { position: absolute; left: 1px; right: 1px; bottom: 1px; height: 96px; border-radius: 0 0 14px 14px;
+  background: linear-gradient(to bottom, transparent, var(--panel)); pointer-events: none; }
+
+.md h2 { font-size: 15px; font-weight: 600; margin: 0 0 8px; color: var(--tx); letter-spacing: -0.01em; }
+.md p { margin: 0 0 18px; color: var(--tx-2); line-height: 1.7; }
+.md ol, .md ul { margin: 0 0 18px; padding-left: 20px; color: var(--tx-2); line-height: 1.7; }
+.md li { margin: 3px 0; }
+.md li::marker { color: var(--accent); }
+.md ul ul { margin: 2px 0 4px; }
+.md strong { color: var(--tx); font-weight: 600; }
+.md code { font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-size: 12px; background: var(--raise);
+  border: 1px solid var(--line-2); padding: 1px 6px; border-radius: 5px; color: var(--tx); }
+
+.caret { display: inline-block; width: 8px; height: 15px; background: var(--accent); vertical-align: -3px; margin-left: 2px;
+  border-radius: 1px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.stream-bar { height: 2px; flex: none; background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  background-size: 40% 100%; background-repeat: no-repeat; animation: slide 1.5s ease-in-out infinite; }
+@keyframes slide { from { background-position: -60% 0; } to { background-position: 160% 0; } }
+
+.scrim { position: absolute; inset: 0; background: rgba(5,6,9,.68); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 5; }
+.modal { width: 460px; background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 16px;
+  box-shadow: 0 40px 90px -24px rgba(0,0,0,.8); overflow: hidden; }
+</style>
+</helmet>
+<div class="app" style="width: 1440px; height: 1340px; --accent: {{akcent}};">
+<div class="shell">
+<aside class="side">
+  <div class="brand"><div class="logo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 7h12"></path><path d="M6 12h12"></path><path d="M6 17h7"></path></svg></div><span>10xnotes</span></div>
+  <nav class="nav">
+    <div class="nav-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path><path d="M9 13h6M9 17h4"></path></svg><span>Moje notatki</span></div>
+    <div class="nav-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5z"></path><path d="m3 13 9 5 9-5"></path></svg><span>Moje materiały</span></div>
+    <div class="nav-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg><span>Dodaj materiał</span></div>
+  </nav>
+  <div class="side-foot">
+    <div class="user">
+      <div class="avatar">M</div>
+      <div style="display: flex; flex-direction: column; min-width: 0;">
+        <span class="user-name">Mati</span>
+        <span class="user-mail">mati@przyklad.pl</span>
+      </div>
+    </div>
+    <div class="nav-item active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg><span>Moje konto</span></div>
+    <div class="nav-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"></path><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path></svg><span>Wyloguj się</span></div>
+  </div>
+</aside>
+<main class="main">
+<div class="content" style="gap: 8px;">
+  <div class="page-head" style="padding-bottom: 20px;">
+    <div>
+      <h1>Moje konto</h1>
+      <p class="sub">Dane logowania, nazwa w menu i ustawienia bezpieczeństwa.</p>
+    </div>
+  </div>
+  <div style="display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 40px; padding: 28px 0; border-top: 1px solid var(--line);">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="font-size: 15px; font-weight: 600; color: var(--tx);">Dane konta</div>
+      <p class="hint" style="font-size: 13px; line-height: 1.55;">Adres, którym logujesz się do aplikacji.</p>
+    </div>
+    <div class="card" style="padding: 22px; display: flex; flex-direction: column; gap: 18px; max-width: 560px; ">
+
+      <div class="field">
+        <span class="label">Adres e-mail</span>
+        <div class="input" style="background: transparent; border-style: dashed; color: var(--tx-2);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg><span>mati@przyklad.pl</span></div>
+        <span class="hint">Adresu e-mail nie można zmienić.</span>
+      </div>
+    </div>
+  </div><div style="display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 40px; padding: 28px 0; border-top: 1px solid var(--line);">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="font-size: 15px; font-weight: 600; color: var(--tx);">Nazwa wyświetlana</div>
+      <p class="hint" style="font-size: 13px; line-height: 1.55;">Nazwa pojawi się w menu zamiast adresu e-mail. Zostaw pole puste, aby wrócić do adresu.</p>
+    </div>
+    <div class="card" style="padding: 22px; display: flex; flex-direction: column; gap: 18px; max-width: 560px; ">
+
+      <div class="field">
+        <span class="label">Nazwa wyświetlana</span>
+        <div class="input">Mati</div>
+        <span class="hint">Maksymalnie 200 znaków.</span>
+      </div>
+      <div style="display: flex;"><div class="btn btn-secondary">Zapisz nazwę</div></div>
+    </div>
+  </div><div style="display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 40px; padding: 28px 0; border-top: 1px solid var(--line);">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="font-size: 15px; font-weight: 600; color: var(--tx);">Zmiana hasła</div>
+      <p class="hint" style="font-size: 13px; line-height: 1.55;">Hasło, którym logujesz się do aplikacji.</p>
+    </div>
+    <div class="card" style="padding: 22px; display: flex; flex-direction: column; gap: 18px; max-width: 560px; ">
+
+      <div class="alert alert-ok"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg><span>Hasło zostało zmienione. Użyj go przy następnym logowaniu.</span></div>
+      <div class="field">
+        <span class="label">Obecne hasło</span>
+        <div class="input"><span class="ph">••••••••</span></div>
+      </div>
+      <div class="field">
+        <span class="label">Nowe hasło</span>
+        <div class="input"><span class="ph">••••••••</span></div>
+        <span class="hint">Hasło musi mieć co najmniej 8 znaków.</span>
+      </div>
+      <div style="display: flex;"><div class="btn btn-secondary">Zmień hasło</div></div>
+    </div>
+  </div><div style="display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 40px; padding: 28px 0; border-top: 1px solid var(--line);">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="font-size: 15px; font-weight: 600; color: var(--bad);">Usunięcie konta</div>
+      <p class="hint" style="font-size: 13px; line-height: 1.55;">Znikną wszystkie Twoje notatki, materiały źródłowe i samo konto.</p>
+    </div>
+    <div class="card" style="padding: 22px; display: flex; flex-direction: column; gap: 18px; max-width: 560px; border-color: color-mix(in oklch, var(--bad) 30%, transparent); background: color-mix(in oklch, var(--bad) 4%, var(--panel));">
+
+      <p style="color: var(--tx-2); line-height: 1.6;">Usunięcie konta jest nieodwracalne. Znikną wszystkie Twoje notatki, materiały źródłowe i samo konto. Nie da się tego cofnąć ani odzyskać danych.</p>
+      <div class="field">
+        <span class="label">Potwierdź hasłem, że chcesz usunąć konto.</span>
+        <div class="input"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg><span class="ph">Hasło</span></div>
+      </div>
+      <div style="display: flex;"><div class="btn btn-danger"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"></path></svg>Usuń konto na zawsze</div></div>
+    </div>
+  </div>
+</div>
+</main>
+</div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"akcent": {"editor": "color", "default": "#8C7BFF", "options": ["#8C7BFF", "#5B9DFF", "#2BD4A4", "#FF8A4C"], "section": "Motyw"}, "$preview": {"width": 1440, "height": 1340}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    return {
+      akcent: p.akcent ?? '#8C7BFF',
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -28,7 +28,7 @@
    claim the same box: tall enough to work in, bounded so the source column stays beside it. */
 .note-source,
 .note-preview {
-    min-height: 60vh;
+    min-height: 40vh;
     max-height: 60vh;
     background: var(--field);
     border: 1px solid var(--line-2);
@@ -161,4 +161,21 @@
 /* Cancels .pane-body's 18px padding so the footer rule spans the pane, as in the artboards. */
 .note-editor-foot {
     margin: 2px -18px -18px;
+}
+
+
+/* Inside a two-pane detail page the editor's box is a flex child of .note-editor, which itself
+   fills the pane: it takes the height the pane has left rather than a fixed share of the
+   viewport, so the page never scrolls just to show an empty editor. */
+@media (min-width: 992px) and (min-height: 700px) {
+    .note-editor {
+        min-height: 0;
+    }
+
+    .note-source,
+    .note-preview {
+        flex: 1;
+        min-height: 160px;
+        max-height: none;
+    }
 }

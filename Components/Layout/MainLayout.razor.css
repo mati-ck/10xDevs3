@@ -44,6 +44,18 @@
     max-width: 1760px;
 }
 
+/* From the two-pane width up a detail page is exactly one screen tall: the column claims the
+   viewport, the grid takes whatever the heading leaves, and the panes scroll inside themselves.
+   Without this the editor's own height plus the chrome around it always added up to more than
+   the screen, so the page scrolled even when it held three lines of text. */
+@media (min-width: 992px) and (min-height: 700px) {
+    .content:has(.detail-grid) {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+}
+
 @media (max-width: 640.98px) {
     .sidebar {
         position: sticky;

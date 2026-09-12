@@ -1461,8 +1461,11 @@ textarea.form-control {
     gap: 22px;
 }
 
+/* Fixed rows would push the card past the bottom of a laptop screen; the box keeps its designed
+   height where there is room and gives it back where there is not. */
 .import-paste {
-    min-height: 292px;
+    height: clamp(180px, calc(100vh - 575px), 342px);
+    min-height: 0;
     resize: vertical;
 }
 
@@ -1591,6 +1594,11 @@ textarea.form-control {
         align-items: stretch;
     }
 
+    .detail-grid {
+        flex: 1;
+        min-height: 0;
+    }
+
     .pane {
         display: flex;
         flex-direction: column;
@@ -1600,6 +1608,13 @@ textarea.form-control {
             flex: 1;
             max-height: none;
         }
+
+    /* The editor is the tallest thing in the note pane, so it is what has to give: it grows into
+       the pane instead of claiming a fixed slice of the viewport. */
+    .pane-body > .note-editor {
+        flex: 1;
+        min-height: 0;
+    }
 
     .pane-empty {
         flex: 1;

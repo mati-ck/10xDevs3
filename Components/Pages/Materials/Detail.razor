@@ -31,132 +31,211 @@
 
 @if (material is null)
 {
-    <h1>Nie znaleziono materiału</h1>
-    <p>Ten materiał nie istnieje albo nie należy do Twojego konta.</p>
-    <a href="/materials/import">Dodaj nowy materiał</a>
+    <div class="card empty-state">
+        <div class="icon-tile icon-tile--lg"><Icon Name="IconName.Alert" Size="24" /></div>
+
+        <div>
+            <h1>Nie znaleziono materiału</h1>
+            <p>Ten materiał nie istnieje albo nie należy do Twojego konta.</p>
+        </div>
+
+        <a class="btn btn-secondary" href="/materials/import">
+            <Icon Name="IconName.Plus" StrokeWidth="2" />
+            Dodaj nowy materiał
+        </a>
+    </div>
 }
 else
 {
-    <h1>@material.Title</h1>
+    <div class="page-head page-head--detail">
+        <div>
+            <nav class="crumbs" aria-label="Ścieżka">
+                <a href="/materials">Moje materiały</a>
+                <Icon Name="IconName.ChevronRight" Size="13" />
+                @* Plain interpolation, never MarkupString: the title comes from the user. *@
+                <span>@material.Title</span>
+            </nav>
 
-    @* ToDisplayTime, not ToLocalTime: "local" resolves against the container's clock, which is
-       UTC. The culture is named explicitly so the month renders in Polish rather than in whatever
-       the server happens to default to. *@
-    @* Branched on Kind, not on OriginalFileName being null: provenance is a fact the row states,
-       and reading it off an absent file name would make a future bug in the import path look
-       like a paste. The date is in both branches — it is the one thing every material has. *@
-    @if (material.Kind == SourceMaterialKind.Paste)
-    {
-        <p class="text-secondary">
-            Wklejono @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture).
-        </p>
-    }
-    else
-    {
-        <p class="text-secondary">
-            Zaimportowano @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)
-            z pliku <code>@material.OriginalFileName</code>.
-        </p>
-    }
+            <h1>@material.Title</h1>
+
+            @* ToDisplayTime, not ToLocalTime: "local" resolves against the container's clock, which is
+               UTC. The culture is named explicitly so the month renders in Polish rather than in whatever
+               the server happens to default to. *@
+            @* Branched on Kind, not on OriginalFileName being null: provenance is a fact the row states,
+               and reading it off an absent file name would make a future bug in the import path look
+               like a paste. The date is in both branches — it is the one thing every material has.
+               The file name moved into the badge beside it, so the sentence no longer names it. *@
+            <div class="meta-row">
+                @if (material.Kind == SourceMaterialKind.Paste)
+                {
+                    <span class="badge">
+                        <Icon Name="IconName.Clipboard" Size="13" />
+                        Wklejony tekst
+                    </span>
+                    <span class="meta">
+                        Wklejono @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)
+                    </span>
+                }
+                else
+                {
+                    <span class="badge mono">
+                        <Icon Name="IconName.File" Size="13" />
+                        <span>@material.OriginalFileName</span>
+                    </span>
+                    <span class="meta">
+                        Zaimportowano @TimeProvider.ToDisplayTime(material.CreatedAt).ToString("d MMMM yyyy, HH:mm", PolishCulture)
+                    </span>
+                }
+            </div>
+        </div>
+    </div>
 
     @* Two columns so the note can be checked against the source without scrolling between them —
        the PRD guardrail is that the material stays available beside the note. They stack on a
        narrow window, source first, because the note is worthless without it. *@
-    <div class="row g-4">
-        <div class="col-lg-6">
-            <h2 class="h5">Materiał źródłowy</h2>
+    <div class="detail-grid">
+        <section class="card pane">
+            <div class="pane-head">
+                <h2 class="pane-title">
+                    <Icon Name="IconName.Layers" />
+                    Materiał źródłowy
+                </h2>
+            </div>
 
             @* Raw text, never rendered as Markdown or markup. The material is user-supplied and
                the PRD guardrail is that the source stays available and unchanged — showing it
                verbatim proves that literally, and keeps user content from ever reaching the DOM
                as HTML. *@
-            <pre class="source-content border rounded p-3">@material.Content</pre>
-        </div>
+            <pre class="source-content src">@material.Content</pre>
+            <div class="pane-fade"></div>
+        </section>
 
-        <div class="col-lg-6">
-            <h2 class="h5">Notatka</h2>
+        <section class="card pane pane--note">
+            <div class="pane-head">
+                <h2 class="pane-title">
+                    <Icon Name="IconName.FileText" />
+                    Notatka
+                </h2>
 
-            @if (!string.IsNullOrEmpty(NoteDeleted) && !noteDeletionDismissed)
+                @* The page's one and only generate button, in every state — the empty panel below
+                   deliberately offers no second one, so "Generuj notatkę" names exactly one control
+                   for a user and for MaterialsDetailTests alike. Primary until a draft exists, then
+                   secondary: once there is something to keep, regenerating is no longer the step
+                   the page is nudging towards. *@
+                <button type="button" class="btn btn-sm @(draft is null ? "btn-primary" : "btn-secondary")"
+                        disabled="@(isGenerating || isSaving)" @onclick="OnGenerateClickedAsync">
+                    @if (isGenerating)
+                    {
+                        <span class="spin"></span>
+                    }
+                    else
+                    {
+                        <Icon Name="IconName.Sparkle" Size="14" />
+                    }
+                    @(isGenerating ? "Generuję…" : "Generuj notatkę")
+                </button>
+            </div>
+
+            @if (isGenerating)
             {
-                @* Where the note page sends the user after a delete. Without it this page is
-                   indistinguishable from a material that never had a note, so somebody who
-                   mis-clicked could not tell whether the delete happened.
-
-                   Dismissed through Blazor, never data-bs-dismiss: App.razor links Bootstrap's
-                   CSS only — the sole script is blazor.web.js — so the data attribute would
-                   render a close button that silently does nothing. The btn-close class is pure
-                   CSS and works regardless. *@
-                <div class="alert alert-success d-flex align-items-start" role="alert">
-                    <span class="flex-grow-1">Notatka została usunięta.</span>
-                    <button type="button" class="btn-close ms-2" aria-label="Zamknij"
-                            @onclick="() => noteDeletionDismissed = true"></button>
-                </div>
+                <div class="stream-bar"></div>
             }
 
-            @if (savedNote is not null)
-            {
-                @* Today the only route to a saved note besides the redirect after saving — the
-                   notes index is S-03. Shown before anything is generated so a user who is about
-                   to overwrite accepted work learns that it exists first. *@
-                <p class="text-secondary">
-                    Ten materiał ma już zapisaną notatkę:
-                    <a href="/notes/@savedNote.Id">@savedNote.Title</a>.
-                </p>
-            }
+            <div class="pane-body">
+                @if (!string.IsNullOrEmpty(NoteDeleted) && !noteDeletionDismissed)
+                {
+                    @* Where the note page sends the user after a delete. Without it this page is
+                       indistinguishable from a material that never had a note, so somebody who
+                       mis-clicked could not tell whether the delete happened.
 
-            <button type="button" class="btn btn-primary mb-3"
-                    disabled="@(isGenerating || isSaving)" @onclick="OnGenerateClickedAsync">
-                @(isGenerating ? "Generuję…" : "Generuj notatkę")
-            </button>
+                       Dismissed through Blazor, never data-bs-dismiss: App.razor links Bootstrap's
+                       CSS only — the sole script is blazor.web.js — so the data attribute would
+                       render a close button that silently does nothing. The btn-close class is pure
+                       CSS and works regardless. *@
+                    <div class="alert alert-success d-flex align-items-start" role="alert">
+                        <Icon Name="IconName.Check" StrokeWidth="2" />
+                        <span class="flex-grow-1">Notatka została usunięta.</span>
+                        <button type="button" class="btn-close ms-2" aria-label="Zamknij"
+                                @onclick="() => noteDeletionDismissed = true"></button>
+                    </div>
+                }
 
-            @if (errorMessage is not null)
-            {
-                <div class="alert alert-danger" role="alert">@errorMessage</div>
-            }
+                @if (savedNote is not null)
+                {
+                    @* Today the only route to a saved note besides the redirect after saving — the
+                       notes index is S-03. Shown before anything is generated so a user who is about
+                       to overwrite accepted work learns that it exists first. *@
+                    <p class="pane-hint">
+                        Ten materiał ma już zapisaną notatkę:
+                        <a href="/notes/@savedNote.Id">@savedNote.Title</a>.
+                    </p>
+                }
 
-            @if (confirmation is not Confirmation.None)
-            {
-                @* In the page rather than window.confirm: a browser dialog blocks the circuit's
-                   event loop, cannot be styled, and cannot be written in Polish. *@
-                <div class="alert alert-warning" role="alert">
-                    <p>@ConfirmationQuestion</p>
-                    <button type="button" class="btn btn-warning btn-sm me-2"
-                            disabled="@isSaving" @onclick="ConfirmAsync">
-                        @ConfirmationAccept
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm"
-                            disabled="@isSaving" @onclick="() => confirmation = Confirmation.None">
-                        Anuluj
-                    </button>
-                </div>
-            }
+                @if (errorMessage is not null)
+                {
+                    <div class="alert alert-danger" role="alert">
+                        <Icon Name="IconName.Alert" />
+                        <span>@errorMessage</span>
+                    </div>
+                }
 
-            @if (draft is not null)
-            {
-                @* The stream has finished and handed the buffer over exactly once. From here the
-                   note belongs to the editor and nothing streams into it. *@
-                <NoteEditor @bind-Title="editorTitle"
-                            @bind-Content="editorContent"
-                            SaveLabel="@(savedNote is null ? "Zapisz notatkę" : "Zastąp zapisaną notatkę")"
-                            IsBusy="@isSaving"
-                            ErrorMessage="@saveErrorMessage"
-                            OnSave="OnSaveClickedAsync" />
-            }
-            else if (note.Length > 0)
-            {
-                @* Read-only for the duration of the stream, and deliberately so: the buffer is
-                   repainted every ~100 ms from a background loop, so a live textarea would have
-                   the user's keystrokes and the model's tokens fighting over one field. This page
-                   already has a documented history of exactly that class of bug. *@
-                <pre class="note-content border rounded p-3">@note</pre>
-            }
-            else if (!isGenerating && errorMessage is null)
-            {
-                <p class="text-secondary">
-                    Kliknij „Generuj notatkę", a AI przygotuje streszczenie i konspekt tego materiału.
-                </p>
-            }
-        </div>
+                @if (confirmation is not Confirmation.None)
+                {
+                    @* In the page rather than window.confirm: a browser dialog blocks the circuit's
+                       event loop, cannot be styled, and cannot be written in Polish. *@
+                    <div class="alert alert-warning" role="alert">
+                        <Icon Name="IconName.Alert" />
+                        <div>
+                            <p>@ConfirmationQuestion</p>
+
+                            <div class="alert-actions">
+                                <button type="button" class="btn btn-warning btn-sm"
+                                        disabled="@isSaving" @onclick="ConfirmAsync">
+                                    @ConfirmationAccept
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm"
+                                        disabled="@isSaving" @onclick="() => confirmation = Confirmation.None">
+                                    Anuluj
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (draft is not null)
+                {
+                    @* The stream has finished and handed the buffer over exactly once. From here the
+                       note belongs to the editor and nothing streams into it. *@
+                    <NoteEditor @bind-Title="editorTitle"
+                                @bind-Content="editorContent"
+                                SaveLabel="@(savedNote is null ? "Zapisz notatkę" : "Zastąp zapisaną notatkę")"
+                                IsBusy="@isSaving"
+                                ErrorMessage="@saveErrorMessage"
+                                OnSave="OnSaveClickedAsync" />
+                }
+                else if (note.Length > 0)
+                {
+                    @* Read-only for the duration of the stream, and deliberately so: the buffer is
+                       repainted every ~100 ms from a background loop, so a live textarea would have
+                       the user's keystrokes and the model's tokens fighting over one field. This page
+                       already has a documented history of exactly that class of bug.
+
+                       The caret follows @note with no whitespace between them: Razor keeps whitespace
+                       inside a <pre> verbatim, so a line break here would land in the note itself. *@
+                    <pre class="note-content src src--live">@note@if (isGenerating){<span class="caret"></span>}</pre>
+                }
+                else if (!isGenerating && errorMessage is null)
+                {
+                    <div class="pane-empty">
+                        <div class="icon-tile icon-tile--xl"><Icon Name="IconName.Sparkle" Size="26" /></div>
+
+                        <p>
+                            Kliknij „Generuj notatkę", a AI przygotuje streszczenie i konspekt tego materiału.
+                        </p>
+                    </div>
+                }
+            </div>
+        </section>
     </div>
 }
 

@@ -753,13 +753,13 @@ No data, schema or configuration change. Rollback = revert the phase commits; ea
 
 #### Automated
 
-- [x] 3.1 Solution builds: `dotnet build`
-- [x] 3.2 Test suite passes: `dotnet test`
-- [x] 3.3 Hook check: the `feature/test-plan` suite passes in the throwaway worktree, and its merge of `Import.razor` completes without conflicts
-- [x] 3.4 The three `#title` merge-seam lines in `Import.razor` are unchanged against `main`
-- [x] 3.5 `#file`, `#paste` and `#title` are present in `Import.razor`, and `d-none` appears twice
-- [x] 3.6 Neither index page declares a `@rendermode`
-- [x] 3.7 `grep -rn "list-group" Components` returns nothing
+- [x] 3.1 Solution builds: `dotnet build` — 6cdbc7c
+- [x] 3.2 Test suite passes: `dotnet test` — 6cdbc7c
+- [x] 3.3 Hook check: the `feature/test-plan` suite passes in the throwaway worktree, and its merge of `Import.razor` completes without conflicts — 6cdbc7c
+- [x] 3.4 The three `#title` merge-seam lines in `Import.razor` are unchanged against `main` — 6cdbc7c
+- [x] 3.5 `#file`, `#paste` and `#title` are present in `Import.razor`, and `d-none` appears twice — 6cdbc7c
+- [x] 3.6 Neither index page declares a `@rendermode` — 6cdbc7c
+- [x] 3.7 `grep -rn "list-group" Components` returns nothing — 6cdbc7c
 
 #### Manual
 
@@ -777,16 +777,16 @@ No data, schema or configuration change. Rollback = revert the phase commits; ea
 
 #### Automated
 
-- [ ] 4.1 Solution builds: `dotnet build`
-- [ ] 4.2 Test suite passes: `dotnet test`
-- [ ] 4.3 Hook check: the `feature/test-plan` suite passes in the throwaway worktree — `NoteEditorTests` and `MaterialsDetailTests` included
-- [ ] 4.4 `grep -rn "(MarkupString)" Components` still matches only `Components/Notes/NoteEditor.razor`
-- [ ] 4.5 The number of `<button` elements in `Materials/Detail.razor` is unchanged
-- [ ] 4.6 `<h1>Nie znaleziono materiału</h1>` is present verbatim in `Materials/Detail.razor`
-- [ ] 4.7 NoteEditor has exactly one `div.form-text`, the counter, before the textarea
-- [ ] 4.8 `btn-primary` in NoteEditor matches only the save button
-- [ ] 4.9 `grep -rnE 'data-bs-(dismiss|toggle)="|IJSRuntime' Components` returns nothing
-- [ ] 4.10 Both detail pages' scoped `.razor.css` files are removed
+- [x] 4.1 Solution builds: `dotnet build`
+- [x] 4.2 Test suite passes: `dotnet test`
+- [x] 4.3 Hook check: the `feature/test-plan` suite passes in the throwaway worktree — `NoteEditorTests` and `MaterialsDetailTests` included
+- [x] 4.4 `grep -rn "(MarkupString)" Components` still matches only `Components/Notes/NoteEditor.razor`
+- [x] 4.5 The number of `<button` elements in `Materials/Detail.razor` is unchanged
+- [x] 4.6 `<h1>Nie znaleziono materiału</h1>` is present verbatim in `Materials/Detail.razor`
+- [x] 4.7 NoteEditor has exactly one `div.form-text`, the counter, before the textarea
+- [x] 4.8 `btn-primary` in NoteEditor matches only the save button
+- [x] 4.9 `grep -rnE 'data-bs-(dismiss|toggle)="|IJSRuntime' Components` returns nothing
+- [x] 4.10 Both detail pages' scoped `.razor.css` files are removed
 
 #### Manual
 
@@ -798,6 +798,8 @@ No data, schema or configuration change. Rollback = revert the phase commits; ea
 - [ ] 4.16 The delete dialog matches `dialogUsuwania`, traps focus, closes on Escape, and a confirmed delete lands on the dismissible notice
 - [ ] 4.17 Unknown material and note ids show the not-found cards
 - [ ] 4.18 Both detail pages stack source above note at ~400 px and below 992 px
+
+> P4 implementation notes (non-interactive run): manual rows 4.11–4.18 are left for a browser pass. Hook check 4.3 ran before the commit, as in P2/P3: a detached worktree at `/tmp/10xDevs3-hookcheck` on the P3 tip with `feature/test-plan` merged in (clean merge, `Import.razor` auto-merged), then the P4 working-tree files copied over. `feature/test-plan` does touch both detail pages — it rewrites the `NoteSaveFailure.ContentTooLong` message from KB to characters in each `@code` block — so the two files were spliced rather than copied: this phase's markup on top of the merged `@code`. `dotnet test`: 387 passed (18 in `MaterialsDetailTests` + `NoteEditorTests`); worktree removed. On this branch `dotnet build` is clean and `dotnet test` is 355 passed. Contract additions, all in `wwwroot/app.css`: `.empty-state h1` (the not-found branch's heading is the page's own `h1`), and the alert child rule lost its `:not(.btn)` clause — the legacy direct-child buttons it protected are now inside `.alert-actions`. In `NoteEditor.razor.css` the preview's `::deep pre` gets the artboard's block-code box and a `::deep pre code` reset, because the scoped `::deep code` chip rule out-specifies `app.css`'s own `pre code` reset. The title field is `div.field` rather than `div.field.mb-0`: `.note-editor .field { margin-bottom: 0 }` has been in `app.css` since P1. The streaming `<pre>` keeps `@note@if (isGenerating){<span class="caret"></span>}` on one line, per the plan's whitespace rule. Per the run's one-commit rule the P4 rows carry no SHA suffix; the P5 commit may back-fill it, as this one back-filled P3's.
 
 ### Phase 5: Account and system pages, responsive pass
 

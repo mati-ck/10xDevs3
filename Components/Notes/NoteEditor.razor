@@ -5,60 +5,92 @@
    not in what editing looks like.
 
    Stateless beyond its parameters and its own preview toggle — it never touches the database, and
-   every rule it appears to enforce lives in NoteValidator. That split is not decoration: the
-   project has no bUnit, so anything left inside a component cannot be tested at all. *@
+   every rule it appears to enforce lives in NoteValidator. That split is what makes the component
+   testable at all: NoteEditorTests (on feature/test-plan) renders it on its own, so the ids below,
+   the first button.btn-primary being save and the first div.form-text being the counter are
+   contracts rather than styling choices. *@
 
-<div class="mb-3">
-    <label for="note-title" class="form-label">Tytuł notatki</label>
-    <input type="text" id="note-title" class="form-control" maxlength="@NoteValidator.MaxTitleLength"
-           value="@Title" @onchange="OnTitleChanged" disabled="@IsBusy" />
+<div class="note-editor">
+    <div class="field">
+        <label for="note-title" class="form-label">Tytuł notatki</label>
+        <input type="text" id="note-title" class="form-control" maxlength="@NoteValidator.MaxTitleLength"
+               value="@Title" @onchange="OnTitleChanged" disabled="@IsBusy" />
+    </div>
+
+    <div class="note-editor-toolbar">
+        @* A segmented control rather than two .btn elements, and not only for the look: it keeps
+           the save button below the first — and only — button.btn-primary in the component.
+           aria-pressed is rendered as a string because Blazor drops a boolean attribute when it
+           is false, and "not pressed" has to be stated rather than absent. *@
+        <div class="seg" role="group" aria-label="Tryb notatki">
+            <button type="button" class="seg-item @(showPreview ? "" : "on")"
+                    aria-pressed="@(showPreview ? "false" : "true")"
+                    @onclick="() => showPreview = false">
+                <Icon Name="IconName.Pencil" Size="14" />
+                Edycja
+            </button>
+            <button type="button" class="seg-item @(showPreview ? "on" : "")"
+                    aria-pressed="@(showPreview ? "true" : "false")"
+                    @onclick="() => showPreview = true">
+                <Icon Name="IconName.Eye" Size="14" />
+                Podgląd
+            </button>
+        </div>
+
+        @* Characters against the character limit, unformatted and in that exact wording: it is the
+           unit NoteValidator enforces, and NoteEditorTests reads the plain digits back. *@
+        <div class="form-text note-counter">
+            @Content.Length / @NoteValidator.MaxContentLength znaków
+        </div>
+    </div>
+
+    @if (showPreview)
+    {
+        @* The only MarkupString in the project. Everything else — the source material, the streaming
+           panel — is rendered as text on purpose, so this one line is the entire surface on which
+           note content becomes markup. NoteMarkdown is what makes it safe (HTML parsing off plus a
+           URL scheme allowlist) and NoteMarkdownTests is what keeps it that way. *@
+        <div class="note-preview">@((MarkupString)NoteMarkdown.ToHtml(Content))</div>
+    }
+    else
+    {
+        @* Committed on change rather than on input. Every keystroke of a 64 KB note would otherwise
+           be a SignalR round trip and a re-render. Blur fires change before the click that caused it,
+           so switching to preview or hitting save always sees what was just typed. *@
+        @* maxlength mirrors the title field above, and is not cosmetic: the browser refusing the
+           65 537th character is the difference between a validation message and a torn-down circuit,
+           because the whole value crosses the wire in one hub invocation. HubWireLimits (in Hosting/)
+           is the other half of that guarantee. *@
+        <textarea id="note-content" class="form-control note-source" rows="18"
+                  maxlength="@NoteValidator.MaxContentLength"
+                  value="@Content" @onchange="OnContentChanged" disabled="@IsBusy"></textarea>
+    }
+
+    @if (ErrorMessage is not null)
+    {
+        <div class="alert alert-danger" role="alert">
+            <Icon Name="IconName.Alert" />
+            <span>@ErrorMessage</span>
+        </div>
+    }
+
+    @* The pane's footer, pulled flush with its edges: the save button is the last thing in the
+       note pane on both pages. It is the first button.btn-primary here, and its only text is the
+       label — the icon carries none, so TextContent still reads exactly what the caller passed. *@
+    <div class="pane-foot note-editor-foot">
+        <button type="button" class="btn btn-primary" disabled="@IsBusy" @onclick="() => OnSave.InvokeAsync()">
+            @if (IsBusy)
+            {
+                <span class="spin"></span>
+            }
+            else
+            {
+                <Icon Name="IconName.Check" StrokeWidth="2" />
+            }
+            @(IsBusy ? "Zapisywanie…" : SaveLabel)
+        </button>
+    </div>
 </div>
-
-<div class="btn-group btn-group-sm mb-2" role="group" aria-label="Tryb notatki">
-    <button type="button" class="btn @(showPreview ? "btn-outline-secondary" : "btn-secondary")"
-            @onclick="() => showPreview = false">
-        Edycja
-    </button>
-    <button type="button" class="btn @(showPreview ? "btn-secondary" : "btn-outline-secondary")"
-            @onclick="() => showPreview = true">
-        Podgląd
-    </button>
-</div>
-
-@if (showPreview)
-{
-    @* The only MarkupString in the project. Everything else — the source material, the streaming
-       panel — is rendered as text on purpose, so this one line is the entire surface on which
-       note content becomes markup. NoteMarkdown is what makes it safe (HTML parsing off plus a
-       URL scheme allowlist) and NoteMarkdownTests is what keeps it that way. *@
-    <div class="note-preview border rounded p-3">@((MarkupString)NoteMarkdown.ToHtml(Content))</div>
-}
-else
-{
-    @* Committed on change rather than on input. Every keystroke of a 64 KB note would otherwise
-       be a SignalR round trip and a re-render. Blur fires change before the click that caused it,
-       so switching to preview or hitting save always sees what was just typed. *@
-    @* maxlength mirrors the title field above, and is not cosmetic: the browser refusing the
-       65 537th character is the difference between a validation message and a torn-down circuit,
-       because the whole value crosses the wire in one hub invocation. HubWireLimits (in Hosting/)
-       is the other half of that guarantee. *@
-    <textarea id="note-content" class="form-control note-source" rows="18"
-              maxlength="@NoteValidator.MaxContentLength"
-              value="@Content" @onchange="OnContentChanged" disabled="@IsBusy"></textarea>
-}
-
-<div class="form-text mb-3">
-    @Content.Length / @NoteValidator.MaxContentLength znaków
-</div>
-
-@if (ErrorMessage is not null)
-{
-    <div class="alert alert-danger" role="alert">@ErrorMessage</div>
-}
-
-<button type="button" class="btn btn-primary" disabled="@IsBusy" @onclick="() => OnSave.InvokeAsync()">
-    @(IsBusy ? "Zapisywanie…" : SaveLabel)
-</button>
 
 @code {
     [Parameter]

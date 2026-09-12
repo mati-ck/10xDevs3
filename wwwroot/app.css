@@ -432,8 +432,8 @@ input[type=file].form-control {
 
 
 /* --- Alerts ----------------------------------------------------------------------------------
-   Optional leading <Icon>, then the message. Buttons that are direct children keep their own
-   width (legacy markup until P4); everything else takes the remaining line. */
+   Optional leading <Icon>, then the message (and, where an alert asks something, an .alert-actions
+   row inside it). The close button keeps its own width; everything else takes the rest of the line. */
 
 .alert {
     --bs-alert-padding-x: 14px;
@@ -452,7 +452,7 @@ input[type=file].form-control {
         margin-top: 2px;
     }
 
-    .alert > :not(svg):not(.btn-close):not(.btn) {
+    .alert > :not(svg):not(.btn-close) {
         flex: 1;
         min-width: 0;
     }
@@ -546,6 +546,38 @@ input[type=file].form-control {
     .modal-footer > * {
         margin: 0;
     }
+
+/* The delete dialog leads with an icon rather than a header bar, so it renders no .modal-header
+   and spaces the body itself. */
+.delete-dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 24px 24px 20px;
+}
+
+    .delete-dialog-body .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+    }
+
+    .delete-dialog-body p {
+        margin: 0;
+        line-height: 1.6;
+        color: var(--tx-2);
+    }
+
+.modal-icon {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    color: var(--bad);
+    background: color-mix(in oklch, var(--bad) 12%, transparent);
+    border: 1px solid color-mix(in oklch, var(--bad) 30%, transparent);
+    border-radius: 11px;
+}
 
 .modal-backdrop {
     --bs-backdrop-bg: rgb(5, 6, 9);
@@ -796,6 +828,12 @@ input[type=file].form-control {
     background: color-mix(in oklch, var(--panel) 60%, transparent);
 }
 
+/* On the detail pages this card is the not-found branch, so its heading is the page's own h1 —
+   FocusOnNavigate targets it, and it must stay the first h1 on the page. */
+.empty-state h1 {
+    font-size: 22px;
+}
+
 .empty-state-title {
     margin: 0;
     font-size: 17px;
@@ -884,6 +922,14 @@ input[type=file].form-control {
     padding: 18px;
 }
 
+/* A line of explanation inside a pane, where a paragraph would otherwise inherit body size. */
+.pane-hint {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--tx-2);
+}
+
 .pane-foot {
     display: flex;
     justify-content: flex-end;
@@ -929,6 +975,12 @@ input[type=file].form-control {
 
 .src--live {
     color: var(--tx);
+}
+
+/* The streaming note is the last thing in the note pane's body and reaches its edges, while the
+   draft editor and the empty state keep the body's padding. */
+.pane-body > pre.src {
+    margin: 0 -18px -18px;
 }
 
 /* Named pane-fade, not fade: Bootstrap's .fade is a transition utility. */

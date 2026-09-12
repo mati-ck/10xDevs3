@@ -1604,8 +1604,12 @@ textarea.form-control {
         flex-direction: column;
     }
 
+        /* min-height: 0 is what keeps a long source inside its pane: a flex item's automatic
+           minimum is its content height, so without it a 14 000px transcript stretches the pane
+           (and the page) instead of scrolling in place. */
         .pane > .src {
             flex: 1;
+            min-height: 0;
             max-height: none;
         }
 

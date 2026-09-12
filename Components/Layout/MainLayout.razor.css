@@ -26,6 +26,17 @@
     padding: 40px 48px 64px;
 }
 
+/* A page that is one card wide reads as a single block: the column shrinks to the card's own
+   width, so the heading and the card stay aligned with each other and the block sits in the
+   middle of the content area instead of hugging its left edge on a wide screen. */
+.content:has(.import-card) {
+    max-width: 936px;
+}
+
+.content:has(.narrow-card) {
+    max-width: 556px;
+}
+
 /* The two-pane detail pages earn more width than a list does: a source column and an editor
    side by side are what the space is for. :has() keeps this in the layout's own stylesheet —
    the pages stay unaware of the shell. */

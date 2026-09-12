@@ -43,6 +43,13 @@
     color: var(--tx-2);
 }
 
+/* The border above is set here, and the scoped bundle loads after app.css, so it also wins over
+   .form-control:focus — the accent border has to be restated or the focused editor would show
+   the violet glow around a grey box. */
+.note-source:focus {
+    border-color: var(--accent);
+}
+
 /* Matches the textarea's box exactly, so switching to Podgląd does not make the page jump. */
 .note-preview {
     padding: 20px 22px;

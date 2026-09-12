@@ -116,6 +116,23 @@ a {
     text-decoration: none;
 }
 
+/* The artboards underline nothing, which is fine for links that are their own control (a nav
+   item, a card, a row, a badge, a breadcrumb): shape and position already say "link". Inside
+   running prose there is no such cue, and the accent against --tx-2 is a 1.4:1 difference — a
+   colour-only distinction (WCAG 1.4.1). So prose links, and only those, keep an underline.
+   Delete this block to go back to the artboards' bare links. */
+.sub a,
+.pane-hint a,
+.alert a,
+.empty-state p a,
+.narrow-card p a,
+.settings-card p a,
+.delete-dialog-body p a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+}
+
 h1 {
     margin: 0;
     font-size: 28px;
@@ -180,8 +197,7 @@ pre code {
     white-space: nowrap;
 }
 
-.btn-sm,
-.btn-group-sm > .btn {
+.btn-sm {
     --bs-btn-padding-x: 11px;
     --bs-btn-padding-y: 0;
     --bs-btn-font-size: 12.5px;
@@ -190,8 +206,7 @@ pre code {
     height: var(--control-h-sm);
 }
 
-.btn-lg,
-.btn-group-lg > .btn {
+.btn-lg {
     --bs-btn-padding-x: 18px;
     --bs-btn-padding-y: 0;
     --bs-btn-font-size: 14px;
@@ -230,7 +245,7 @@ pre code {
     --bs-btn-disabled-border-color: var(--line-2);
 }
 
-/* "Ghost" in the mockups. Also the legacy btn-group toggles until P3/P4: .active = hover look. */
+/* "Ghost" in the mockups. */
 .btn-outline-secondary {
     --bs-btn-color: var(--tx-2);
     --bs-btn-bg: transparent;
@@ -370,27 +385,6 @@ textarea.form-control {
     color: var(--tx-3);
     background-color: var(--panel);
     opacity: .7;
-}
-
-input[type=file].form-control {
-    padding: 0 12px 0 0;
-    line-height: calc(var(--input-h) - 2px);
-}
-
-.form-control::file-selector-button {
-    height: calc(var(--input-h) - 2px);
-    margin: 0 12px 0 0;
-    padding: 0 14px;
-    font: 500 13.5px/1 var(--font-sans);
-    color: var(--tx);
-    background-color: var(--raise);
-    border: 0;
-    border-inline-end: 1px solid var(--line-2);
-    border-radius: 0;
-}
-
-.form-control:hover:not(:disabled):not([readonly])::file-selector-button {
-    background-color: color-mix(in oklch, var(--raise) 80%, white 6%);
 }
 
 /* Blazor's field-state classes. No green "valid" outline: only problems are signalled. */
@@ -568,6 +562,7 @@ input[type=file].form-control {
         margin: 0;
         line-height: 1.6;
         color: var(--tx-2);
+        overflow-wrap: anywhere;
     }
 
 .modal-icon {
@@ -1557,6 +1552,8 @@ input[type=file].form-control {
             text-decoration: underline;
         }
 
+    /* A <button>, not a span with role="button": the framework wires it by class, and a real
+       button is the only version a keyboard can reach. */
     #blazor-error-ui .dismiss {
         position: absolute;
         right: 14px;
@@ -1564,12 +1561,22 @@ input[type=file].form-control {
         transform: translateY(-50%);
         display: grid;
         place-items: center;
+        padding: 4px;
         color: var(--tx-3);
+        background: none;
+        border: 0;
+        border-radius: 6px;
         cursor: pointer;
     }
 
         #blazor-error-ui .dismiss:hover {
             color: var(--tx);
+        }
+
+        #blazor-error-ui .dismiss:focus-visible {
+            outline: 0;
+            color: var(--tx);
+            box-shadow: 0 0 0 3px var(--accent-soft);
         }
 
 
